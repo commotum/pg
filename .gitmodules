@@ -1,3 +1,6 @@
 [submodule "parameter-golf"]
 	path = parameter-golf
 	url = https://github.com/openai/parameter-golf.git
+[submodule "qham"]
+	path = qham
+	url = git@github.com:commotum/qham.git

@@ -1,0 +1,304 @@
+\begin{thebibliography}{}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Abadi et~al.(2016)Abadi, Barham, Chen, Chen, Davis, Dean, Devin,
+  Ghemawat, Irving, Isard et~al.}]{abadi2016tensorflow}
+Mart{\'\i}n Abadi, Paul Barham, Jianmin Chen, Zhifeng Chen, Andy Davis, Jeffrey
+  Dean, Matthieu Devin, Sanjay Ghemawat, Geoffrey Irving, Michael Isard, et~al.
+  2016.
+\newblock Tensorflow: A system for large-scale machine learning.
+\newblock In {\em 12th $\{$USENIX$\}$ Symposium on Operating Systems Design and
+  Implementation ($\{$OSDI$\}$ 16)\/}. pages 265--283.
+
+\bibitem[{Arjovsky et~al.(2016)Arjovsky, Shah, and
+  Bengio}]{arjovsky2016unitary}
+Martin Arjovsky, Amar Shah, and Yoshua Bengio. 2016.
+\newblock Unitary evolution recurrent neural networks.
+\newblock In {\em International Conference on Machine Learning\/}. pages
+  1120--1128.
+
+\bibitem[{Bahdanau et~al.(2014)Bahdanau, Cho, and Bengio}]{bahdanau2014neural}
+Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio. 2014.
+\newblock Neural machine translation by jointly learning to align and
+  translate.
+\newblock {\em arXiv preprint arXiv:1409.0473\/} .
+
+\bibitem[{Bowman et~al.(2015)Bowman, Angeli, Potts, and
+  Manning}]{bowman2015large}
+Samuel~R Bowman, Gabor Angeli, Christopher Potts, and Christopher~D Manning.
+  2015.
+\newblock A large annotated corpus for learning natural language inference.
+\newblock {\em arXiv preprint arXiv:1508.05326\/} .
+
+\bibitem[{Chen et~al.(2016)Chen, Zhu, Ling, Wei, Jiang, and
+  Inkpen}]{chen2016enhanced}
+Qian Chen, Xiaodan Zhu, Zhenhua Ling, Si~Wei, Hui Jiang, and Diana Inkpen.
+  2016.
+\newblock Enhanced lstm for natural language inference.
+\newblock {\em arXiv preprint arXiv:1609.06038\/} .
+
+\bibitem[{Comminiello et~al.(2018)Comminiello, Lella, Scardapane, and
+  Uncini}]{comminiello2018quaternion}
+Danilo Comminiello, Marco Lella, Simone Scardapane, and Aurelio Uncini. 2018.
+\newblock Quaternion convolutional neural networks for detection and
+  localization of 3d sound events.
+\newblock {\em arXiv preprint arXiv:1812.06811\/} .
+
+\bibitem[{Danihelka et~al.(2016)Danihelka, Wayne, Uria, Kalchbrenner, and
+  Graves}]{danihelka2016associative}
+Ivo Danihelka, Greg Wayne, Benigno Uria, Nal Kalchbrenner, and Alex Graves.
+  2016.
+\newblock Associative long short-term memory.
+\newblock {\em arXiv preprint arXiv:1602.03032\/} .
+
+\bibitem[{Daniluk et~al.(2017)Daniluk, Rockt{\"a}schel, Welbl, and
+  Riedel}]{daniluk2017frustratingly}
+Micha{\l} Daniluk, Tim Rockt{\"a}schel, Johannes Welbl, and Sebastian Riedel.
+  2017.
+\newblock Frustratingly short attention spans in neural language modeling.
+\newblock {\em arXiv preprint arXiv:1702.04521\/} .
+
+\bibitem[{Dehghani et~al.(2018)Dehghani, Gouws, Vinyals, Uszkoreit, and
+  Kaiser}]{dehghani2018universal}
+Mostafa Dehghani, Stephan Gouws, Oriol Vinyals, Jakob Uszkoreit, and {\L}ukasz
+  Kaiser. 2018.
+\newblock Universal transformers.
+\newblock {\em arXiv preprint arXiv:1807.03819\/} .
+
+\bibitem[{Devlin et~al.(2018)Devlin, Chang, Lee, and
+  Toutanova}]{devlin2018bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. 2018.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock {\em arXiv preprint arXiv:1810.04805\/} .
+
+\bibitem[{Gaudet and Maida(2017)}]{gaudet2017deep}
+Chase Gaudet and Anthony Maida. 2017.
+\newblock Deep quaternion networks.
+\newblock {\em arXiv preprint arXiv:1712.04604\/} .
+
+\bibitem[{Huang et~al.(2012)Huang, Socher, Manning, and
+  Ng}]{huang2012improving}
+Eric~H Huang, Richard Socher, Christopher~D Manning, and Andrew~Y Ng. 2012.
+\newblock Improving word representations via global context and multiple word
+  prototypes.
+\newblock In {\em Proceedings of the 50th Annual Meeting of the Association for
+  Computational Linguistics: Long Papers-Volume 1\/}. Association for
+  Computational Linguistics, pages 873--882.
+
+\bibitem[{Khot et~al.(2018)Khot, Sabharwal, and Clark}]{khot2018scitail}
+Tushar Khot, Ashish Sabharwal, and Peter Clark. 2018.
+\newblock Scitail: A textual entailment dataset from science question
+  answering.
+\newblock In {\em Thirty-Second AAAI Conference on Artificial Intelligence\/}.
+
+\bibitem[{Lan et~al.(2017)Lan, Qiu, He, and Xu}]{lan2017continuously}
+Wuwei Lan, Siyu Qiu, Hua He, and Wei Xu. 2017.
+\newblock A continuously growing dataset of sentential paraphrases.
+\newblock {\em arXiv preprint arXiv:1708.00391\/} .
+
+\bibitem[{Li and Jurafsky(2015)}]{li2015multi}
+Jiwei Li and Dan Jurafsky. 2015.
+\newblock Do multi-sense embeddings improve natural language understanding?
+\newblock {\em arXiv preprint arXiv:1506.01070\/} .
+
+\bibitem[{Linzen et~al.(2016)Linzen, Dupoux, and
+  Goldberg}]{linzen2016assessing}
+Tal Linzen, Emmanuel Dupoux, and Yoav Goldberg. 2016.
+\newblock Assessing the ability of lstms to learn syntax-sensitive
+  dependencies.
+\newblock {\em Transactions of the Association for Computational Linguistics\/}
+  4:521--535.
+
+\bibitem[{Lowe et~al.(2015)Lowe, Pow, Serban, and Pineau}]{lowe2015ubuntu}
+Ryan Lowe, Nissan Pow, Iulian Serban, and Joelle Pineau. 2015.
+\newblock The ubuntu dialogue corpus: A large dataset for research in
+  unstructured multi-turn dialogue systems.
+\newblock {\em arXiv preprint arXiv:1506.08909\/} .
+
+\bibitem[{Maas et~al.(2011)Maas, Daly, Pham, Huang, Ng, and Potts}]{IMDB}
+Andrew~L. Maas, Raymond~E. Daly, Peter~T. Pham, Dan Huang, Andrew~Y. Ng, and
+  Christopher Potts. 2011.
+\newblock \href{http://www.aclweb.org/anthology/P11-1015}{Learning word vectors
+  for sentiment analysis}.
+\newblock In {\em Proceedings of the 49th Annual Meeting of the Association for
+  Computational Linguistics: Human Language Technologies\/}. Association for
+  Computational Linguistics, Portland, Oregon, USA, pages 142--150.
+\newblock
+  \href{http://www.aclweb.org/anthology/P11-1015}{http://www.aclweb.org/anthology/P11-1015}.
+
+\bibitem[{Neelakantan et~al.(2015)Neelakantan, Shankar, Passos, and
+  McCallum}]{neelakantan2015efficient}
+Arvind Neelakantan, Jeevan Shankar, Alexandre Passos, and Andrew McCallum.
+  2015.
+\newblock Efficient non-parametric estimation of multiple embeddings per word
+  in vector space.
+\newblock {\em arXiv preprint arXiv:1504.06654\/} .
+
+\bibitem[{Nguyen and Joty(2019)}]{nguyen2019phrasebased}
+Phi~Xuan Nguyen and Shafiq Joty. 2019.
+\newblock \href{https://openreview.net/forum?id=r1xN5oA5tm}{Phrase-based
+  attentions}.
+\newblock
+  \href{https://openreview.net/forum?id=r1xN5oA5tm}{https://openreview.net/forum?id=r1xN5oA5tm}.
+
+\bibitem[{Nickel et~al.(2016)Nickel, Rosasco, and
+  Poggio}]{nickel2016holographic}
+Maximilian Nickel, Lorenzo Rosasco, and Tomaso Poggio. 2016.
+\newblock Holographic embeddings of knowledge graphs.
+\newblock In {\em Thirtieth Aaai conference on artificial intelligence\/}.
+
+\bibitem[{Parcollet et~al.(2018{\natexlab{a}})Parcollet, Ravanelli, Morchid,
+  Linar{\`e}s, Trabelsi, De~Mori, and Bengio}]{parcollet2018quaternion2}
+Titouan Parcollet, Mirco Ravanelli, Mohamed Morchid, Georges Linar{\`e}s,
+  Chiheb Trabelsi, Renato De~Mori, and Yoshua Bengio. 2018{\natexlab{a}}.
+\newblock Quaternion recurrent neural networks.
+\newblock {\em arXiv preprint arXiv:1806.04418\/} .
+
+\bibitem[{Parcollet et~al.(2018{\natexlab{b}})Parcollet, Zhang, Morchid,
+  Trabelsi, Linar{\`e}s, De~Mori, and Bengio}]{parcollet2018quaternion}
+Titouan Parcollet, Ying Zhang, Mohamed Morchid, Chiheb Trabelsi, Georges
+  Linar{\`e}s, Renato De~Mori, and Yoshua Bengio. 2018{\natexlab{b}}.
+\newblock Quaternion convolutional neural networks for end-to-end automatic
+  speech recognition.
+\newblock {\em arXiv preprint arXiv:1806.07789\/} .
+
+\bibitem[{Parikh et~al.(2016)Parikh, T{\"a}ckstr{\"o}m, Das, and
+  Uszkoreit}]{parikh2016decomposable}
+Ankur~P Parikh, Oscar T{\"a}ckstr{\"o}m, Dipanjan Das, and Jakob Uszkoreit.
+  2016.
+\newblock A decomposable attention model for natural language inference.
+\newblock {\em arXiv preprint arXiv:1606.01933\/} .
+
+\bibitem[{Pavllo et~al.(2018)Pavllo, Grangier, and Auli}]{pavllo2018quaternet}
+Dario Pavllo, David Grangier, and Michael Auli. 2018.
+\newblock Quaternet: A quaternion-based recurrent model for human motion.
+\newblock {\em arXiv preprint arXiv:1805.06485\/} .
+
+\bibitem[{Pennington et~al.(2014)Pennington, Socher, and
+  Manning}]{pennington2014glove}
+Jeffrey Pennington, Richard Socher, and Christopher Manning. 2014.
+\newblock Glove: Global vectors for word representation.
+\newblock In {\em Proceedings of the 2014 conference on empirical methods in
+  natural language processing (EMNLP)\/}. pages 1532--1543.
+
+\bibitem[{Plate(1991)}]{plate1991holographic}
+Tony Plate. 1991.
+\newblock Holographic reduced representations: Convolution algebra for
+  compositional distributed representations.
+
+\bibitem[{Radford et~al.(2018)Radford, Narasimhan, Salimans, and
+  Sutskever}]{radford2018improving}
+Alec Radford, Karthik Narasimhan, Tim Salimans, and Ilya Sutskever. 2018.
+\newblock Improving language understanding by generative pre-training .
+
+\bibitem[{Radford et~al.(2019)Radford, Wu, Child, Luan, Amodei, and
+  Sutskever}]{radford2019gpt2}
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya
+  Sutskever. 2019.
+\newblock Language models are unsupervised multitask learners .
+
+\bibitem[{Seo et~al.(2016)Seo, Kembhavi, Farhadi, and
+  Hajishirzi}]{seo2016bidirectional}
+Minjoon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi. 2016.
+\newblock Bidirectional attention flow for machine comprehension.
+\newblock {\em arXiv preprint arXiv:1611.01603\/} .
+
+\bibitem[{Socher et~al.(2013)Socher, Perelygin, Wu, Chuang, Manning, Ng, and
+  Potts}]{socher2013recursive}
+Richard Socher, Alex Perelygin, Jean Wu, Jason Chuang, Christopher~D Manning,
+  Andrew Ng, and Christopher Potts. 2013.
+\newblock Recursive deep models for semantic compositionality over a sentiment
+  treebank.
+\newblock In {\em Proceedings of the 2013 conference on empirical methods in
+  natural language processing\/}. pages 1631--1642.
+
+\bibitem[{Tay et~al.(2018)Tay, Luu, and Hui}]{tay2018hermitian}
+Yi~Tay, Anh~Tuan Luu, and Siu~Cheung Hui. 2018.
+\newblock Hermitian co-attention networks for text matching in asymmetrical
+  domains.
+
+\bibitem[{Tay et~al.(2017{\natexlab{a}})Tay, Phan, Tuan, and
+  Hui}]{tay2017learning}
+Yi~Tay, Minh~C Phan, Luu~Anh Tuan, and Siu~Cheung Hui. 2017{\natexlab{a}}.
+\newblock Learning to rank question answer pairs with holographic dual lstm
+  architecture.
+\newblock In {\em Proceedings of the 40th International ACM SIGIR Conference on
+  Research and Development in Information Retrieval\/}. ACM, pages 695--704.
+
+\bibitem[{Tay et~al.(2017{\natexlab{b}})Tay, Tuan, and Hui}]{tay2017compare}
+Yi~Tay, Luu~Anh Tuan, and Siu~Cheung Hui. 2017{\natexlab{b}}.
+\newblock Compare, compress and propagate: Enhancing neural architectures with
+  alignment factorization for natural language inference.
+\newblock {\em arXiv preprint arXiv:1801.00102\/} .
+
+\bibitem[{Trabelsi et~al.(2017)Trabelsi, Bilaniuk, Zhang, Serdyuk, Subramanian,
+  Santos, Mehri, Rostamzadeh, Bengio, and Pal}]{trabelsi2017deep}
+Chiheb Trabelsi, Olexa Bilaniuk, Ying Zhang, Dmitriy Serdyuk, Sandeep
+  Subramanian, Jo{\~a}o~Felipe Santos, Soroush Mehri, Negar Rostamzadeh, Yoshua
+  Bengio, and Christopher~J Pal. 2017.
+\newblock Deep complex networks.
+\newblock {\em arXiv preprint arXiv:1705.09792\/} .
+
+\bibitem[{Trouillon et~al.(2016)Trouillon, Welbl, Riedel, Gaussier, and
+  Bouchard}]{trouillon2016complex}
+Th{\'e}o Trouillon, Johannes Welbl, Sebastian Riedel, {\'E}ric Gaussier, and
+  Guillaume Bouchard. 2016.
+\newblock Complex embeddings for simple link prediction.
+\newblock In {\em International Conference on Machine Learning\/}. pages
+  2071--2080.
+
+\bibitem[{Vaswani et~al.(2017)Vaswani, Shazeer, Parmar, Uszkoreit, Jones,
+  Gomez, Kaiser, and Polosukhin}]{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N Gomez, {\L}ukasz Kaiser, and Illia Polosukhin. 2017.
+\newblock Attention is all you need.
+\newblock In {\em Advances in Neural Information Processing Systems\/}. pages
+  5998--6008.
+
+\bibitem[{Wang et~al.(2017)Wang, Hamza, and Florian}]{wang2017bilateral}
+Zhiguo Wang, Wael Hamza, and Radu Florian. 2017.
+\newblock Bilateral multi-perspective matching for natural language sentences.
+\newblock {\em arXiv preprint arXiv:1702.03814\/} .
+
+\bibitem[{Wangperawong(2018)}]{DBLP:journals/corr/abs-1812-02825}
+Artit Wangperawong. 2018.
+\newblock \href{http://arxiv.org/abs/1812.02825}{Attending to mathematical
+  language with transformers}.
+\newblock {\em CoRR\/} abs/1812.02825.
+\newblock
+  \href{http://arxiv.org/abs/1812.02825}{http://arxiv.org/abs/1812.02825}.
+
+\bibitem[{Williams et~al.(2017)Williams, Nangia, and
+  Bowman}]{williams2017broad}
+Adina Williams, Nikita Nangia, and Samuel~R Bowman. 2017.
+\newblock A broad-coverage challenge corpus for sentence understanding through
+  inference.
+\newblock {\em arXiv preprint arXiv:1704.05426\/} .
+
+\bibitem[{Yang et~al.(2015)Yang, Yih, and Meek}]{yang2015wikiqa}
+Yi~Yang, Wen-tau Yih, and Christopher Meek. 2015.
+\newblock Wikiqa: A challenge dataset for open-domain question answering.
+\newblock In {\em Proceedings of the 2015 Conference on Empirical Methods in
+  Natural Language Processing\/}. pages 2013--2018.
+
+\bibitem[{Zhang et~al.(2019{\natexlab{a}})Zhang, Tay, Yao, and
+  Liu}]{zhang2019quate}
+Shuai Zhang, Yi~Tay, Lina Yao, and Qi~Liu. 2019{\natexlab{a}}.
+\newblock Quaternion knowledge graph embeddings.
+\newblock {\em arXiv preprint arXiv:1904.10281\/} .
+
+\bibitem[{Zhang et~al.(2019{\natexlab{b}})Zhang, Yao, Tran, Zhang, and
+  Tay}]{zhang2019quaternion}
+Shuai Zhang, Lina Yao, Lucas~Vinh Tran, Aston Zhang, and Yi~Tay.
+  2019{\natexlab{b}}.
+\newblock Quaternion collaborative filtering for recommendation.
+\newblock {\em arXiv preprint arXiv:1906.02594\/} .
+
+\bibitem[{Zhu et~al.(2018)Zhu, Xu, Xu, and Chen}]{zhu2018quaternion}
+Xuanyu Zhu, Yi~Xu, Hongteng Xu, and Changjian Chen. 2018.
+\newblock Quaternion convolutional neural networks.
+\newblock In {\em Proceedings of the European Conference on Computer Vision
+  (ECCV)\/}. pages 631--647.
+
+\end{thebibliography}
