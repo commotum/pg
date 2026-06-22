@@ -843,13 +843,17 @@ Decision gate:
 - If the `sp16384` seed batch improves over `sp8192`, or is close enough that additional seed variance could change the ordering, continue to Phase 12.
 - Do not continue incrementing vocab sizes one at a time; `sp16384` is the last planned simple-stack vocab probe unless it creates a specific new budget/compression question.
 
-Phase 11 in-progress status as of 2026-06-22 11:57 PDT:
+Phase 11 in-progress status as of 2026-06-22 12:27 PDT:
 
 - added `goal/11-sp16384.md`, `goal/11-sp16384-tokenizer-config.json`, `goal/11-data.sbatch`, `goal/11-smoke.sbatch`, and `goal/11-benchmark.sbatch`;
 - export job `20483087` is running on compute node `cn-a26` as `pg-phase11-data`;
 - the export log shows SentencePiece finished fitting and saved the `sp16384` model and vocab files under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/tokenizers/`;
-- as of 2026-06-22 12:15 PDT, the export had written the validation shard and 19 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
+- as of 2026-06-22 12:20 PDT, the export had written the validation shard and 22 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
+- Slurm accounting showed `elapsed=00:49:19`, `CPUTime=01:38:38`, and `NCPUS=2`, meaning the export was using nearly both requested CPUs continuously;
 - Slurm `sstat` showed active CPU use and about `2.5G` max RSS, so the export appeared healthy rather than stalled;
+- future full-tokenizer exports should request more CPUs up front, or run a smaller smoke export before committing to the full 80-shard export. The running job cannot be resized in place;
+- a parallel 16-CPU export job `20483589` was submitted as `pg-p11-data16` with output root `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`, reusing the already-fit `sp16384` SentencePiece model from the original export and leaving job `20483087` running as the fallback;
+- as of 2026-06-22 12:27 PDT, job `20483589` was pending on resources;
 - smoke job `20483144` is queued with `--dependency=afterok:20483087`, so it will only run if the export succeeds;
 - no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
 
