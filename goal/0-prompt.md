@@ -1,6 +1,6 @@
 Please continue the quaternion Parameter Golf work using the loop defined in `goal/0-loop.md` and the revised roadmap in `goal/0-plan.md`.
 
-The plan has already been redirected after Phase 9. Do not restart from the original simple-baseline framing, and do not treat `qMLP sp4096 > dense sp1024` as sufficient evidence of a serious winner. That result is a useful lead. The current decision question is:
+The plan has already been redirected after the simple-stack vocabulary ladder. Do not restart from the original simple-baseline framing, and do not treat `qMLP sp4096 > dense sp1024` or `qMLP sp8192 > dense sp1024` as sufficient evidence of a serious winner. Those results are useful leads. The current decision question is:
 
 ```text
 Does qMLP enable a better best-under-16MB configuration than the known dense/record-stack path?
@@ -15,17 +15,27 @@ For each phase in `goal/0-plan.md`:
 3. Then update `goal/0-plan.md`, `goal/0-loop.md`, the current phase file, and any earlier phase files whose assumptions changed, so the docs match the facts on the ground.
 4. Then decide whether to continue, revise, repeat narrowly, block, abandon, or move to the next phase.
 
+Current facts:
+
+- Phase 10 replicated simple-stack qMLP `sp8192`; it is the best simple-stack qMLP candidate so far.
+- Phase 11 tested simple-stack qMLP `sp16384` across three A40 seeds; it fit under the package cap but lost to replicated `sp8192`.
+- Phase 12 was skipped.
+- Phase 13 is now active and should produce the A40 dense record-stack `sp8192` control.
+- Phase 14 measures same-vocab record-stack qMLP tax at `sp8192`.
+- Phase 15 tests fixed record-stack qMLP `sp16384` as the budget-reinvestment candidate.
+- The package-frontier search beyond `sp16384` is deferred. A `11776` canary, job `20484777`, fit easily at `9,376,232` total submission bytes, so `sp16384` is safe enough to benchmark, but do not push to `24576` or `32768` until the fixed A40 comparison says larger vocab is worth pursuing.
+
 Current strategic trajectory:
 
-1. Finish `sp8192` qMLP seed replication on the simple stack.
-2. Probe `sp16384` qMLP with a cheap smoke/package-size gate before any full benchmark.
-3. If the `sp16384` smoke passes, run the initial `sp16384` benchmark as a small parallel seed batch rather than one serial seed.
-4. Stop the simple-stack vocabulary ladder after `sp16384`.
-5. Reproduce the strongest manageable current record-setting stack as-is on A40.
-6. Add qMLP to that same record-stack configuration without changing vocab or unrelated settings, to measure qMLP tax.
-7. Use qMLP's saved package/model budget inside the record stack with smoke/package-size probes near the 16 MB frontier.
-8. Compare A40 head-to-head: original record stack, same-vocab qMLP record stack, and budget-reinvested qMLP record stack.
-9. Only if A40 record-stack qMLP results are promising, run H100/FA3 confirmation.
+1. Resume Phase 13 from `goal/13-record.md`.
+2. Verify whether CaseOps SP8192 data prep job `20483645` completed and whether the expected train, validation, and validation-byte shards exist.
+3. Treat missing `flash_attn_interface` on A40 as an SDPA-fallback screening condition, not as an automatic blocker, because the local 04-23 record script has a fallback.
+4. Run the dense record-stack `sp8192` smoke, then A40 baseline seeds if the smoke passes.
+5. Run Phase 14 same-vocab qMLP record-stack `sp8192` smoke and A40 seeds.
+6. Run Phase 15 qMLP record-stack `sp16384` package/path smoke and A40 seeds.
+7. Compare A40 head-to-head: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
+8. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
+9. Only if A40 record-stack qMLP results are promising, run H100/FA3 confirmation after explicit review and approval.
 
 Use dense budget controls as a secondary track, not the main path. The dense control question is:
 
