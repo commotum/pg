@@ -848,7 +848,7 @@ Phase 11 in-progress status as of 2026-06-22 11:57 PDT:
 - added `goal/11-sp16384.md`, `goal/11-sp16384-tokenizer-config.json`, `goal/11-data.sbatch`, `goal/11-smoke.sbatch`, and `goal/11-benchmark.sbatch`;
 - export job `20483087` is running on compute node `cn-a26` as `pg-phase11-data`;
 - the export log shows SentencePiece finished fitting and saved the `sp16384` model and vocab files under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/tokenizers/`;
-- as of 2026-06-22 12:06 PDT, the export had written the validation shard and 15 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
+- as of 2026-06-22 12:15 PDT, the export had written the validation shard and 19 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
 - Slurm `sstat` showed active CPU use and about `2.5G` max RSS, so the export appeared healthy rather than stalled;
 - smoke job `20483144` is queued with `--dependency=afterok:20483087`, so it will only run if the export succeeds;
 - no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
@@ -890,6 +890,17 @@ Decision rules:
 Goal: reproduce the strongest manageable current record-setting stack as-is on A40 before modifying it.
 
 Prefer the local record stack with CaseOps/special vocab and known optimizations if it can run without spending days on H100-only dependency work. A40 is a screening and debugging environment, not final proof.
+
+Phase plan file:
+
+- `goal/13-record.md` was drafted provisionally on 2026-06-22 during the Phase 11 export wait. It is not active yet and no Phase 13 jobs have been submitted.
+
+Read-only inventory facts from the draft:
+
+- the best local record candidate is `2026-04-27_SP8192_LQER_SparseGate_BOSSmearFix_9HpStack_1.0611` with `val_bpb=1.06107587`, but it assumes 8xH100, FA3, PyTorch 2.9.1+cu128, CUDA 12.8, and `lrzip`;
+- the `2026-04-29_SmearGateBOSFix_3Seed_1.06141` compliance reproduction is similarly H100/FA3-oriented and has very tight artifact headroom;
+- the `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` stack is slightly weaker at `val_bpb=1.06335` but may be the simpler first A40 reproduction target because it avoids the 04-27 per-group `lrzip` path;
+- all inspected modern record candidates import `flash_attn_interface` directly, so A40 reproduction may require a bounded attention compatibility check or fallback.
 
 Actions:
 

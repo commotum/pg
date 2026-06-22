@@ -1,0 +1,224 @@
+# Phase 13: Record-Stack Inventory And A40 Reproduction
+
+Date drafted: 2026-06-22
+
+Status: provisional future-phase plan. Do not implement this phase until Phase 11/12 resolves and the plan explicitly moves from simple-stack `sp16384` to record-stack work.
+
+## Overview
+
+Reproduce the strongest manageable current record-setting stack as-is on A40 before adding qMLP.
+
+This phase exists to establish the relevant dense/record-stack control. The project question is no longer whether simple qMLP beats an underfilled dense `sp1024` baseline. The current question is whether qMLP can help produce a best-under-16MB configuration against the known dense/record-stack path.
+
+## Why This Matters
+
+Simple-stack qMLP plus larger vocabulary is a useful lead, but record-stack performance is much stronger. A qMLP result matters only if it can beat, match, or create a credible path beyond the strongest manageable record-stack control under the same package budget.
+
+The record-stack reproduction should answer:
+
+- Which local record stack can actually run on OSU A40 within bounded setup effort?
+- What BPB, throughput, memory, artifact size, and failure modes does that stack show on A40?
+- Is the chosen control stable enough to measure same-vocab qMLP tax in Phase 14?
+
+## Current Candidate Inventory
+
+Read-only inventory on 2026-06-22 identified the likely candidates under `parameter-golf/records/track_10min_16mb/`.
+
+Best published local record:
+
+```text
+path=parameter-golf/records/track_10min_16mb/2026-04-27_SP8192_LQER_SparseGate_BOSSmearFix_9HpStack_1.0611
+mean_val_bpb=1.06107587
+seeds=42,0,1234
+hardware=8xH100 80GB SXM
+artifact_bytes_max=15907550
+steps_mean=4931.33
+step_avg_ms_mean=121.7
+requirements=PyTorch 2.9.1+cu128, CUDA 12.8, FlashAttention 3, lrzip
+notes=best BPB but includes per-group lrzip compression and tight H100/FA3 assumptions
+```
+
+Strong compliance reproduction:
+
+```text
+path=parameter-golf/records/track_10min_16mb/2026-04-29_SmearGateBOSFix_3Seed_1.06141
+mean_val_bpb=1.06145
+rerun_mean_bpb=1.06141
+seeds=42,314,1234
+hardware=8xH100 SXM 80GB
+artifact_bytes_max=15952690
+requirements=PyTorch 2.9+, FlashAttention interface, CaseOps SP8192
+notes=no new technique; useful compliance reproduction of PR #1851, but artifact headroom is only about 47 KB
+```
+
+Slightly older strong stack:
+
+```text
+path=parameter-golf/records/track_10min_16mb/2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE
+mean_val_bpb=1.06335
+seeds=42,0,1234
+hardware=8xH100 80GB SXM
+artifact_bytes_max=15940380
+requirements=PyTorch 2.9.1+cu128, flash-attn-interface, triton, sentencepiece
+notes=slightly worse than 04-27/04-29, but simpler than the 04-27 lrzip/pergroup compression path
+```
+
+All three inspected stacks import `flash_attn_interface` directly and use H100-oriented FlashAttention 3 paths in `train_gpt.py`. The full reproduction commands use `torchrun --standalone --nproc_per_node=8`. Therefore A40 reproduction is expected to require either:
+
+- an environment where the imported FlashAttention interface works on A40; or
+- a bounded compatibility patch/fallback to PyTorch SDPA or another A40-supported attention path; or
+- choosing a lower-ranked record-style control that is already A40-compatible.
+
+## Working Assumptions
+
+- Phase 13 begins only after Phase 11/12 ends the simple-stack vocabulary ladder.
+- A40 is a screening/debugging environment, not final proof of leaderboard performance.
+- No H100/H200 job should be used merely to continue simple-stack exploration.
+- The first record-stack target should minimize setup risk while staying close enough to the known record path to be a meaningful qMLP control.
+- A same-vocab qMLP tax measurement in Phase 14 is only meaningful if this phase reproduces or approximates a strong record-stack control.
+
+## Implementation Steps
+
+1. Confirm Phase 13 activation.
+
+Before starting jobs, verify that:
+
+- Phase 11 is complete;
+- Phase 12 is either complete, skipped, or abandoned by documented decision;
+- the chosen simple-stack qMLP candidate is explicit;
+- the plan still calls for record-stack reproduction before more simple-stack exploration.
+
+2. Choose the first record-stack target.
+
+Default selection:
+
+- Start with `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` if direct A40 compatibility is uncertain, because it avoids the 04-27 `lrzip` per-group compressor while staying close to the modern CaseOps/SP8192 record path.
+- Move to `2026-04-27_SP8192_LQER_SparseGate_BOSSmearFix_9HpStack_1.0611` only if `flash_attn_interface` and `lrzip` are available or can be handled with bounded effort.
+- Keep `2026-04-29_SmearGateBOSFix_3Seed_1.06141` as a compliance/reference target, but treat its small package headroom as a risk for qMLP budget experiments.
+
+3. Inventory the remote environment without running training.
+
+On Slurm compute nodes, use short jobs to record:
+
+- Python version and venv path;
+- PyTorch/CUDA versions;
+- whether `flash_attn_interface` imports;
+- whether Triton imports and can compile a trivial kernel;
+- whether `lrzip` is available if the chosen target requires it;
+- whether CaseOps prep dependencies are present.
+
+Do not run these diagnostics directly on submit nodes.
+
+4. Prepare CaseOps data if needed.
+
+If the record target needs `fineweb10B_sp8192_lossless_caps_caseops_v1_reserved`, stage or generate it under `/nfs/hpc/share/peterj29/pg/data-exports/`.
+
+Record:
+
+- data path;
+- tokenizer path;
+- byte-sidecar path if present;
+- shard counts;
+- token counts;
+- source manifest or prep command.
+
+Use Slurm for any data preparation.
+
+5. Run a minimal record-stack smoke.
+
+Use A40, short walltime, and the chosen record script without qMLP.
+
+The first smoke should test:
+
+- import and initialization;
+- one or two training steps;
+- validation path if cheap;
+- serializer/package path if it can run in short mode;
+- memory footprint.
+
+If full package serialization is too expensive for smoke, run the smallest package-size probe that gives a defensible estimate and document the limitation.
+
+6. Run A40 screening benchmarks for a few seeds if smoke passes.
+
+Use the record stack as-is except for hardware-compatible changes that were already documented in smoke.
+
+Record for every run:
+
+- job ID;
+- seed;
+- host and GPU;
+- exact command and environment;
+- BPB;
+- steps;
+- `ms/step`;
+- package/artifact size;
+- memory;
+- exit state;
+- log paths.
+
+Prefer parallel independent seed jobs when scheduler/account limits allow it.
+
+7. Decide the Phase 14 control.
+
+At the end of this phase, choose one:
+
+- reproduced record stack is strong enough to become the Phase 14 same-vocab qMLP control;
+- A40-compatible fallback control is weaker but documented as the best manageable control;
+- record-stack reproduction is blocked by FA3/H100-only assumptions and needs a bounded compatibility patch;
+- record-stack path is too expensive and should be replaced by a dense near-budget simple-stack control.
+
+## Expected Artifacts
+
+- `goal/13-record.md` updated with the chosen target and results.
+- Slurm scripts under `goal/` or a run-specific staging directory.
+- Run directories under `/nfs/hpc/share/peterj29/pg/runs/phase13-record-*`.
+- Environment logs.
+- CaseOps data manifest or prep logs if data prep is needed.
+- Smoke logs.
+- A40 benchmark logs if smoke passes.
+
+## Completion Requirements
+
+This phase is complete when:
+
+- a target record stack is chosen with rationale;
+- environment compatibility is tested on Slurm compute nodes;
+- CaseOps/tokenizer/data prerequisites are either available or the blocker is documented;
+- an A40 smoke reaches terminal state, or an import/dependency blocker is captured;
+- if smoke passes, at least one A40 record-stack benchmark reaches terminal state;
+- all run IDs, commands, logs, package sizes, BPB, step counts, memory, and hardware are recorded;
+- `goal/0-plan.md`, this file, and any affected later phase assumptions are updated;
+- the Phase 14 same-vocab qMLP-tax target is explicit, or the reason for not proceeding is explicit.
+
+## Failure and Fallback Rules
+
+- If `flash_attn_interface` is missing or H100-only, do not spend days trying to recreate the H100 environment on A40. Either add a bounded A40 attention fallback or choose a lower-ranked compatible control.
+- If `lrzip` is unavailable and the chosen target requires `COMPRESSOR=pergroup`, first test `COMPRESSOR=brotli` as a screening fallback and record the artifact-size/BPB implication.
+- If CaseOps data prep is slow but progressing normally, let it run as a Slurm job; do not run it on submit nodes.
+- If A40 is too slow for full 600-second TTT evaluation, record a no-TTT or reduced-TTT screening metric only as a diagnostic, not as final record-stack proof.
+- Do not move to Phase 14 unless this phase leaves a concrete same-vocab control.
+
+## Result
+
+Status: not started
+
+Evidence:
+
+- Read-only inventory found the likely record-stack candidates and their dependency constraints.
+- No Phase 13 jobs have been submitted.
+- Phase 11 simple-stack `sp16384` export/smoke gate is still active, so Phase 13 implementation is intentionally deferred.
+
+Artifacts:
+
+- Pending implementation.
+
+New facts:
+
+- The strongest local record candidates are all H100/FA3-oriented and import `flash_attn_interface` directly.
+- The 04-27 best record also requires the system `lrzip` binary for its `COMPRESSOR=pergroup` path.
+- The 04-23 candidate is slightly weaker but likely simpler as a first A40 reproduction target.
+
+Decision:
+
+- Keep this file as the provisional Phase 13 plan.
+- Do not implement Phase 13 until the simple-stack `sp16384` path reaches a documented decision.
