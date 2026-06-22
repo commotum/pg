@@ -28,6 +28,9 @@ DATASET_NAME=${DATASET_NAME:-fineweb10B_sp${VOCAB_SIZE}_lossless_caps_caseops_v1
 DATA_PATH=${DATA_PATH:-$CASEOPS_OUT/datasets/$DATASET_NAME}
 VAL_DOCS=${VAL_DOCS:-10000}
 MAX_DOCS=${MAX_DOCS:-0}
+DUMMY_SHARDS=${DUMMY_SHARDS:-0}
+DUMMY_TRAIN_TOKENS=${DUMMY_TRAIN_TOKENS:-262144}
+DUMMY_VAL_TOKENS=${DUMMY_VAL_TOKENS:-65536}
 FORCE_REBUILD_TOKENIZER=${FORCE_REBUILD_TOKENIZER:-0}
 FORCE_REBUILD_DATA=${FORCE_REBUILD_DATA:-0}
 JOB_DIR="$RUN_ROOT/$SLURM_JOB_ID"
@@ -76,6 +79,9 @@ fi
     echo "data_path=$DATA_PATH"
     echo "val_docs=$VAL_DOCS"
     echo "max_docs=$MAX_DOCS"
+    echo "dummy_shards=$DUMMY_SHARDS"
+    echo "dummy_train_tokens=$DUMMY_TRAIN_TOKENS"
+    echo "dummy_val_tokens=$DUMMY_VAL_TOKENS"
     echo "force_rebuild_tokenizer=$FORCE_REBUILD_TOKENIZER"
     echo "force_rebuild_data=$FORCE_REBUILD_DATA"
     echo "git_commit=$(git -C "$REPO_PATH" rev-parse HEAD 2>/dev/null || true)"
@@ -100,7 +106,11 @@ fi
     echo "CASEOPS_OUT=$CASEOPS_OUT"
     echo "VAL_DOCS=$VAL_DOCS"
     echo "MAX_DOCS=$MAX_DOCS"
+    echo "DUMMY_SHARDS=$DUMMY_SHARDS"
+    echo "DUMMY_TRAIN_TOKENS=$DUMMY_TRAIN_TOKENS"
+    echo "DUMMY_VAL_TOKENS=$DUMMY_VAL_TOKENS"
     echo "tokenizer_command=python $REPO_PATH/goal/15-train-caseops-tokenizer.py --docs $DOCS_SELECTED --record-path $RECORD_PATH --out-model $TOKENIZER_PATH --vocab-size $VOCAB_SIZE --tokenizer-train-docs $TOKENIZER_TRAIN_DOCS"
+    echo "dummy_command=python $REPO_PATH/goal/15-write-dummy-shards.py --data-path $DATA_PATH --vocab-size $VOCAB_SIZE --train-tokens $DUMMY_TRAIN_TOKENS --val-tokens $DUMMY_VAL_TOKENS"
     echo "data_command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $TOKENIZER_PATH --val-docs $VAL_DOCS --dataset-name $DATASET_NAME --max-docs $MAX_DOCS"
 } >"$JOB_DIR/command.txt"
 
@@ -116,10 +126,24 @@ else
     echo "tokenizer exists, skipping: $TOKENIZER_PATH" >"$JOB_DIR/tokenizer.log"
 fi
 
-train_shards_existing=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
-val_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
-val_byte_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
+if [[ -d "$DATA_PATH" ]]; then
+    train_shards_existing=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
+    val_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
+    val_byte_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
+else
+    train_shards_existing=0
+    val_shards_existing=0
+    val_byte_shards_existing=0
+fi
 if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt 1 || "$val_shards_existing" -lt 1 || "$val_byte_shards_existing" -lt 1 ]]; then
+    if [[ "$DUMMY_SHARDS" == "1" ]]; then
+        python "$REPO_PATH/goal/15-write-dummy-shards.py" \
+            --data-path "$DATA_PATH" \
+            --vocab-size "$VOCAB_SIZE" \
+            --train-tokens "$DUMMY_TRAIN_TOKENS" \
+            --val-tokens "$DUMMY_VAL_TOKENS" \
+            >"$JOB_DIR/caseops-data.log" 2>&1
+    else
     python "$RECORD_PATH/prepare_caseops_data.py" \
         --docs "$DOCS_SELECTED" \
         --out "$CASEOPS_OUT" \
@@ -128,6 +152,7 @@ if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt 1 || "$val_sh
         --dataset-name "$DATASET_NAME" \
         --max-docs "$MAX_DOCS" \
         >"$JOB_DIR/caseops-data.log" 2>&1
+    fi
 else
     echo "data exists, skipping: $DATA_PATH" >"$JOB_DIR/caseops-data.log"
 fi

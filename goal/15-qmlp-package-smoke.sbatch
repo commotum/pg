@@ -52,9 +52,15 @@ if [[ ! -f "$TOKENIZER_PATH" ]]; then
     exit 2
 fi
 
-train_shards=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
-val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
-val_byte_shards=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
+if [[ -d "$DATA_PATH" ]]; then
+    train_shards=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
+    val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
+    val_byte_shards=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
+else
+    train_shards=0
+    val_shards=0
+    val_byte_shards=0
+fi
 if [[ "$train_shards" -lt 1 || "$val_shards" -lt 1 || "$val_byte_shards" -lt 1 ]]; then
     echo "missing CaseOps data: train_shards=$train_shards val_shards=$val_shards val_byte_shards=$val_byte_shards" >&2
     exit 2
@@ -105,6 +111,7 @@ cd "$WORK_DIR"
     echo "CASEOPS_ENABLED=1"
     echo "QUAT_MLP=1"
     echo "QUAT_MLP_IMPL=matrix"
+    echo "DOCUMENT_PACKING=0"
     echo "TTT_ENABLED=0"
     echo "SEED=$SEED_VALUE"
     echo "ITERATIONS=2"
@@ -127,6 +134,7 @@ RUN_ID="$RUN_ID" \
 CASEOPS_ENABLED=1 \
 QUAT_MLP=1 \
 QUAT_MLP_IMPL=matrix \
+DOCUMENT_PACKING=0 \
 TTT_ENABLED=0 \
 PHASED_TTT_PREFIX_DOCS=2000 \
 PHASED_TTT_NUM_PHASES=3 \
