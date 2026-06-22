@@ -782,7 +782,7 @@ VAL_BATCH_SIZE=524288
 MAX_WALLCLOCK_SECONDS=600
 ```
 
-Run at least two additional A40 seeds one at a time, matching the Phase 8 seed-replication discipline.
+Run at least two additional A40 seeds in parallel when schedulable. For this phase, two concurrent A40 jobs is acceptable. If Slurm or account limits block parallel execution, run the maximum schedulable subset and document the fallback.
 
 Record for every seed:
 
@@ -814,8 +814,8 @@ Run sequence:
 2. Export bounded `sp16384` tokenizer/data if it does not already exist.
 3. Run a cheap A40 smoke/package-size gate.
 4. If smoke total int8+zlib submission size is at or above 16 MB, stop the `sp16384` path.
-5. If smoke is safely under 16 MB, run one seed-42 A40 10-minute benchmark.
-6. Compare against `sp8192` seed 42, the replicated `sp8192` mean if available, `sp4096` mean, and dense `sp1024`.
+5. If smoke is safely under 16 MB, submit a small parallel A40 seed batch instead of a single seed. Start with seeds `42`, `0`, and `1` if scheduler/resource limits allow; otherwise run the maximum schedulable subset and document the fallback.
+6. Compare the seed batch against `sp8192` seed 42, the replicated `sp8192` mean if available, `sp4096` mean, and dense `sp1024`.
 
 Record:
 
@@ -827,16 +827,16 @@ Decision gate:
 
 - If `sp16384` is over 16 MB, stop simple-stack vocab expansion and move to record-stack work.
 - If `sp16384` is clearly worse than `sp8192`, stop simple-stack vocab expansion and move to record-stack work.
-- If `sp16384` improves over `sp8192`, or is close enough that seed variance could change the ordering, continue to Phase 12.
+- If the `sp16384` seed batch improves over `sp8192`, or is close enough that additional seed variance could change the ordering, continue to Phase 12.
 - Do not continue incrementing vocab sizes one at a time; `sp16384` is the last planned simple-stack vocab probe unless it creates a specific new budget/compression question.
 
-### Phase 12: sp16384 Seed Replication If Earned
+### Phase 12: sp16384 Additional Seed Replication If Needed
 
-Goal: verify whether an eligible and promising `sp16384` result is robust enough to replace `sp8192` as the simple-stack qMLP candidate.
+Goal: add more `sp16384` seeds only if the Phase 11 parallel seed batch leaves the ordering ambiguous or promising.
 
-Only run this phase if Phase 11 passes the package-size gate and the seed-42 benchmark is competitive with `sp8192`.
+Only run this phase if Phase 11 passes the package-size gate and the initial parallel seed batch is competitive with `sp8192` but not decisive.
 
-Run at least two additional A40 seeds using the exact same `sp16384` benchmark shape. Keep the same one-job-at-a-time discipline as Phases 8 and 10.
+Run additional A40 seeds using the exact same `sp16384` benchmark shape. Parallelize independent seeds as much as current scheduler/account limits allow, while staying within the standing resource guardrails or explicit user approvals.
 
 Decision gate:
 
@@ -1113,8 +1113,8 @@ The original setup and simple-stack proof-of-concept items are complete through 
 2. Run at least two additional `sp8192` A40 seeds using the exact Phase 9 benchmark shape.
 3. If `sp8192` is robust, keep it as the current simple-stack qMLP candidate.
 4. Create the detailed Phase 11 file for the `sp16384` initial qMLP probe.
-5. Export/smoke `sp16384`, then benchmark seed 42 only if the package-size gate is safely under 16 MB.
-6. Seed-replicate `sp16384` only if it earns replication.
+5. Export/smoke `sp16384`, then run a small parallel seed batch if the package-size gate is safely under 16 MB.
+6. Run additional `sp16384` seeds only if the first parallel batch is promising but not decisive.
 7. Stop the simple-stack vocab ladder after `sp16384` and move to record-stack reproduction.
 8. Reproduce a strong manageable record stack as-is on A40.
 9. Measure same-vocab record-stack qMLP tax.

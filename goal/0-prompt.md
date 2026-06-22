@@ -19,7 +19,7 @@ Current strategic trajectory:
 
 1. Finish `sp8192` qMLP seed replication on the simple stack.
 2. Probe `sp16384` qMLP with a cheap smoke/package-size gate before any full benchmark.
-3. Seed-replicate `sp16384` only if it earns replication.
+3. If the `sp16384` smoke passes, run the initial `sp16384` benchmark as a small parallel seed batch rather than one serial seed.
 4. Stop the simple-stack vocabulary ladder after `sp16384`.
 5. Reproduce the strongest manageable current record-setting stack as-is on A40.
 6. Add qMLP to that same record-stack configuration without changing vocab or unrelated settings, to measure qMLP tax.
@@ -34,6 +34,8 @@ At the simple-stack level, does qMLP beat the best dense configuration that fits
 ```
 
 Use cheap smokes to estimate dense and qMLP package-size frontiers. Do not waste full A40 benchmark cycles incrementing vocab size one point at a time. Benchmark dense near-budget vocab only if it materially clarifies whether the simple qMLP result was just a larger-vocab effect.
+
+Parallelize independent Slurm jobs when doing so is safe and useful. In particular, independent seed runs should be submitted as a bounded parallel batch when scheduler/account limits allow it, rather than run serially by default. Respect dependency order for export -> smoke/package-size gate -> benchmark, and still ask for approval before large, long, multi-GPU beyond the current approval, destructive, or H100/H200 work.
 
 Keep the work focused on best-under-budget performance. Prefer fast, cheap, well-recorded experiments before scarce or expensive runs. Use OSU/HPC resources safely according to the plan: no training, tokenizer export, GPU diagnostics, or material compute on submit nodes; use Slurm for compute work; record job IDs, commands, logs, artifacts, hardware, seeds, BPB, step counts, memory, and package sizes; ask for approval before large, long, multi-GPU, destructive, or H100/H200 work.
 

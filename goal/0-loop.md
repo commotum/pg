@@ -70,6 +70,7 @@ During implementation:
 - Keep remote HPC work on the correct machine type.
 - Do not run training, GPU checks, dataset preparation, or material tests on submit nodes.
 - Use Slurm allocations for compute work.
+- Parallelize independent Slurm jobs when this is safe and useful, especially seed batches and package-size probes, while preserving dependency order and resource guardrails.
 - Record commands, job IDs, logs, metrics, and hardware context.
 - Keep generated logs and inventory outputs in run artifact directories rather than leaving them in the source tree.
 - Avoid broad refactors unless they are required for the phase.
