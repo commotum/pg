@@ -843,20 +843,21 @@ Decision gate:
 - If the `sp16384` seed batch improves over `sp8192`, or is close enough that additional seed variance could change the ordering, continue to Phase 12.
 - Do not continue incrementing vocab sizes one at a time; `sp16384` is the last planned simple-stack vocab probe unless it creates a specific new budget/compression question.
 
-Phase 11 in-progress status as of 2026-06-22 12:38 PDT:
+Phase 11 in-progress status as of 2026-06-22 12:42 PDT:
 
 - added `goal/11-sp16384.md`, `goal/11-sp16384-tokenizer-config.json`, `goal/11-data.sbatch`, `goal/11-smoke.sbatch`, and `goal/11-benchmark.sbatch`;
-- export job `20483087` is running on compute node `cn-a26` as `pg-phase11-data`;
+- export job `20483087` ran on compute node `cn-a26` as `pg-phase11-data`;
 - the export log shows SentencePiece finished fitting and saved the `sp16384` model and vocab files under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/tokenizers/`;
-- as of 2026-06-22 12:38 PDT, the original export had written the validation shard and 31 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
+- as of 2026-06-22 12:41 PDT, the original export had written the validation shard and 33 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
 - Slurm accounting showed `elapsed=00:49:19`, `CPUTime=01:38:38`, and `NCPUS=2`, meaning the export was using nearly both requested CPUs continuously;
 - Slurm `sstat` showed active CPU use and about `2.5G` max RSS, so the export appeared healthy rather than stalled;
 - future full-tokenizer exports should request more CPUs up front, or run a smaller smoke export before committing to the full 80-shard export. The running job cannot be resized in place;
 - a parallel 16-CPU export job `20483589` was submitted as `pg-p11-data16` with output root `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`, reusing the already-fit `sp16384` SentencePiece model from the original export and leaving job `20483087` running as the fallback;
 - job `20483589` failed after five seconds because the staged tokenizer config filename did not match the script's `CONFIG_PATH`;
 - `goal/11-data-cpu16.sbatch` was corrected to use the staged `11-sp16384-tokenizer-config.json` filename, and replacement 16-CPU export job `20483623` was submitted;
-- as of 2026-06-22 12:38 PDT, job `20483623` was running on `cn-r-1` and had written one validation shard plus nine train shards, so it had passed the config-load failure point and was outpacing the original export;
-- smoke job `20483144` is queued with `--dependency=afterok:20483087`, so it will only run if the export succeeds;
+- as of 2026-06-22 12:41 PDT, job `20483623` was running on `cn-r-1` and had written one validation shard plus 17 train shards, so it had passed the config-load failure point and was outpacing the original export;
+- the fast path ETA was clearly earlier than the original path, so export job `20483087` and its dependent smoke job `20483144` were cancelled to avoid wasting CPU/GPU queue time; Slurm accounting shows `20483087` cancelled after `01:11:57`, and `20483144` cancelled before it started;
+- fast-path smoke job `20483633` is queued with `--dependency=afterok:20483623`, so it will only run if the 16-CPU export succeeds and will use `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`;
 - no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
 
 ### Phase 12: sp16384 Additional Seed Replication If Needed
