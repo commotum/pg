@@ -858,6 +858,7 @@ Phase 11 in-progress status as of 2026-06-22 12:42 PDT:
 - as of 2026-06-22 12:41 PDT, job `20483623` was running on `cn-r-1` and had written one validation shard plus 17 train shards, so it had passed the config-load failure point and was outpacing the original export;
 - the fast path ETA was clearly earlier than the original path, so export job `20483087` and its dependent smoke job `20483144` were cancelled to avoid wasting CPU/GPU queue time; Slurm accounting shows `20483087` cancelled after `01:11:57`, and `20483144` cancelled before it started;
 - fast-path smoke job `20483633` is queued with `--dependency=afterok:20483623`, so it will only run if the 16-CPU export succeeds and will use `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`;
+- `goal/11-benchmark-cpu16.sbatch` was prepared and staged for the fast export root, but no benchmark jobs have been submitted;
 - no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
 
 ### Phase 12: sp16384 Additional Seed Replication If Needed
