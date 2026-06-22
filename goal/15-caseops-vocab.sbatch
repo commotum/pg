@@ -27,6 +27,7 @@ TOKENIZER_PATH=${TOKENIZER_PATH:-$CASEOPS_OUT/tokenizers/fineweb_${VOCAB_SIZE}_b
 DATASET_NAME=${DATASET_NAME:-fineweb10B_sp${VOCAB_SIZE}_lossless_caps_caseops_v1_reserved}
 DATA_PATH=${DATA_PATH:-$CASEOPS_OUT/datasets/$DATASET_NAME}
 VAL_DOCS=${VAL_DOCS:-10000}
+MAX_DOCS=${MAX_DOCS:-0}
 FORCE_REBUILD_TOKENIZER=${FORCE_REBUILD_TOKENIZER:-0}
 FORCE_REBUILD_DATA=${FORCE_REBUILD_DATA:-0}
 JOB_DIR="$RUN_ROOT/$SLURM_JOB_ID"
@@ -74,6 +75,7 @@ fi
     echo "dataset_name=$DATASET_NAME"
     echo "data_path=$DATA_PATH"
     echo "val_docs=$VAL_DOCS"
+    echo "max_docs=$MAX_DOCS"
     echo "force_rebuild_tokenizer=$FORCE_REBUILD_TOKENIZER"
     echo "force_rebuild_data=$FORCE_REBUILD_DATA"
     echo "git_commit=$(git -C "$REPO_PATH" rev-parse HEAD 2>/dev/null || true)"
@@ -97,8 +99,9 @@ fi
     echo "DATA_PATH=$DATA_PATH"
     echo "CASEOPS_OUT=$CASEOPS_OUT"
     echo "VAL_DOCS=$VAL_DOCS"
+    echo "MAX_DOCS=$MAX_DOCS"
     echo "tokenizer_command=python $REPO_PATH/goal/15-train-caseops-tokenizer.py --docs $DOCS_SELECTED --record-path $RECORD_PATH --out-model $TOKENIZER_PATH --vocab-size $VOCAB_SIZE --tokenizer-train-docs $TOKENIZER_TRAIN_DOCS"
-    echo "data_command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $TOKENIZER_PATH --val-docs $VAL_DOCS --dataset-name $DATASET_NAME"
+    echo "data_command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $TOKENIZER_PATH --val-docs $VAL_DOCS --dataset-name $DATASET_NAME --max-docs $MAX_DOCS"
 } >"$JOB_DIR/command.txt"
 
 if [[ "$FORCE_REBUILD_TOKENIZER" == "1" || ! -f "$TOKENIZER_PATH" ]]; then
@@ -123,6 +126,7 @@ if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt 1 || "$val_sh
         --sp "$TOKENIZER_PATH" \
         --val-docs "$VAL_DOCS" \
         --dataset-name "$DATASET_NAME" \
+        --max-docs "$MAX_DOCS" \
         >"$JOB_DIR/caseops-data.log" 2>&1
 else
     echo "data exists, skipping: $DATA_PATH" >"$JOB_DIR/caseops-data.log"

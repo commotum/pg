@@ -862,12 +862,19 @@ Phase 11 in-progress status as of 2026-06-22 12:42 PDT:
 - smoke job `20483633` completed successfully in `00:04:07`, with `model_params=17846344`, `Total submission size int8+zlib=7921814`, and roundtrip smoke `val_bpb=3.43759901`, so the package-size gate passed;
 - initial benchmark submission jobs `20483676`, `20483677`, and `20483678` failed immediately because `SEED_VALUE` was not exported into the job; no training ran in those jobs;
 - corrected benchmark jobs `20483681` seed 42, `20483682` seed 0, and `20483683` seed 1 were submitted against `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`.
+- corrected benchmark jobs completed successfully:
+  - seed 42, job `20483681`, host `cn-r-2`, steps `307`, `step_avg=1958.29ms`, peak memory `15027 MiB`, total int8+zlib `14717079`, roundtrip BPB `1.53194348`;
+  - seed 0, job `20483682`, host `cn-r-5`, steps `305`, `step_avg=1969.42ms`, peak memory `15027 MiB`, total int8+zlib `14695803`, roundtrip BPB `1.53028497`;
+  - seed 1, job `20483683`, host `cn-r-2`, steps `308`, `step_avg=1949.61ms`, peak memory `15027 MiB`, total int8+zlib `14719685`, roundtrip BPB `1.52768640`;
+- `sp16384` three-seed mean roundtrip BPB was `1.52997162`, worse than replicated `sp8192` mean `1.52522489` by about `0.00474673` BPB, so Phase 12 is skipped and the simple-stack vocab ladder stops at `sp8192`.
 
 ### Phase 12: sp16384 Additional Seed Replication If Needed
 
 Goal: add more `sp16384` seeds only if the Phase 11 parallel seed batch leaves the ordering ambiguous or promising.
 
 Only run this phase if Phase 11 passes the package-size gate and the initial parallel seed batch is competitive with `sp8192` but not decisive.
+
+Status: skipped on 2026-06-22. Phase 11 `sp16384` three-seed mean roundtrip BPB was `1.52997162`, worse than replicated `sp8192` mean `1.52522489`, so additional `sp16384` seed replication is not warranted.
 
 Run additional A40 seeds using the exact same `sp16384` benchmark shape. Parallelize independent seeds as much as current scheduler/account limits allow, while staying within the standing resource guardrails or explicit user approvals.
 
@@ -965,10 +972,12 @@ Goal: spend qMLP's saved package/model budget inside the record stack and find t
 
 Actions:
 
-1. Use cheap smoke/package-size probes to approach the 16 MB cap without invalidating runs by cutting too close.
-2. Test near-frontier candidates such as power-of-two vocab sizes and near-cap sizes, but do not run full benchmarks for every increment.
-3. Keep record-stack settings fixed except for the planned qMLP and budget-reinvestment changes.
-4. Benchmark only serious candidates after package-size smoke passes.
+1. Use `goal/15-vocab-max.md` as the operating checklist for this phase.
+2. Use a package-size binary search over CaseOps vocabulary size rather than stepping through arbitrary increments.
+3. For each candidate, build CaseOps tokenizer/data with `goal/15-caseops-vocab.sbatch`, then run a qMLP package smoke with `goal/15-qmlp-package-smoke.sbatch`.
+4. Start around `VOCAB_SIZE=12288`, then adjust bounds based on total compressed submission size; use 512-token granularity first and only go to 256-token granularity if the BPB/package curve justifies it.
+5. Keep record-stack settings fixed except `VOCAB_SIZE`, tokenizer/data paths, and `QUAT_MLP=1`.
+6. Benchmark only the largest safe candidate or a small set of serious near-frontier candidates after package-size smoke passes.
 
 Decision gate:
 
