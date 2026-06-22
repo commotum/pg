@@ -43,20 +43,20 @@ mem=8G
 
 ### Baseline Smoke
 
-Prefer A40:
+Prefer A40. The first live checks for this phase found `share/a40` to be the best fitting accessible A40 path, ahead of `ampere/a40` and `preempt/a40`:
 
 ```text
-partition=ampere or preempt
+partition=share
 constraint=a40
 gres=gpu:1
 time=00:20:00
 nodes=1
 ntasks=1
-cpus-per-task=8
-mem=64G
+cpus-per-task=4
+mem=32G
 ```
 
-Use `ampere` if the scheduler fit is immediate or close. Use `preempt` if `ampere` is not a reasonable fit.
+Use `ampere` if the scheduler fit is immediate or close. Use `preempt` if `ampere` is not a reasonable fit. Use `share/a40` if it is the earliest accessible A40 target and the preemption behavior is acceptable for a short smoke job.
 
 ## Implementation Steps
 
@@ -168,20 +168,56 @@ This phase is complete when:
 
 ## Result
 
-Status: pending
+Status: in progress
 
 Evidence:
 
-- Pending implementation.
+- Minimal additional dependencies installed into `/nfs/hpc/share/peterj29/pg/envs/pg-py311-torch-smoke-20260621`:
+  - `huggingface-hub 1.20.1`;
+  - `sentencepiece 0.2.1`;
+  - `tqdm 4.68.3`.
+- Data-prep Slurm job `20480484` completed:
+  - partition `share`;
+  - node `cn-a14`;
+  - state `COMPLETED`;
+  - exit code `0:0`;
+  - elapsed `00:00:11`;
+  - allocation `cpu=2, mem=8G, node=1`.
+- Data prep ran with `HF_HOME=/nfs/hpc/share/peterj29/pg/hf-cache`.
+- Data prep produced:
+  - `data/manifest.json` at `1925` bytes;
+  - `data/tokenizers/fineweb_1024_bpe.model` at `254483` bytes;
+  - `data/tokenizers/fineweb_1024_bpe.vocab` at `9856` bytes;
+  - `data/datasets/fineweb10B_sp1024/fineweb_train_000000.bin` at `200001024` bytes;
+  - `data/datasets/fineweb10B_sp1024/fineweb_val_000000.bin` at `124044716` bytes.
+- Download log warned that Hugging Face requests were unauthenticated.
+- A40 scheduler checks found:
+  - `ampere/a40`, 8 CPU, 64G, 20 minutes: estimated `2026-06-22T05:08:56`, with preemption;
+  - `preempt/a40`, 8 CPU, 64G, 20 minutes: estimated `2026-06-22T06:09:38`;
+  - `share/a40`, 4 CPU, 32G, 20 minutes: estimated `2026-06-22T00:54:18`, with preemption.
+- `athena/a40` failed with `Invalid account or account/partition combination specified`.
+- `all/a40` failed with `User's group not permitted to use this partition`.
+- Baseline smoke job `20480529` was submitted to `share/a40` with one GPU, 4 CPUs, 32G RAM, and 20 minutes.
+- Baseline smoke job `20480529` is currently pending with reason `QOSGrpCpuLimit`.
+- Visible association remains `coehpc|eecs|peterj29|||normal||||`, so the job cannot be switched to another visible QOS by the agent.
 
 Artifacts:
 
-- Pending implementation.
+- Local data-prep script: `goal/2-data.sbatch`.
+- Remote data-prep script: `/nfs/hpc/share/peterj29/pg/runs/phase2-data/phase2-data.sbatch`.
+- Data-prep job directory: `/nfs/hpc/share/peterj29/pg/runs/phase2-data/20480484/`.
+- Local baseline smoke script: `goal/2-baseline.sbatch`.
+- Remote baseline smoke script: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/phase2-baseline.sbatch`.
+- Pending baseline job ID: `20480529`.
 
 New facts:
 
-- Pending implementation.
+- The published `sp1024` cache for one train shard and one validation shard is available quickly from compute nodes with `HF_HOME` on shared storage.
+- The Phase 2 data step does not need to run on the submit node.
+- For the current cluster state, A40 availability is gated more by account/QOS CPU limits than by script readiness.
+- Using `share/a40` can still show Slurm preemption candidates; preemption is allowed when Slurm grants it, but the account QOS cap can still block job start.
 
 Decision:
 
-- Pending implementation.
+- Keep baseline smoke job `20480529` queued for now; do not submit duplicates while it is pending.
+- Phase 2 remains incomplete until the baseline smoke job completes and produces `val_bpb` plus roundtrip artifact evidence.
