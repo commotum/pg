@@ -855,11 +855,13 @@ Phase 11 in-progress status as of 2026-06-22 12:42 PDT:
 - a parallel 16-CPU export job `20483589` was submitted as `pg-p11-data16` with output root `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`, reusing the already-fit `sp16384` SentencePiece model from the original export and leaving job `20483087` running as the fallback;
 - job `20483589` failed after five seconds because the staged tokenizer config filename did not match the script's `CONFIG_PATH`;
 - `goal/11-data-cpu16.sbatch` was corrected to use the staged `11-sp16384-tokenizer-config.json` filename, and replacement 16-CPU export job `20483623` was submitted;
-- as of 2026-06-22 12:41 PDT, job `20483623` was running on `cn-r-1` and had written one validation shard plus 17 train shards, so it had passed the config-load failure point and was outpacing the original export;
+- job `20483623` completed successfully on `cn-r-1` after `00:29:01`, producing 80 train shards, 1 validation shard, and `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/manifest.json`;
 - the fast path ETA was clearly earlier than the original path, so export job `20483087` and its dependent smoke job `20483144` were cancelled to avoid wasting CPU/GPU queue time; Slurm accounting shows `20483087` cancelled after `01:11:57`, and `20483144` cancelled before it started;
-- fast-path smoke job `20483633` is queued with `--dependency=afterok:20483623`, so it will only run if the 16-CPU export succeeds and will use `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`;
-- `goal/11-benchmark-cpu16.sbatch` was prepared and staged for the fast export root, but no benchmark jobs have been submitted;
-- no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
+- fast-path smoke job `20483633` started on `cn-r-1` after export job `20483623` completed and uses `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`;
+- `goal/11-benchmark-cpu16.sbatch` was prepared and staged for the fast export root before benchmark submission;
+- smoke job `20483633` completed successfully in `00:04:07`, with `model_params=17846344`, `Total submission size int8+zlib=7921814`, and roundtrip smoke `val_bpb=3.43759901`, so the package-size gate passed;
+- initial benchmark submission jobs `20483676`, `20483677`, and `20483678` failed immediately because `SEED_VALUE` was not exported into the job; no training ran in those jobs;
+- corrected benchmark jobs `20483681` seed 42, `20483682` seed 0, and `20483683` seed 1 were submitted against `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16/`.
 
 ### Phase 12: sp16384 Additional Seed Replication If Needed
 
