@@ -177,6 +177,38 @@ At the end of this phase, choose one:
 - Smoke logs.
 - A40 benchmark logs if smoke passes.
 
+## Data Requirements
+
+The first A40 baseline target, `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE`, does not use the simple-stack `sp8192` or `sp16384` shards directly. It uses a reserved CaseOps SP8192 tokenizer and a byte sidecar for BPB accounting on original bytes.
+
+Expected tokenizer:
+
+```text
+/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/datasets/tokenizers/fineweb_8192_bpe_lossless_caps_caseops_v1_reserved.model
+```
+
+Expected dataset directory:
+
+```text
+/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/datasets/datasets/fineweb10B_sp8192_lossless_caps_caseops_v1_reserved/
+```
+
+Expected shard patterns:
+
+```text
+fineweb_train_*.bin
+fineweb_val_*.bin
+fineweb_val_bytes_*.bin
+```
+
+The 04-23 record log reports `train_shards: 80`; the validation path also needs `fineweb_val_bytes_*.bin`, because `CASEOPS_ENABLED=1` scores BPB against original-byte sidecar shards.
+
+Phase look-ahead:
+
+- Phase 13 original record-stack A40 reproduction needs these CaseOps SP8192 shards.
+- Phase 14 same-vocab record-stack qMLP tax measurement should reuse the same shards and tokenizer.
+- Phase 15 budget-reinvested record-stack qMLP may need new CaseOps vocabulary/data variants, but those vocab sizes should be chosen after same-vocab qMLP package-size/tax evidence. Exporting speculative CaseOps vocab sizes now would risk wasting long CPU jobs.
+
 ## Completion Requirements
 
 This phase is complete when:
@@ -208,6 +240,10 @@ Evidence:
 - No Phase 13 jobs have been submitted.
 - Phase 11 simple-stack `sp16384` export/smoke gate is still active, so Phase 13 implementation is intentionally deferred.
 - On 2026-06-22, Phase 13 A40 scaffolding was prepared while Phase 11 export jobs were running. The scripts are syntax-checked locally but intentionally not submitted.
+- On 2026-06-22, a look-ahead check found that the CaseOps dataset/tokenizer output path was missing, while the source `docs_selected.jsonl`, shipped CaseOps tokenizer, and `prepare_caseops_data.py` were present.
+- CaseOps data-prep job `20483645` was submitted and started on `cn-r-1` as `pg-p13-caseops`.
+- Early log for `20483645` reached `loaded sp: vocab=8192`, confirming the shipped CaseOps tokenizer loaded.
+- Early `sstat` for `20483645.batch` showed `AveCPU=00:02:23` after roughly two minutes elapsed, consistent with the current CaseOps prep script being effectively single-process despite the 16-CPU allocation.
 
 Artifacts:
 
@@ -215,6 +251,7 @@ Artifacts:
 - `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the 04-23 record's `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
 - `goal/13-smoke.sbatch`: minimal one-GPU A40 record-stack smoke with `PREQUANT_ONLY=1`, `TTT_ENABLED=0`, two iterations, and CaseOps data checks.
 - `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings and default TTT enabled.
+- Remote staged scripts, not submitted: `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`.
 
 New facts:
 
@@ -223,6 +260,7 @@ New facts:
 - The 04-23 candidate is slightly weaker but likely simpler as a first A40 reproduction target.
 - The 04-23 record's CaseOps data prep is CPU-only and consumes `docs_selected.jsonl`; it can reuse `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/docs_selected.jsonl` if that file remains available.
 - The 04-23 record's training script expects explicit `DATA_PATH` and `TOKENIZER_PATH` for portable CaseOps runs; the scaffolding writes CaseOps data under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/`.
+- The 04-23 `prepare_caseops_data.py` is mostly a single-process Python pipeline, so the 16-CPU allocation may not scale linearly; monitor `CPUTime`/progress before deciding whether a parallel prep wrapper is worth implementing.
 
 Decision:
 

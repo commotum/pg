@@ -901,8 +901,9 @@ Prefer the local record stack with CaseOps/special vocab and known optimizations
 
 Phase plan file:
 
-- `goal/13-record.md` was drafted provisionally on 2026-06-22 during the Phase 11 export wait. It is not active yet and no Phase 13 jobs have been submitted.
+- `goal/13-record.md` was drafted provisionally on 2026-06-22 during the Phase 11 export wait. Full Phase 13 record training is not active yet; only look-ahead CaseOps data prep has been submitted.
 - `goal/13-env.sbatch`, `goal/13-caseops-data.sbatch`, `goal/13-smoke.sbatch`, and `goal/13-baseline-a40.sbatch` were prepared and syntax-checked locally as future Phase 13 scaffolding; they have not been submitted.
+- look-ahead data prep was started before Phase 13 activation: the 04-23 record baseline requires CaseOps SP8192 shards, not the simple-stack SP shards; source docs/tokenizer/prep script were present, CaseOps output shards were missing, and CPU job `20483645` was submitted on 2026-06-22 to create them.
 
 Read-only inventory facts from the draft:
 
