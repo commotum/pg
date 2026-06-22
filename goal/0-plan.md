@@ -910,24 +910,25 @@ Prefer the local record stack with CaseOps/special vocab and known optimizations
 
 Phase plan file:
 
-- `goal/13-record.md` was drafted provisionally on 2026-06-22 during the Phase 11 export wait. Full Phase 13 record training is not active yet; only look-ahead CaseOps data prep has been submitted.
-- `goal/13-env.sbatch`, `goal/13-caseops-data.sbatch`, `goal/13-smoke.sbatch`, and `goal/13-baseline-a40.sbatch` were prepared and syntax-checked locally as future Phase 13 scaffolding; they have not been submitted.
-- look-ahead data prep was started before Phase 13 activation: the 04-23 record baseline requires CaseOps SP8192 shards, not the simple-stack SP shards; source docs/tokenizer/prep script were present, CaseOps output shards were missing, and CPU job `20483645` was submitted on 2026-06-22 to create them.
+- `goal/13-record.md` is now the active phase plan. Phase 11 completed, Phase 12 was skipped, and the simple-stack vocab ladder stopped at `sp8192`.
+- `goal/13-env.sbatch`, `goal/13-caseops-data.sbatch`, `goal/13-smoke.sbatch`, and `goal/13-baseline-a40.sbatch` were prepared and syntax-checked locally as Phase 13 scaffolding.
+- look-ahead data prep was started before full Phase 13 activation: the 04-23 record baseline requires CaseOps SP8192 shards, not the simple-stack SP shards; source docs/tokenizer/prep script were present, CaseOps output shards were missing, and CPU job `20483645` was submitted on 2026-06-22 to create them.
+- environment check job `20484024` failed because `flash_attn_interface` is not installed in the A40 venv. The local 04-23 record script now has an SDPA fallback, so missing FA3 should be treated as an A40 screening fallback fact, not an automatic Phase 13 blocker.
 
 Read-only inventory facts from the draft:
 
 - the best local record candidate is `2026-04-27_SP8192_LQER_SparseGate_BOSSmearFix_9HpStack_1.0611` with `val_bpb=1.06107587`, but it assumes 8xH100, FA3, PyTorch 2.9.1+cu128, CUDA 12.8, and `lrzip`;
 - the `2026-04-29_SmearGateBOSFix_3Seed_1.06141` compliance reproduction is similarly H100/FA3-oriented and has very tight artifact headroom;
 - the `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` stack is slightly weaker at `val_bpb=1.06335` but may be the simpler first A40 reproduction target because it avoids the 04-27 per-group `lrzip` path;
-- all inspected modern record candidates import `flash_attn_interface` directly, so A40 reproduction may require a bounded attention compatibility check or fallback.
+- all inspected modern record candidates were H100/FA3-oriented. The chosen 04-23 A40 path uses an SDPA fallback when `flash_attn_interface` is unavailable, with that fallback documented as an A40 screening difference from final H100/FA3 confirmation.
 
 Actions:
 
-1. Inventory candidate record stacks under `parameter-golf/records/track_10min_16mb/`.
-2. Choose the strongest stack that is feasible on A40 without a major H100/FA3-only porting effort.
-3. Document dependencies, tokenizer/data requirements, compression path, and expected hardware assumptions.
-4. Run a smoke/package-size check.
-5. Run A40 10-minute benchmarks for a few seeds where feasible.
+1. Continue with `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` as the first manageable A40 record control.
+2. Wait for or repair the CaseOps SP8192 data path so it has 80 train shards, at least one validation shard, and the validation byte sidecar.
+3. Rerun or reinterpret the environment check with SDPA fallback accepted for A40 screening.
+4. Run a record-stack smoke/package check using `VOCAB_SIZE=8192` and `QUAT_MLP=0`.
+5. Run A40 10-minute baseline benchmarks for a few seeds where feasible, parallelizing independent seeds when scheduler/account limits allow.
 
 Record:
 
@@ -947,6 +948,11 @@ Goal: add qMLP to the reproduced record-stack configuration without changing voc
 
 Expected result: same-vocab qMLP may be worse. That is useful evidence.
 
+Phase plan file:
+
+- `goal/14-qmlp.md` is the detailed plan for the same-vocab record-stack qMLP tax measurement.
+- `goal/14-qmlp-smoke.sbatch` and `goal/14-qmlp-a40.sbatch` are the current local script scaffolds.
+
 Measure:
 
 ```text
@@ -956,9 +962,10 @@ net_gain = benefit_from_reinvested_budget - qMLP_expressiveness_or_training_tax
 Actions:
 
 1. Port the matrix qMLP layer into the chosen record-stack MLP path.
-2. Keep vocab, tokenizer, attention, data, optimizer policy, package/compression path, and wallclock unchanged unless a change is mechanically required and documented.
-3. Run smoke/package-size checks.
-4. Run enough A40 seeds to estimate the tax rather than overfitting to a single lucky or unlucky run.
+2. Keep vocab, tokenizer, attention fallback policy, data, optimizer policy, package/compression path, and wallclock unchanged from Phase 13 unless a change is mechanically required and documented.
+3. Use the same CaseOps SP8192 tokenizer/data as Phase 13.
+4. Run smoke/package-size checks.
+5. Run enough A40 seeds to estimate the tax rather than overfitting to a single lucky or unlucky run.
 
 Decision gate:
 
@@ -966,24 +973,37 @@ Decision gate:
 - If same-vocab qMLP is slower/worse but trainable, proceed to budget reinvestment.
 - If same-vocab qMLP unexpectedly improves, still proceed to budget reinvestment, but record the direct gain separately from reinvested-budget gain.
 
-### Phase 15: Record-Stack qMLP Budget-Frontier Probe
+### Phase 15: Record-Stack qMLP sp16384 Reinvestment Benchmark
 
-Goal: spend qMLP's saved package/model budget inside the record stack and find the best under-16MB qMLP contender.
+Goal: test one clear record-stack qMLP budget reinvestment point at `VOCAB_SIZE=16384`.
+
+The package frontier search is deferred. Job `20484777` showed `VOCAB_SIZE=11776` qMLP package smoke completed at `9,376,232` total submission bytes, which makes `16384` safe enough to treat as the fixed larger-vocab benchmark point for now. Do not spend the next loop pushing to `24576` or `32768`; first answer the cleaner A40 comparison:
+
+```text
+record dense sp8192
+record qMLP sp8192
+record qMLP sp16384
+```
+
+Phase documents:
+
+- `goal/15-vocab-max.md` now records the revised Phase 15 scope and keeps the package-frontier machinery available but deferred.
+- `goal/15-package-frontier-results.md` records the `11776` canary and the reason the old 11k-12k estimate was too conservative.
 
 Actions:
 
-1. Use `goal/15-vocab-max.md` as the operating checklist for this phase.
-2. Use a package-size binary search over CaseOps vocabulary size rather than stepping through arbitrary increments.
-3. For each candidate, build CaseOps tokenizer/data with `goal/15-caseops-vocab.sbatch`, then run a qMLP package smoke with `goal/15-qmlp-package-smoke.sbatch`.
-4. Start around `VOCAB_SIZE=12288`, then adjust bounds based on total compressed submission size; use 512-token granularity first and only go to 256-token granularity if the BPB/package curve justifies it.
-5. Keep record-stack settings fixed except `VOCAB_SIZE`, tokenizer/data paths, and `QUAT_MLP=1`.
-6. Benchmark only the largest safe candidate or a small set of serious near-frontier candidates after package-size smoke passes.
+1. Build or stage the CaseOps `VOCAB_SIZE=16384` tokenizer/data needed by the 04-23 record-stack path.
+2. Run a tiny qMLP `sp16384` package/path smoke as a guard against broken tokenizer/data wiring, OOM, or an unexpected package-size regression.
+3. Keep record-stack settings fixed except `VOCAB_SIZE=16384`, tokenizer/data paths, and `QUAT_MLP=1`.
+4. Run A40 10-minute qMLP `sp16384` benchmarks with the same seed policy as Phases 13 and 14.
+5. Compare against Phase 13 dense `sp8192` and Phase 14 qMLP `sp8192`.
 
 Decision gate:
 
-- Promote the qMLP record-stack candidate that has the best A40 BPB under 16 MB and acceptable speed.
-- If no budget-reinvested qMLP candidate beats the original record stack, stop before H100/H200.
-- If a candidate is close but package size is risky, prefer slightly more headroom over a near-invalid 16 MB artifact.
+- If qMLP `sp16384` beats dense record `sp8192`, treat it as the current A40 qMLP contender.
+- If qMLP `sp16384` beats qMLP `sp8192` but not dense record `sp8192`, record that vocab reinvestment helps but qMLP still has not overcome the record-stack control.
+- If qMLP `sp16384` loses to qMLP `sp8192`, the simple-stack `sp16384` failure likely transfers to the record stack; stop larger-vocab record qMLP exploration unless a new reason appears.
+- If qMLP `sp16384` is promising but still has large package headroom, only then reopen the deferred package-frontier search.
 
 ### Phase 16: A40 Head-To-Head Comparison
 
@@ -991,9 +1011,9 @@ Goal: compare relevant contenders head-to-head on A40 before spending scarce H10
 
 Required contenders:
 
-- original record stack as-is;
-- same-vocab record stack with qMLP, to measure qMLP tax;
-- vocab-max or budget-reinvested qMLP record stack.
+- original record stack as-is with CaseOps `sp8192`;
+- same-vocab record stack with qMLP and CaseOps `sp8192`, to measure qMLP tax;
+- budget-reinvested record stack with qMLP and CaseOps `sp16384`.
 
 Use multiple seeds where feasible for the original record stack and final qMLP contender. Record the same metrics for every run: BPB, steps, `ms/step`, artifact size, memory, seed, host, command, job ID, and exit state.
 
@@ -1162,18 +1182,23 @@ Filesystem:
 
 ## Near-Term To-Do List
 
-The original setup and simple-stack proof-of-concept items are complete through Phase 9. The current to-do list is:
+The original setup and simple-stack proof-of-concept items are complete through Phase 12:
 
-1. Create the detailed Phase 10 file for `sp8192` seed replication before running jobs.
-2. Run at least two additional `sp8192` A40 seeds using the exact Phase 9 benchmark shape.
-3. If `sp8192` is robust, keep it as the current simple-stack qMLP candidate.
-4. Create the detailed Phase 11 file for the `sp16384` initial qMLP probe.
-5. Export/smoke `sp16384`, then run a small parallel seed batch if the package-size gate is safely under 16 MB.
-6. Run additional `sp16384` seeds only if the first parallel batch is promising but not decisive.
-7. Stop the simple-stack vocab ladder after `sp16384` and move to record-stack reproduction.
-8. Reproduce a strong manageable record stack as-is on A40.
-9. Measure same-vocab record-stack qMLP tax.
-10. Use qMLP saved budget inside the record stack, then compare A40 head-to-head before any H100/H200 work.
+- Phase 10 replicated qMLP `sp8192` and kept it as the best simple-stack qMLP candidate.
+- Phase 11 ran qMLP `sp16384` across three seeds and found it worse than replicated `sp8192`.
+- Phase 12 was skipped.
+
+The current resume to-do list is:
+
+1. Continue Phase 13 from `goal/13-record.md`.
+2. Resolve the CaseOps `sp8192` data prerequisite for the 04-23 record stack.
+3. Treat missing `flash_attn_interface` as an A40 SDPA-fallback condition, not as an automatic blocker, because the local 04-23 script now has a fallback.
+4. Run the Phase 13 record `sp8192` smoke, then A40 baseline seeds if the smoke passes.
+5. Run Phase 14 same-vocab record `sp8192` qMLP smoke and A40 seeds.
+6. Run Phase 15 record `sp16384` qMLP path/package smoke and A40 seeds.
+7. Compare the three A40 contenders in Phase 16: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
+8. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
+9. Avoid H100/H200 confirmation until A40 record-stack evidence justifies it and the exact command is reviewed.
 
 ## First Success Definition
 
