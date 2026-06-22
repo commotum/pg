@@ -25,6 +25,9 @@ SOURCE_TOKENIZER=${SOURCE_TOKENIZER:-$RECORD_PATH/tokenizers/fineweb_8192_bpe_lo
 TARGET_TOKENIZER=${TARGET_TOKENIZER:-$CASEOPS_OUT/tokenizers/fineweb_8192_bpe_lossless_caps_caseops_v1_reserved.model}
 DATA_PATH=${DATA_PATH:-$CASEOPS_OUT/datasets/fineweb10B_sp8192_lossless_caps_caseops_v1_reserved}
 VAL_DOCS=${VAL_DOCS:-10000}
+MAX_DOCS=${MAX_DOCS:-0}
+MAX_TRAIN_SHARDS=${MAX_TRAIN_SHARDS:-0}
+DATASET_NAME=${DATASET_NAME:-fineweb10B_sp8192_lossless_caps_caseops_v1_reserved}
 JOB_DIR="$RUN_ROOT/$SLURM_JOB_ID"
 
 mkdir -p "$JOB_DIR" "$CASEOPS_OUT/tokenizers"
@@ -70,6 +73,9 @@ cp "$SOURCE_TOKENIZER" "$TARGET_TOKENIZER"
     echo "target_tokenizer=$TARGET_TOKENIZER"
     echo "data_path=$DATA_PATH"
     echo "val_docs=$VAL_DOCS"
+    echo "max_docs=$MAX_DOCS"
+    echo "max_train_shards=$MAX_TRAIN_SHARDS"
+    echo "dataset_name=$DATASET_NAME"
     echo "git_commit=$(git -C "$REPO_PATH" rev-parse HEAD 2>/dev/null || true)"
     echo "parameter_golf_commit=$(git -C "$PG_PATH" rev-parse HEAD 2>/dev/null || true)"
     echo "parameter_golf_status=$(git -C "$PG_PATH" status --short 2>/dev/null | tr '\n' ';')"
@@ -90,7 +96,10 @@ cp "$SOURCE_TOKENIZER" "$TARGET_TOKENIZER"
     echo "CASEOPS_OUT=$CASEOPS_OUT"
     echo "SOURCE_TOKENIZER=$SOURCE_TOKENIZER"
     echo "VAL_DOCS=$VAL_DOCS"
-    echo "command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $SOURCE_TOKENIZER --val-docs $VAL_DOCS"
+    echo "MAX_DOCS=$MAX_DOCS"
+    echo "MAX_TRAIN_SHARDS=$MAX_TRAIN_SHARDS"
+    echo "DATASET_NAME=$DATASET_NAME"
+    echo "command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $SOURCE_TOKENIZER --val-docs $VAL_DOCS --max-docs $MAX_DOCS --max-train-shards $MAX_TRAIN_SHARDS --dataset-name $DATASET_NAME"
 } >"$JOB_DIR/command.txt"
 
 python "$RECORD_PATH/prepare_caseops_data.py" \
@@ -98,6 +107,9 @@ python "$RECORD_PATH/prepare_caseops_data.py" \
     --out "$CASEOPS_OUT" \
     --sp "$SOURCE_TOKENIZER" \
     --val-docs "$VAL_DOCS" \
+    --max-docs "$MAX_DOCS" \
+    --max-train-shards "$MAX_TRAIN_SHARDS" \
+    --dataset-name "$DATASET_NAME" \
     >"$JOB_DIR/caseops-data.log" 2>&1
 
 {
@@ -106,7 +118,7 @@ python "$RECORD_PATH/prepare_caseops_data.py" \
     echo
     echo "[shard counts]"
     train_shards=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' | wc -l)
-    val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' | wc -l)
+    val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' ! -name 'fineweb_val_bytes_*.bin' | wc -l)
     val_byte_shards=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' | wc -l)
     echo "train_shards=$train_shards"
     echo "val_shards=$val_shards"

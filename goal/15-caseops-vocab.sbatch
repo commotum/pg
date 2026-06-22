@@ -128,7 +128,7 @@ fi
 
 if [[ -d "$DATA_PATH" ]]; then
     train_shards_existing=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
-    val_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
+    val_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' ! -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
     val_byte_shards_existing=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
 else
     train_shards_existing=0
@@ -163,7 +163,7 @@ fi
     echo
     echo "[shard counts]"
     train_shards=$(find "$DATA_PATH" -name 'fineweb_train_*.bin' 2>/dev/null | wc -l)
-    val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' 2>/dev/null | wc -l)
+    val_shards=$(find "$DATA_PATH" -name 'fineweb_val_*.bin' ! -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
     val_byte_shards=$(find "$DATA_PATH" -name 'fineweb_val_bytes_*.bin' 2>/dev/null | wc -l)
     echo "train_shards=$train_shards"
     echo "val_shards=$val_shards"

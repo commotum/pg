@@ -914,6 +914,8 @@ Phase plan file:
 - `goal/13-env.sbatch`, `goal/13-caseops-data.sbatch`, `goal/13-smoke.sbatch`, and `goal/13-baseline-a40.sbatch` were prepared and syntax-checked locally as Phase 13 scaffolding.
 - look-ahead data prep was started before full Phase 13 activation: the 04-23 record baseline requires CaseOps SP8192 shards, not the simple-stack SP shards; source docs/tokenizer/prep script were present, CaseOps output shards were missing, and CPU job `20483645` was submitted on 2026-06-22 to create them.
 - environment check job `20484024` failed because `flash_attn_interface` is not installed in the A40 venv. The local 04-23 record script now has an SDPA fallback, so missing FA3 should be treated as an A40 screening fallback fact, not an automatic Phase 13 blocker.
+- job `20483645` later appeared to be spending hours before writing shards because the old validation byte-sidecar path did repeated prefix decodes. The 04-23 `prepare_caseops_data.py` was patched to compute original-byte sidecars in one linear pass and to support bounded exports with `--max-docs`, `--max-train-shards`, and `--dataset-name`.
+- patched smoke-data job `20484885` completed successfully under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-smoke`, producing one train shard, one validation shard, and one validation-byte sidecar. This is enough for a dense record smoke, while a full CaseOps SP8192 export is still required before the full A40 baseline seeds.
 
 Read-only inventory facts from the draft:
 
@@ -925,10 +927,10 @@ Read-only inventory facts from the draft:
 Actions:
 
 1. Continue with `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` as the first manageable A40 record control.
-2. Wait for or repair the CaseOps SP8192 data path so it has 80 train shards, at least one validation shard, and the validation byte sidecar.
-3. Rerun or reinterpret the environment check with SDPA fallback accepted for A40 screening.
-4. Run a record-stack smoke/package check using `VOCAB_SIZE=8192` and `QUAT_MLP=0`.
-5. Run A40 10-minute baseline benchmarks for a few seeds where feasible, parallelizing independent seeds when scheduler/account limits allow.
+2. Run a record-stack smoke/package check using `VOCAB_SIZE=8192`, `QUAT_MLP=0`, and the completed CaseOps smoke data.
+3. Prepare the full CaseOps SP8192 data path with the patched prep script so it has 80 train shards, at least one validation shard, and the validation byte sidecar.
+4. Rerun or reinterpret the environment check with SDPA fallback accepted for A40 screening.
+5. Run A40 10-minute baseline benchmarks for a few seeds after full data exists, parallelizing independent seeds when scheduler/account limits allow.
 
 Record:
 
@@ -1192,14 +1194,15 @@ The original setup and simple-stack proof-of-concept items are complete through 
 The current resume to-do list is:
 
 1. Continue Phase 13 from `goal/13-record.md`.
-2. Resolve the CaseOps `sp8192` data prerequisite for the 04-23 record stack.
-3. Treat missing `flash_attn_interface` as an A40 SDPA-fallback condition, not as an automatic blocker, because the local 04-23 script now has a fallback.
-4. Run the Phase 13 record `sp8192` smoke, then A40 baseline seeds if the smoke passes.
-5. Run Phase 14 same-vocab record `sp8192` qMLP smoke and A40 seeds.
-6. Run Phase 15 record `sp16384` qMLP path/package smoke and A40 seeds.
-7. Compare the three A40 contenders in Phase 16: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
-8. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
-9. Avoid H100/H200 confirmation until A40 record-stack evidence justifies it and the exact command is reviewed.
+2. Run the Phase 13 dense record `sp8192` smoke against the completed CaseOps smoke data at `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-smoke`.
+3. Prepare the full CaseOps `sp8192` data prerequisite with the patched prep path, and only cancel old job `20483645` after verifying the replacement is ahead, complete, or otherwise makes the old job wasteful.
+4. Treat missing `flash_attn_interface` as an A40 SDPA-fallback condition, not as an automatic blocker, because the local 04-23 script now has a fallback.
+5. Run Phase 13 dense record `sp8192` A40 baseline seeds after full data exists.
+6. Run Phase 14 same-vocab record `sp8192` qMLP smoke and A40 seeds.
+7. Run Phase 15 record `sp16384` qMLP path/package smoke and A40 seeds.
+8. Compare the three A40 contenders in Phase 16: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
+9. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
+10. Avoid H100/H200 confirmation until A40 record-stack evidence justifies it and the exact command is reviewed.
 
 ## First Success Definition
 

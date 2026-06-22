@@ -242,7 +242,7 @@ This phase is complete when:
 
 ## Result
 
-Status: active, blocked on immediate data/env readiness checks
+Status: active. CaseOps smoke-data export is proven with the patched prep path; dense record A40 smoke is next while full CaseOps SP8192 data is prepared.
 
 Evidence:
 
@@ -253,14 +253,17 @@ Evidence:
 - CaseOps data-prep job `20483645` was submitted and started on `cn-r-1` as `pg-p13-caseops`.
 - Early log for `20483645` reached `loaded sp: vocab=8192`, confirming the shipped CaseOps tokenizer loaded.
 - Early `sstat` for `20483645.batch` showed `AveCPU=00:02:23` after roughly two minutes elapsed, consistent with the current CaseOps prep script being effectively single-process despite the 16-CPU allocation.
+- A later check found `20483645` had run for hours with no output shards. The likely cause was the old validation byte-sidecar path doing repeated prefix decodes before the first shard flush. Do not treat `20483645` as the primary path without rechecking its state.
 - Environment check job `20484024` failed because `flash_attn_interface` was missing from the A40 venv.
 - The local 04-23 record `train_gpt.py` now includes an SDPA fallback, so the next env/smoke check should allow that fallback and record it as an A40 screening difference.
-- The expected CaseOps SP8192 shard path still had zero train/validation/byte-sidecar shards when checked during planning; verify again before submitting any smoke.
+- The 04-23 `prepare_caseops_data.py` was patched to compute original-byte validation sidecars in one linear pass and to accept `--max-docs`, `--max-train-shards`, and `--dataset-name` so smoke and bounded full exports can use the same path.
+- Patched CaseOps smoke-data job `20484885` completed successfully under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-smoke`, producing one train shard, one validation shard, and one validation-byte sidecar.
+- The smoke data is sufficient for a dense record import/package/path smoke, but not for the full Phase 13 A40 baseline. Full CaseOps SP8192 data still needs a replacement patched export or a verified completed existing export.
 
 Artifacts:
 
 - `goal/13-env.sbatch`: A40 compute-node environment and import check for PyTorch/CUDA, Triton, SentencePiece, `flash_attn_interface`, `lrzip`, record files, and CaseOps shard counts.
-- `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the 04-23 record's `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
+- `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the patched 04-23 record `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
 - `goal/13-smoke.sbatch`: minimal one-GPU A40 record-stack smoke with `PREQUANT_ONLY=1`, `TTT_ENABLED=0`, two iterations, and CaseOps data checks.
 - `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings and default TTT enabled.
 - Remote staged scripts include `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`. The env check was submitted as job `20484024`; the record smoke and baseline benchmark remain pending data readiness.
@@ -272,12 +275,13 @@ New facts:
 - The 04-23 candidate is slightly weaker but likely simpler as a first A40 reproduction target.
 - The 04-23 record's CaseOps data prep is CPU-only and consumes `docs_selected.jsonl`; it can reuse `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/docs_selected.jsonl` if that file remains available.
 - The 04-23 record's training script expects explicit `DATA_PATH` and `TOKENIZER_PATH` for portable CaseOps runs; the scaffolding writes CaseOps data under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/`.
-- The 04-23 `prepare_caseops_data.py` is mostly a single-process Python pipeline, so the 16-CPU allocation may not scale linearly; monitor `CPUTime`/progress before deciding whether a parallel prep wrapper is worth implementing.
+- The 04-23 `prepare_caseops_data.py` remains mostly a single-process Python pipeline, so larger CPU allocations will not necessarily scale linearly. The important speed fix is the linear validation byte-sidecar computation, not more CPUs.
 - For the resumed goal, Phase 13 should produce the dense record `sp8192` A40 control. Phase 14 measures qMLP tax at `sp8192`, and Phase 15 tests qMLP reinvestment at `sp16384`.
 
 Decision:
 
 - Resume Phase 13.
-- First verify whether CaseOps job `20483645` completed and whether the expected shards exist.
-- If CaseOps SP8192 data is ready, rerun the A40 smoke using the SDPA fallback path.
-- If CaseOps SP8192 data is still not ready, diagnose or repair data prep before submitting record-stack training.
+- First run the dense record smoke against `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-smoke` to verify the A40 record path quickly.
+- In parallel with that smoke where scheduler/account limits allow, prepare the full CaseOps SP8192 data path with the patched prep script.
+- Only cancel old job `20483645` after verifying the patched replacement path is ahead, complete, or otherwise makes the old job wasteful.
+- After full CaseOps SP8192 data exists, submit the dense record `sp8192` A40 baseline seeds and keep independent seed jobs parallel where safe.
