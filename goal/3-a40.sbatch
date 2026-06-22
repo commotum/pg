@@ -6,8 +6,8 @@
 #SBATCH --time=00:25:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=24G
 #SBATCH --output=/nfs/hpc/share/peterj29/pg/runs/phase3-a40/slurm-%j.out
 #SBATCH --error=/nfs/hpc/share/peterj29/pg/runs/phase3-a40/slurm-%j.err
 
