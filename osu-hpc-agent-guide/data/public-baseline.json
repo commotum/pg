@@ -1,0 +1,1287 @@
+{
+  "schema_version": 1,
+  "title": "OSU College of Engineering HPC public-document baseline",
+  "reviewed_on": "2026-06-20",
+  "authority_warning": "Planning baseline only. Live Slurm, quota, module, mount, node, policy, and administrator information is authoritative.",
+  "latest_public_status_at_review": {
+    "timestamp_text": "2026-06-18 18:00 local time",
+    "summary": "Most basic EL9 nodes were up; work continued on EL9 GPU nodes including DGX nodes."
+  },
+  "cluster_aggregate": {
+    "servers_approx": 130,
+    "cpu_cores_more_than": 5500,
+    "gpus_more_than": 250,
+    "ram_tb_more_than": 50,
+    "global_fast_scratch_tb_approx": 500,
+    "peak_double_precision_tflops_approx": 2000,
+    "interconnects": [
+      "Gigabit Ethernet",
+      "Mellanox EDR InfiniBand",
+      "Mellanox HDR InfiniBand",
+      "NDR on selected node"
+    ]
+  },
+  "defaults_documented": {
+    "partition": "share",
+    "walltime": "12:00:00",
+    "cpus_per_task": 1,
+    "tasks": 1,
+    "gpus": 0
+  },
+  "global_job_caps_documented": {
+    "submitted_jobs_per_user": 1000,
+    "running_jobs_per_user": 400
+  },
+  "storage": {
+    "home": {
+      "path": "$HOME",
+      "quota_gb": 25,
+      "backed_up": "not specified in HPC docs"
+    },
+    "hpc_share": {
+      "path": "/nfs/hpc/share/$USER",
+      "quota_tb_publicly_documented": [
+        1.0,
+        1.5
+      ],
+      "backed_up": false,
+      "snapshots_or_deleted_file_recovery": false,
+      "purge_policy_days_possible": 90
+    },
+    "local_scratch": {
+      "path": "/scratch",
+      "backed_up": false,
+      "persistence_guarantee": false
+    }
+  },
+  "gpu_families_publicly_identified": [
+    "H200",
+    "H100",
+    "L40S",
+    "A40",
+    "V100",
+    "V100S",
+    "RTX 8000",
+    "RTX 6000",
+    "T4",
+    "M60",
+    "RTX 2080",
+    "MIG"
+  ],
+  "software": {
+    "operating_systems": [
+      "Rocky Linux 8",
+      "Rocky Linux 9"
+    ],
+    "scheduler": "Slurm",
+    "environment_modules": "Lmod",
+    "documented_versions": {
+      "MATLAB": [
+        "2023a",
+        "2023b",
+        "2024a",
+        "2024b",
+        "2025a",
+        "2025b"
+      ],
+      "Mathematica": [
+        "12.3",
+        "13.3",
+        "14.3"
+      ],
+      "Ansys": [
+        "2019r3",
+        "2020r2",
+        "2021r2",
+        "2022r2",
+        "2023r2",
+        "2024r2",
+        "2025r2"
+      ],
+      "AnsysEDT": [
+        "2023r2",
+        "2024r2"
+      ],
+      "StarCCM+": [
+        "15.06",
+        "16.06",
+        "17.04",
+        "18.06",
+        "19.06"
+      ],
+      "Gurobi": [
+        "8.1",
+        "9.1",
+        "9.5",
+        "10.0",
+        "11.0",
+        "12.0"
+      ],
+      "Intel oneAPI": [
+        "2022",
+        "2024",
+        "2025"
+      ],
+      "NVHPC": [
+        "24.x",
+        "25.x"
+      ],
+      "GCC": [
+        "5.x through 15.2"
+      ],
+      "LLVM": [
+        "14 through 20"
+      ],
+      "CUDA": [
+        "11.x through 13.x"
+      ]
+    }
+  },
+  "node_groups": [
+    {
+      "hosts": [
+        "submit-a",
+        "submit-b",
+        "submit-c"
+      ],
+      "role": "submit",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x16-core Intel Xeon Gold 6130 2.10GHz",
+      "cores_per_node": 32,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [],
+      "local_scratch": null,
+      "network": [
+        "Ethernet",
+        "Mellanox EDR InfiniBand"
+      ],
+      "notes": [
+        "Control/login hosts; not for sustained computation."
+      ]
+    },
+    {
+      "host_pattern": "dgxh-[1-3]",
+      "documented_count": 3,
+      "role": "compute",
+      "model": "NVIDIA DGX H100",
+      "cpu": "2x56-core Intel Xeon Platinum 8480CL",
+      "cores_per_node": 112,
+      "ram_gb_per_node": 2048,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA H100",
+          "count": 8,
+          "vram_gb": 80
+        }
+      ],
+      "local_scratch": "24 TB NVMe",
+      "network": [
+        "100 GbE",
+        "Mellanox HDR InfiniBand"
+      ]
+    },
+    {
+      "hosts": [
+        "dgxh-4"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "NVIDIA DGX H200",
+      "cpu": "2x56-core Intel Xeon Platinum 8480CL",
+      "cores_per_node": 112,
+      "ram_gb_per_node": 2048,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA H200",
+          "count": 8,
+          "vram_gb": 140
+        }
+      ],
+      "local_scratch": "24 TB NVMe",
+      "network": [
+        "100 GbE",
+        "Mellanox HDR InfiniBand"
+      ]
+    },
+    {
+      "host_pattern": "dgx2-*",
+      "documented_count": {
+        "summary": 4,
+        "detail": 5
+      },
+      "role": "compute",
+      "model": "NVIDIA DGX-2",
+      "cpu": "2x24-core Intel Xeon Platinum 8168",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 1536,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Tesla V100",
+          "count": 16,
+          "vram_gb": 32
+        }
+      ],
+      "local_scratch": "28 TB NVMe",
+      "network": [
+        "100 GbE",
+        "Mellanox EDR InfiniBand"
+      ],
+      "notes": [
+        "Status page says dgx2-3 died and was removed in March 2026; live Slurm is authoritative."
+      ]
+    },
+    {
+      "hosts": [
+        "cn-w-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R760xa",
+      "cpu": "2x20-core Intel Xeon Platinum 8462Y+",
+      "cores_per_node": 40,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA H100",
+          "count": 2,
+          "vram_gb": 80
+        }
+      ],
+      "local_scratch": "3.5 TB NVMe",
+      "network": [
+        "10 GbE",
+        "ConnectX-6 InfiniBand"
+      ]
+    },
+    {
+      "hosts": [
+        "cn-w-2"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R760xa",
+      "cpu": "2x20-core Intel Xeon Platinum 8462Y+",
+      "cores_per_node": 40,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA L40S",
+          "count": 4,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "3.5 TB NVMe",
+      "network": [
+        "10 GbE",
+        "ConnectX-6 InfiniBand"
+      ]
+    },
+    {
+      "hosts": [
+        "cn-x-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell XE7745",
+      "cpu": "2x128-core AMD EPYC 9755",
+      "cores_per_node": 256,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA H100 (as publicly labeled)",
+          "count": 8,
+          "vram_gb": 140
+        }
+      ],
+      "local_scratch": "3.5 TB NVMe",
+      "network": [
+        "100 GbE",
+        "ConnectX-7 NDR InfiniBand"
+      ],
+      "notes": [
+        "Public H100/140 GB combination is anomalous; verify live."
+      ]
+    },
+    {
+      "host_pattern": "cn-gpu[10-12]",
+      "documented_count": 3,
+      "role": "compute",
+      "model": "Exxact GPU server",
+      "cpu": "2x64-core AMD EPYC 7763",
+      "cores_per_node": 128,
+      "ram_gb_per_node": 1024,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA L40S",
+          "count": 8,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "894 GB",
+      "network": [
+        "Ethernet",
+        "ConnectX-6 InfiniBand"
+      ]
+    },
+    {
+      "host_pattern": "cn-v-[1-9]",
+      "documented_count": {
+        "host_range": 9,
+        "model_label": 8
+      },
+      "role": "compute",
+      "model": "Dell PowerEdge R6625",
+      "cpu": "2x48-core AMD EPYC 9474F",
+      "cores_per_node": 96,
+      "ram_gb_per_node": 384,
+      "gpus_per_node": [],
+      "local_scratch": "400 GB",
+      "network": [
+        "Ethernet",
+        "ConnectX-6 InfiniBand"
+      ]
+    },
+    {
+      "host_pattern": "cn-u-[1-2]",
+      "documented_count": 2,
+      "role": "compute",
+      "model": "Dell PowerEdge R6525",
+      "cpu": "2x32-core AMD EPYC 7543",
+      "cores_per_node": 64,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [],
+      "local_scratch": "400 GB",
+      "network": [
+        "Ethernet",
+        "ConnectX-6 InfiniBand"
+      ]
+    },
+    {
+      "hosts": [
+        "cn-t-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R7525",
+      "cpu": "2x24-core AMD EPYC 7313",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA A40",
+          "count": 3,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "844 GB"
+    },
+    {
+      "host_pattern": "cn-s-[1-5]",
+      "documented_count": 5,
+      "role": "compute",
+      "model": "Dell PowerEdge R7525",
+      "cpu": "2x24-core AMD EPYC 74F3",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA A40",
+          "count": 2,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "844 GB"
+    },
+    {
+      "host_pattern": "cn-r-[5-6]",
+      "documented_count": 2,
+      "role": "compute",
+      "model": "Dell PowerEdge R7525",
+      "cpu": "2x32-core AMD EPYC 7513",
+      "cores_per_node": 64,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA A40",
+          "count": 2,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "725 GB"
+    },
+    {
+      "host_pattern": "cn-r-[1-4]",
+      "documented_count": 4,
+      "role": "compute",
+      "model": "Dell PowerEdge R7525",
+      "cpu": "2x24-core AMD EPYC 7F72",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA A40",
+          "count": 2,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "725 GB"
+    },
+    {
+      "hosts": [
+        "sail-gpu0"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge DSS8440",
+      "cpu": "2x24-core Intel Xeon Gold 6248R",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA A40",
+          "count": 8,
+          "vram_gb": 48
+        }
+      ],
+      "local_scratch": "7.0 TB SSD"
+    },
+    {
+      "hosts": [
+        "soundwave"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R740xd2",
+      "cpu": "2x10-core Intel Xeon Silver 4210R",
+      "cores_per_node": 20,
+      "ram_gb_per_node": 384,
+      "gpus_per_node": [],
+      "local_scratch": "5.3 TB SSD"
+    },
+    {
+      "hosts": [
+        "optimus"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge DSS8440",
+      "cpu": "2x20-core Intel Xeon Gold 6230",
+      "cores_per_node": 40,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Quadro RTX 6000",
+          "count": 8,
+          "vram_gb": 22
+        }
+      ],
+      "local_scratch": "345 GB SSD",
+      "notes": [
+        "VRAM value reproduced from OSU public page."
+      ]
+    },
+    {
+      "host_pattern": "cn-gpu[6-7]",
+      "documented_count": 2,
+      "role": "compute",
+      "model": "Dell PowerEdge DSS8440",
+      "cpu": "2x24-core Intel Xeon Gold 6248R",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Quadro RTX 8000",
+          "count": 8,
+          "vram_gb": 44
+        }
+      ],
+      "local_scratch": "7.0 TB SSD",
+      "notes": [
+        "VRAM value reproduced from OSU public page."
+      ]
+    },
+    {
+      "hosts": [
+        "cn-gpu5"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge DSS8440",
+      "cpu": "2x20-core Intel Xeon Gold 6248",
+      "cores_per_node": 40,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Quadro RTX 8000",
+          "count": 8,
+          "vram_gb": 44
+        }
+      ],
+      "local_scratch": "7.0 TB SSD",
+      "notes": [
+        "VRAM value reproduced from OSU public page."
+      ]
+    },
+    {
+      "host_pattern": "cn-q-[1-2]",
+      "documented_count": 2,
+      "role": "compute",
+      "model": "Dell PowerEdge R640",
+      "cpu": "2x24-core Intel Xeon Gold 6248R",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 192,
+      "gpus_per_node": [],
+      "local_scratch": "345 GB"
+    },
+    {
+      "hosts": [
+        "cn-p-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R740xd",
+      "cpu": "2x24-core Intel Xeon Gold 6254R",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Tesla V100S",
+          "count": 1,
+          "vram_gb": 32
+        }
+      ],
+      "local_scratch": "345 GB"
+    },
+    {
+      "hosts": [
+        "cn-o-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x24-core Intel Xeon Gold 6254R",
+      "cores_per_node": 48,
+      "ram_gb_per_node": 192,
+      "gpus_per_node": [],
+      "local_scratch": "345 GB"
+    },
+    {
+      "host_pattern": "cn-n-[1-6]",
+      "documented_count": 6,
+      "role": "compute",
+      "model": "Dell PowerEdge R640",
+      "cpu": "2x18-core Intel Xeon Gold 6254",
+      "cores_per_node": 36,
+      "ram_gb_per_node": 192,
+      "gpus_per_node": [],
+      "local_scratch": "345 GB"
+    },
+    {
+      "hosts": [
+        "cn-m-1"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R740xd",
+      "cpu": "2x4-core Intel Xeon Gold 5222",
+      "cores_per_node": 8,
+      "ram_gb_per_node": 192,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Tesla T4",
+          "count": 6,
+          "vram_gb": 15
+        }
+      ],
+      "local_scratch": "155 GB SSD",
+      "notes": [
+        "VRAM value reproduced from OSU public page."
+      ]
+    },
+    {
+      "hosts": [
+        "cn-m-2"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell Precision 7920",
+      "cpu": "2x8-core Intel Xeon Silver 4215",
+      "cores_per_node": 16,
+      "ram_gb_per_node": 192,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Quadro RTX 6000",
+          "count": 2,
+          "vram_gb": 24
+        }
+      ],
+      "local_scratch": "165 GB SSD"
+    },
+    {
+      "host_pattern": "cn-e[41,43,44]",
+      "documented_count": {
+        "host_list": 3,
+        "model_label": 4
+      },
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x22-core Intel Xeon Gold 6152",
+      "cores_per_node": 44,
+      "ram_gb_per_node": "128-768",
+      "gpus_per_node": [],
+      "local_scratch": "346 GB"
+    },
+    {
+      "host_pattern": "cn-e[31-34]",
+      "documented_count": 4,
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x16-core Intel Xeon Gold 6130",
+      "cores_per_node": 32,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [],
+      "local_scratch": "346 GB"
+    },
+    {
+      "host_pattern": "cn-e[21-24]",
+      "documented_count": 4,
+      "role": "compute",
+      "model": "Dell PowerEdge R640",
+      "cpu": "2x14-core Intel Xeon Gold 5120",
+      "cores_per_node": 28,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [],
+      "local_scratch": "259 GB"
+    },
+    {
+      "host_pattern": "cn-e[14-15]",
+      "documented_count": 2,
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x12-core Intel Xeon Gold 6126",
+      "cores_per_node": 24,
+      "ram_gb_per_node": 384,
+      "gpus_per_node": [],
+      "local_scratch": "259 GB"
+    },
+    {
+      "host_pattern": "cn-e[11-13]",
+      "documented_count": 3,
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x12-core Intel Xeon Silver 4116",
+      "cores_per_node": 24,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [],
+      "local_scratch": "282 GB"
+    },
+    {
+      "host_pattern": "cn-e[01-10]",
+      "documented_count": {
+        "host_range": 10,
+        "model_label": 4
+      },
+      "role": "compute",
+      "model": "Dell PowerEdge R740",
+      "cpu": "2x10-core Intel Xeon Silver 4114",
+      "cores_per_node": 20,
+      "ram_gb_per_node": 128,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "hosts": [
+        "cn-d31"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R930",
+      "cpu": "2x18-core Intel Xeon E5-2695 v4",
+      "cores_per_node": 36,
+      "ram_gb_per_node": 768,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "hosts": [
+        "cn-d21"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R930",
+      "cpu": "2x8-core Intel Xeon E5-2667 v4",
+      "cores_per_node": 16,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [],
+      "local_scratch": "279 GB"
+    },
+    {
+      "host_pattern": "cn-d[11-13]",
+      "documented_count": 3,
+      "role": "compute",
+      "model": "Dell PowerEdge R930",
+      "cpu": "2x20-core Intel Xeon E7-8870 v4",
+      "cores_per_node": 40,
+      "ram_gb_per_node": "512-1536",
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "hosts": [
+        "cn-d01"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Dell PowerEdge R930",
+      "cpu": "2x14-core Intel Xeon E7-4830 v4",
+      "cores_per_node": 28,
+      "ram_gb_per_node": 384,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "host_pattern": "cn-c[31-33]",
+      "documented_count": 3,
+      "role": "compute",
+      "model": "Dell PowerEdge R630",
+      "cpu": "2x12-core Intel Xeon E5-2650L v3",
+      "cores_per_node": 24,
+      "ram_gb_per_node": 512,
+      "gpus_per_node": [],
+      "local_scratch": "931 GB"
+    },
+    {
+      "hosts": [
+        "cn-c30"
+      ],
+      "documented_count": 1,
+      "role": "compute",
+      "model": "Public inventory node",
+      "cpu": "2x12-core Intel Xeon E5-2670 v3",
+      "cores_per_node": 24,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [
+        {
+          "model": "NVIDIA Tesla M60",
+          "count": 2,
+          "vram_gb": 8
+        }
+      ],
+      "local_scratch": "3.8 TB"
+    },
+    {
+      "host_pattern": "cn-c[20-24]",
+      "documented_count": 5,
+      "role": "compute",
+      "cpu": "2x10-core Intel Xeon E5-2660 v3",
+      "cores_per_node": 20,
+      "ram_gb_per_node": 128,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "host_pattern": "cn-c[10-17]",
+      "documented_count": 8,
+      "role": "compute",
+      "cpu": "2x10-core Intel Xeon E5-2660 v3",
+      "cores_per_node": 20,
+      "ram_gb_per_node": "64-128",
+      "gpus_per_node": [],
+      "local_scratch": "193 GB"
+    },
+    {
+      "host_pattern": "cn-b[01-12]",
+      "documented_count": 12,
+      "role": "compute",
+      "model": "Dell PowerEdge C6320",
+      "cpu": "2x8-core Intel Xeon E5-2650 v2",
+      "cores_per_node": 16,
+      "ram_gb_per_node": 64,
+      "gpus_per_node": [],
+      "local_scratch": "338 GB"
+    },
+    {
+      "host_pattern": "cn-a[20-26]",
+      "documented_count": 7,
+      "role": "compute",
+      "model": "Dell PowerEdge R620",
+      "cpu": "2x8-core Intel Xeon E5-2690",
+      "cores_per_node": 16,
+      "ram_gb_per_node": 256,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    },
+    {
+      "host_pattern": "cn-a[11-15]",
+      "documented_count": {
+        "host_range": 5,
+        "model_label": 2
+      },
+      "role": "compute",
+      "model": "Dell PowerEdge R620",
+      "cpu": "2x8-core Intel Xeon E5-2670",
+      "cores_per_node": 16,
+      "ram_gb_per_node": 128,
+      "gpus_per_node": [],
+      "local_scratch": "203 GB"
+    }
+  ],
+  "partitions": [
+    {
+      "name": "share",
+      "owner_accounts": [
+        "ALL"
+      ],
+      "features": [
+        "el8",
+        "el9",
+        "m60",
+        "a40",
+        "sandybridge",
+        "ivybridge",
+        "haswell",
+        "broadwell",
+        "skylake",
+        "epyc",
+        "avx2",
+        "avx512"
+      ]
+    },
+    {
+      "name": "class",
+      "owner_accounts": [
+        "class accounts"
+      ],
+      "features": [
+        "varies"
+      ]
+    },
+    {
+      "name": "dgxh",
+      "owner_accounts": [
+        "ALL"
+      ],
+      "features": [
+        "el9",
+        "h100",
+        "h200",
+        "vram40g",
+        "vram80g",
+        "vram140g",
+        "sapphire",
+        "avx512"
+      ]
+    },
+    {
+      "name": "dgxh-ceoas",
+      "owner_accounts": [
+        "ceoas"
+      ],
+      "features": [
+        "el9",
+        "h100-40g",
+        "h100",
+        "vram80g",
+        "vram140g",
+        "sapphire",
+        "avx512"
+      ]
+    },
+    {
+      "name": "dgx2",
+      "owner_accounts": [
+        "ALL"
+      ],
+      "features": [
+        "el9",
+        "v100",
+        "cascade",
+        "avx512"
+      ]
+    },
+    {
+      "name": "gpu",
+      "owner_accounts": [
+        "eecs"
+      ],
+      "features": [
+        "el9",
+        "rtx8000",
+        "cascade",
+        "avx512"
+      ]
+    },
+    {
+      "name": "gpu-dmv",
+      "owner_accounts": [
+        "dmv"
+      ],
+      "features": [
+        "el9",
+        "rtx8000",
+        "cascade",
+        "avx512"
+      ]
+    },
+    {
+      "name": "ampere",
+      "owner_accounts": [
+        "ALL"
+      ],
+      "features": [
+        "el9",
+        "a40",
+        "epyc",
+        "avx2"
+      ],
+      "notes": [
+        "FAQ universal-access list omits ampere; verify live."
+      ]
+    },
+    {
+      "name": "athena",
+      "owner_accounts": [
+        "hlab"
+      ],
+      "features": [
+        "el9",
+        "a40",
+        "epyc",
+        "avx2"
+      ]
+    },
+    {
+      "name": "bee",
+      "owner_accounts": [
+        "fc-lab",
+        "sg-ecohydro"
+      ],
+      "features": [
+        "el9",
+        "v100",
+        "cascade",
+        "avx512"
+      ]
+    },
+    {
+      "name": "bee1",
+      "owner_accounts": [
+        "fc-lab"
+      ],
+      "features": [
+        "el9",
+        "v100",
+        "cascade",
+        "avx512"
+      ]
+    },
+    {
+      "name": "cbee",
+      "owner_accounts": [
+        "la-grp"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "cp-grp",
+      "owner_accounts": [
+        "cp-grp"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "ecohydro",
+      "owner_accounts": [
+        "sg-ecohydro"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "eecs",
+      "owner_accounts": [
+        "eecs"
+      ],
+      "features": [
+        "rtx2080",
+        "broadwell"
+      ]
+    },
+    {
+      "name": "eecs2",
+      "owner_accounts": [
+        "virl-grp"
+      ],
+      "features": [
+        "rtx6000"
+      ]
+    },
+    {
+      "name": "eecs3",
+      "owner_accounts": [
+        "rah-grp"
+      ],
+      "features": [
+        "m60"
+      ]
+    },
+    {
+      "name": "hw-grp",
+      "owner_accounts": [
+        "hw-grp"
+      ],
+      "features": [
+        "h100"
+      ]
+    },
+    {
+      "name": "maml",
+      "owner_accounts": [
+        "maml"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "mime1",
+      "owner_accounts": [
+        "kt-lab"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "mime2",
+      "owner_accounts": [
+        "jt-grp"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "mime3",
+      "owner_accounts": [
+        "mime3_grp"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "mime4",
+      "owner_accounts": [
+        "nrg"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "mime5",
+      "owner_accounts": [
+        "simon-grp"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "mime7",
+      "owner_accounts": [
+        "ba-grp"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "nacse",
+      "owner_accounts": [
+        "nacse"
+      ],
+      "features": [
+        "a40",
+        "l40s"
+      ]
+    },
+    {
+      "name": "nerhp",
+      "owner_accounts": [
+        "nse"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "nerhp2",
+      "owner_accounts": [
+        "ig-lab"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "nse3",
+      "owner_accounts": [
+        "cp-grp",
+        "tp-grp"
+      ],
+      "features": [
+        "group-owned"
+      ]
+    },
+    {
+      "name": "sail",
+      "owner_accounts": [
+        "sail"
+      ],
+      "features": [
+        "a40"
+      ]
+    },
+    {
+      "name": "soundbendor",
+      "owner_accounts": [
+        "soundbendor"
+      ],
+      "features": [
+        "rtx6000",
+        "t4"
+      ]
+    },
+    {
+      "name": "sy-grp",
+      "owner_accounts": [
+        "sy-grp"
+      ],
+      "features": [
+        "h100",
+        "h200"
+      ]
+    },
+    {
+      "name": "tiamat",
+      "owner_accounts": [
+        "dmf",
+        "virl-grp",
+        "af-lab",
+        "iras"
+      ],
+      "features": [
+        "l40s"
+      ]
+    },
+    {
+      "name": "tp-grp",
+      "owner_accounts": [
+        "tp-grp"
+      ],
+      "features": [
+        "cpu"
+      ]
+    },
+    {
+      "name": "preempt",
+      "owner_accounts": [
+        "ALL"
+      ],
+      "features": [
+        "ALL"
+      ],
+      "notes": [
+        "Low priority; subject to preemption."
+      ]
+    }
+  ],
+  "partition_limits_documented": {
+    "share": {
+      "max_wall": "7-00:00:00",
+      "max_cpus_per_job": 512,
+      "active_cpu_days_per_user": 512,
+      "max_gpus_per_job": 2,
+      "active_gpu_days_per_user": 2,
+      "max_ram_gb_per_job": 512,
+      "active_ram_gb_days_per_user": 1536
+    },
+    "dgxh": {
+      "max_wall": "2-00:00:00",
+      "max_cpus_per_job": 224,
+      "active_cpu_days_per_user": 64,
+      "max_gpus_per_job": 8,
+      "active_gpu_days_per_user": 2,
+      "max_ram_gb_per_job": 2000,
+      "active_ram_gb_days_per_user": 500
+    },
+    "dgx2": {
+      "max_wall": "7-00:00:00",
+      "max_cpus_per_job": 96,
+      "active_cpu_days_per_user": 48,
+      "max_gpus_per_job": 16,
+      "active_gpu_days_per_user": 8,
+      "max_ram_gb_per_job": 1500,
+      "active_ram_gb_days_per_user": 750
+    },
+    "gpu": {
+      "max_wall": "7-00:00:00",
+      "max_cpus_per_job": 40,
+      "active_cpu_days_per_user": 48,
+      "max_gpus_per_job": 8,
+      "active_gpu_days_per_user": 8,
+      "max_ram_gb_per_job": 750,
+      "active_ram_gb_days_per_user": 750
+    },
+    "ampere": {
+      "max_wall": "2-00:00:00",
+      "max_cpus_per_job": 64,
+      "active_cpu_days_per_user": 64,
+      "max_gpus_per_job": 2,
+      "active_gpu_days_per_user": 2,
+      "max_ram_gb_per_job": 250,
+      "active_ram_gb_days_per_user": 250
+    },
+    "eecs": {
+      "max_wall": "7-00:00:00",
+      "max_cpus_per_job": 40,
+      "active_cpu_days_per_user": 48,
+      "max_gpus_per_job": 8,
+      "active_gpu_days_per_user": 8,
+      "max_ram_gb_per_job": 250,
+      "active_ram_gb_days_per_user": 250
+    },
+    "preempt": {
+      "max_wall": "7-00:00:00",
+      "resource_time_limits": "none stated"
+    }
+  },
+  "known_discrepancies": [
+    "DGX-2 count differs among summary, detailed inventory, and status history.",
+    "cn-v host range and model count differ.",
+    "Several cn-e and cn-a host ranges and model counts differ.",
+    "cn-x-1 is publicly labeled H100 with 140 GB VRAM.",
+    "hpc-share quota is stated as both 1 TB and 1.5 TB.",
+    "FAQ universal-partition list omits ampere although partition table says ALL.",
+    "Both ondemand.hpc.engr.oregonstate.edu and submit.hpc.engr.oregonstate.edu are documented for the portal.",
+    "MIG/GRES configuration is mutable.",
+    "Aggregate GPU count does not reconcile to detailed static host rows."
+  ],
+  "sources": [
+    "https://it.engineering.oregonstate.edu/hpc",
+    "https://it.engineering.oregonstate.edu/hpc/getting-started",
+    "https://it.engineering.oregonstate.edu/hpc/about-cluster",
+    "https://it.engineering.oregonstate.edu/hpc/slurm-howto",
+    "https://it.engineering.oregonstate.edu/hpc/faqs",
+    "https://it.engineering.oregonstate.edu/hpc/optimize",
+    "https://it.engineering.oregonstate.edu/hpc/lmod-howto",
+    "https://it.engineering.oregonstate.edu/hpc/hpc-cluster-status-and-news"
+  ]
+}
