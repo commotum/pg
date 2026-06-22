@@ -2,7 +2,7 @@
 
 Date: 2026-06-22
 
-This note records the current best facts for the Phase 15 record-stack qMLP package-size search. It should be read alongside `goal/15-vocab-max.md`; where this note conflicts with that draft estimate, this note is newer.
+This note records the current best facts for the Phase 15 record-stack qMLP package-size search. The canonical resumed Phase 15 plan is `goal/15-sp16384.md`; `goal/15-vocab-max.md` keeps the deferred frontier-search procedure.
 
 ## Executive Summary
 
@@ -10,7 +10,13 @@ The first record-stack qMLP package canary at `VOCAB_SIZE=11776` completed succe
 
 The canary does not prove final trained BPB or final trained package size. It does prove that the record-stack qMLP packaging path is mechanically working and that `11776` is far below the 16,000,000 byte cap in the current smoke setup.
 
-Current implication: do not spend time on small vocab increments around 12k. `16384` is likely safe enough to use as a sanity checkpoint, but it is probably not the real package frontier. The next useful Phase 15 probe should jump to a serious bracket such as `24576`, then use a high bracket such as `32768` if the package remains safely under cap.
+Current implication: `16384` is safe enough to use as the fixed larger-vocab A40 benchmark candidate. The earlier idea of pushing immediately to `24576` or `32768` is deferred until after the cleaner three-way A40 comparison exists:
+
+```text
+dense record sp8192
+qMLP record sp8192
+qMLP record sp16384
+```
 
 ## Simple-Stack Context
 
@@ -84,7 +90,7 @@ The `11776` result changes the Phase 15 search strategy:
 - The old `11k-12k` frontier estimate in `goal/15-vocab-max.md` is superseded.
 - `11776` is a lower bound, not a near-frontier result.
 - `16384` is likely to fit mechanically, but it should not be treated as the likely maximum.
-- The useful work is now to bracket the true frontier with large jumps, then binary-search with 512-token granularity.
+- The useful immediate benchmark is now fixed `sp16384`, not bracketing the true frontier. Frontier bracketing should resume only if the fixed comparison shows larger vocab is worth pursuing.
 
 A rough conservative storage estimate from `11776` to `16384`:
 
@@ -120,31 +126,33 @@ The successful canary came after several mechanical blockers were fixed or route
 
 The current smoke recipe avoids those blockers for package-size probing.
 
-## Recommended Next Probes
+## Revised Next Step
 
-Use the existing Phase 15 scripts:
+Do not continue package-frontier probing before the fixed `sp16384` record benchmark.
+
+Use the Phase 15 machinery only as needed to build/stage the `VOCAB_SIZE=16384` CaseOps tokenizer/data and run one package/path smoke:
 
 ```text
-VOCAB_SIZE=<candidate> sbatch goal/15-caseops-vocab.sbatch
-VOCAB_SIZE=<candidate> sbatch goal/15-qmlp-package-smoke.sbatch
+VOCAB_SIZE=16384 sbatch goal/15-caseops-vocab.sbatch
+VOCAB_SIZE=16384 sbatch goal/15-qmlp-package-smoke.sbatch
 ```
 
-Recommended bracket:
+Then run the full A40 record-stack qMLP `sp16384` benchmark only after Phase 13 and Phase 14 have produced the `sp8192` controls.
 
-1. Probe `VOCAB_SIZE=24576` next as a serious lower-bound candidate.
-2. If `24576` is comfortably under cap, probe `VOCAB_SIZE=32768` as an aggressive upper bracket.
-3. If `32768` fails or is too close to cap, binary search between `24576` and `32768`.
-4. If `24576` is already too close or over cap, binary search between `11776` and `24576`.
-5. Once a near-frontier smoke candidate exists, run the full A40 record-stack qMLP benchmark only for the best safe candidate or one small pair of serious candidates.
+The frontier bracket remains available later:
+
+1. Reopen at `VOCAB_SIZE=24576` only if `sp16384` is promising and still has meaningful package headroom.
+2. Use `VOCAB_SIZE=32768` only as an upper-bound smoke after `24576` remains safely under cap.
+3. Binary search only after the fixed benchmark set says larger vocab is worth the extra data/package work.
 
 For larger vocab candidates, prefer enough tokenizer training documents to avoid a weak tokenizer. `TOKENIZER_TRAIN_DOCS=100000` is safer than `50000` for very large vocab probes if queue time allows.
 
 ## Current Decision State
 
-Phase 15 remains active. The current best factual lower bound is:
+Phase 15 remains active, but its immediate scope is revised. The current best factual lower bound is:
 
 ```text
 record-stack qMLP VOCAB_SIZE=11776 fits at 9376232 total submission bytes
 ```
 
-The next decision should not be whether `16384` fits. The next decision should be how high the record-stack qMLP vocabulary can go while leaving enough headroom for a trained package and then whether that best-under-budget candidate can beat the record-stack A40 baseline.
+The next decision is whether the fixed `sp16384` record-stack qMLP benchmark beats or improves on the `sp8192` record-stack controls. Only after that should the package-frontier question reopen.

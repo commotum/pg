@@ -2,7 +2,7 @@
 
 Date drafted: 2026-06-22
 
-Status: provisional future-phase plan. Do not implement this phase until Phase 11/12 resolves and the plan explicitly moves from simple-stack `sp16384` to record-stack work.
+Status: active. Phase 11 completed, Phase 12 was skipped, and the plan now moves from simple-stack vocabulary work to record-stack A40 controls.
 
 ## Overview
 
@@ -63,19 +63,21 @@ requirements=PyTorch 2.9.1+cu128, flash-attn-interface, triton, sentencepiece
 notes=slightly worse than 04-27/04-29, but simpler than the 04-27 lrzip/pergroup compression path
 ```
 
-All three inspected stacks import `flash_attn_interface` directly and use H100-oriented FlashAttention 3 paths in `train_gpt.py`. The full reproduction commands use `torchrun --standalone --nproc_per_node=8`. Therefore A40 reproduction is expected to require either:
+The inspected record stacks are H100/FA3-oriented and the full reproduction commands use `torchrun --standalone --nproc_per_node=8`. The chosen 04-23 A40 screening path has been locally patched to tolerate missing `flash_attn_interface` by falling back to PyTorch SDPA. Therefore A40 reproduction is expected to use one of:
 
-- an environment where the imported FlashAttention interface works on A40; or
-- a bounded compatibility patch/fallback to PyTorch SDPA or another A40-supported attention path; or
+- an environment where the imported FlashAttention interface works on A40;
+- the bounded SDPA fallback currently present in the local 04-23 script; or
 - choosing a lower-ranked record-style control that is already A40-compatible.
 
 ## Working Assumptions
 
-- Phase 13 begins only after Phase 11/12 ends the simple-stack vocabulary ladder.
+- Phase 13 begins now because Phase 11 ended the simple-stack vocabulary ladder and Phase 12 was skipped.
 - A40 is a screening/debugging environment, not final proof of leaderboard performance.
 - No H100/H200 job should be used merely to continue simple-stack exploration.
 - The first record-stack target should minimize setup risk while staying close enough to the known record path to be a meaningful qMLP control.
 - A same-vocab qMLP tax measurement in Phase 14 is only meaningful if this phase reproduces or approximates a strong record-stack control.
+- Missing `flash_attn_interface` on A40 is acceptable only when explicitly recorded as an SDPA-fallback screening run.
+- The active benchmark sequence is fixed to dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`; larger vocab frontier work is deferred until those three results exist.
 
 ## Implementation Steps
 
@@ -83,9 +85,9 @@ All three inspected stacks import `flash_attn_interface` directly and use H100-o
 
 Before starting jobs, verify that:
 
-- Phase 11 is complete;
-- Phase 12 is either complete, skipped, or abandoned by documented decision;
-- the chosen simple-stack qMLP candidate is explicit;
+- Phase 11 is complete: qMLP `sp16384` lost to replicated `sp8192`.
+- Phase 12 is skipped.
+- the chosen simple-stack qMLP candidate is explicit: matrix qMLP `sp8192`.
 - the plan still calls for record-stack reproduction before more simple-stack exploration.
 
 2. Choose the first record-stack target.
@@ -108,6 +110,12 @@ On Slurm compute nodes, use short jobs to record:
 - whether CaseOps prep dependencies are present.
 
 Do not run these diagnostics directly on submit nodes.
+
+Environment check fact as of 2026-06-22:
+
+- job `20484024` ran on A40 and failed because `flash_attn_interface` was missing;
+- PyTorch, Triton, SentencePiece, and NumPy imported in the existing venv;
+- the failure is now interpreted as requiring the SDPA fallback path for A40 screening, not as a reason to stop Phase 13.
 
 4. Prepare CaseOps data if needed.
 
@@ -141,6 +149,8 @@ If full package serialization is too expensive for smoke, run the smallest packa
 6. Run A40 screening benchmarks for a few seeds if smoke passes.
 
 Use the record stack as-is except for hardware-compatible changes that were already documented in smoke.
+
+Use `VOCAB_SIZE=8192`, `QUAT_MLP=0`, and the CaseOps SP8192 tokenizer/data. Prefer seeds matching later qMLP phases, for example `42`, `0`, and `1`, and run independent seeds in parallel when scheduler/account limits allow.
 
 Record for every run:
 
@@ -207,7 +217,7 @@ Phase look-ahead:
 
 - Phase 13 original record-stack A40 reproduction needs these CaseOps SP8192 shards.
 - Phase 14 same-vocab record-stack qMLP tax measurement should reuse the same shards and tokenizer.
-- Phase 15 budget-reinvested record-stack qMLP may need new CaseOps vocabulary/data variants, but those vocab sizes should be chosen after same-vocab qMLP package-size/tax evidence. Exporting speculative CaseOps vocab sizes now would risk wasting long CPU jobs.
+- Phase 15 budget-reinvested record-stack qMLP now targets `VOCAB_SIZE=16384` specifically. Larger package-frontier vocab work is deferred until the `sp8192` dense, `sp8192` qMLP, and `sp16384` qMLP A40 comparisons exist.
 
 ## Completion Requirements
 
@@ -232,18 +242,20 @@ This phase is complete when:
 
 ## Result
 
-Status: scaffolded, not started
+Status: active, blocked on immediate data/env readiness checks
 
 Evidence:
 
 - Read-only inventory found the likely record-stack candidates and their dependency constraints.
-- No Phase 13 jobs have been submitted.
-- Phase 11 simple-stack `sp16384` export/smoke gate is still active, so Phase 13 implementation is intentionally deferred.
-- On 2026-06-22, Phase 13 A40 scaffolding was prepared while Phase 11 export jobs were running. The scripts are syntax-checked locally but intentionally not submitted.
+- Phase 11 simple-stack `sp16384` completed across three seeds and lost to replicated `sp8192`; Phase 12 was skipped.
+- On 2026-06-22, Phase 13 A40 scaffolding was prepared while Phase 11 export jobs were running. The record smoke and benchmark scripts were syntax-checked locally and not submitted; the env check was later submitted as job `20484024`.
 - On 2026-06-22, a look-ahead check found that the CaseOps dataset/tokenizer output path was missing, while the source `docs_selected.jsonl`, shipped CaseOps tokenizer, and `prepare_caseops_data.py` were present.
 - CaseOps data-prep job `20483645` was submitted and started on `cn-r-1` as `pg-p13-caseops`.
 - Early log for `20483645` reached `loaded sp: vocab=8192`, confirming the shipped CaseOps tokenizer loaded.
 - Early `sstat` for `20483645.batch` showed `AveCPU=00:02:23` after roughly two minutes elapsed, consistent with the current CaseOps prep script being effectively single-process despite the 16-CPU allocation.
+- Environment check job `20484024` failed because `flash_attn_interface` was missing from the A40 venv.
+- The local 04-23 record `train_gpt.py` now includes an SDPA fallback, so the next env/smoke check should allow that fallback and record it as an A40 screening difference.
+- The expected CaseOps SP8192 shard path still had zero train/validation/byte-sidecar shards when checked during planning; verify again before submitting any smoke.
 
 Artifacts:
 
@@ -251,7 +263,7 @@ Artifacts:
 - `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the 04-23 record's `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
 - `goal/13-smoke.sbatch`: minimal one-GPU A40 record-stack smoke with `PREQUANT_ONLY=1`, `TTT_ENABLED=0`, two iterations, and CaseOps data checks.
 - `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings and default TTT enabled.
-- Remote staged scripts, not submitted: `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`.
+- Remote staged scripts include `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`. The env check was submitted as job `20484024`; the record smoke and baseline benchmark remain pending data readiness.
 
 New facts:
 
@@ -261,8 +273,11 @@ New facts:
 - The 04-23 record's CaseOps data prep is CPU-only and consumes `docs_selected.jsonl`; it can reuse `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/docs_selected.jsonl` if that file remains available.
 - The 04-23 record's training script expects explicit `DATA_PATH` and `TOKENIZER_PATH` for portable CaseOps runs; the scaffolding writes CaseOps data under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/`.
 - The 04-23 `prepare_caseops_data.py` is mostly a single-process Python pipeline, so the 16-CPU allocation may not scale linearly; monitor `CPUTime`/progress before deciding whether a parallel prep wrapper is worth implementing.
+- For the resumed goal, Phase 13 should produce the dense record `sp8192` A40 control. Phase 14 measures qMLP tax at `sp8192`, and Phase 15 tests qMLP reinvestment at `sp16384`.
 
 Decision:
 
-- Keep this file as the provisional Phase 13 plan.
-- Do not implement Phase 13 until the simple-stack `sp16384` path reaches a documented decision.
+- Resume Phase 13.
+- First verify whether CaseOps job `20483645` completed and whether the expected shards exist.
+- If CaseOps SP8192 data is ready, rerun the A40 smoke using the SDPA fallback path.
+- If CaseOps SP8192 data is still not ready, diagnose or repair data prep before submitting record-stack training.

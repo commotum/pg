@@ -987,7 +987,8 @@ record qMLP sp16384
 
 Phase documents:
 
-- `goal/15-vocab-max.md` now records the revised Phase 15 scope and keeps the package-frontier machinery available but deferred.
+- `goal/15-sp16384.md` is the canonical detailed Phase 15 plan for the fixed record-stack qMLP `sp16384` benchmark.
+- `goal/15-vocab-max.md` records the older package-frontier machinery and keeps it available but deferred.
 - `goal/15-package-frontier-results.md` records the `11776` canary and the reason the old 11k-12k estimate was too conservative.
 
 Actions:
