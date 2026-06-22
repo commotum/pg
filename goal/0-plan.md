@@ -739,7 +739,47 @@ Phase 9 files:
 - `goal/9-smoke.sbatch`
 - `goal/9-benchmark.sbatch`
 
-### Phase 10: H100/H200 Confirmation
+Phase 9 result as of 2026-06-22 10:31 PDT:
+
+- added `goal/9-sp8192.md`, `goal/9-sp8192-tokenizer-config.json`, `goal/9-data.sbatch`, `goal/9-smoke.sbatch`, and `goal/9-benchmark.sbatch`;
+- CPU export job `20481014` completed on `cn-a26`, partition `share`, 2 CPUs, 24G RAM, elapsed `02:27:04`;
+- export wrote `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/` with tokenizer `sp_bpe_8192`, vocab size `8192`, 80 train shards, one validation shard, `8000009615` train tokens, and `40542913` validation tokens;
+- A40 smoke job `20482322` completed on `cn-r-2`, partition `share`, one A40, 1 CPU, 16G RAM, elapsed `00:03:57`;
+- `sp8192` smoke reported `model_params:13652040`, `step_avg:327.54ms`, roundtrip `val_bpb:3.48484683`, and total int8+zlib submission size `6942514` bytes;
+- smoke passed the 16 MB artifact-size gate;
+- A40 benchmark job `20482977` completed on `cn-r-1`, partition `share`, one A40, 2 CPUs, 24G RAM, elapsed `00:14:29`;
+- `sp8192` benchmark reached `336` steps in `601192ms`, `step_avg:1789.26ms`, final `val_bpb:1.5204`, roundtrip `val_bpb:1.52530269`, peak memory `13971 MiB`, and total int8+zlib submission size `11602814` bytes;
+- comparison: dense `sp1024` Phase 3 roundtrip was `1.58081095`, so `sp8192` improved roundtrip BPB by about `0.0555`;
+- comparison: Phase 8 `sp4096` three-run mean was `1.55284646`, so `sp8192` improved roundtrip BPB by about `0.0275`;
+- decision: promote `sp8192` matrix qMLP as the current best simple candidate and seed-replicate it before H100/H200, width/depth, or stronger-stack integration.
+
+### Phase 10: sp8192 Seed Replication
+
+Goal: verify the stronger `sp8192` result is not a seed-42 outlier.
+
+Use the exact Phase 9 benchmark shape:
+
+```text
+QUAT_MLP=1
+QUAT_MLP_IMPL=matrix
+VOCAB_SIZE=8192
+DATA_PATH=/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/datasets/fineweb10B_sp8192
+TOKENIZER_PATH=/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/tokenizers/fineweb_8192_bpe.model
+TRAIN_BATCH_TOKENS=524288
+VAL_BATCH_SIZE=524288
+MAX_WALLCLOCK_SECONDS=600
+```
+
+Run at least two additional A40 seeds one at a time, matching the Phase 8 seed-replication discipline.
+
+Decision gate:
+
+- If both added seeds beat the `sp4096` mean and dense `sp1024`, promote `sp8192` to H100/H200 confirmation.
+- If one seed regresses near or above the `sp4096` mean, run one more seed before deciding.
+- If multiple seeds regress, keep `sp4096` as the safer simple candidate and defer H100/H200.
+- Track the total int8+zlib submission size for every seed; stop if trained artifacts approach 16 MB.
+
+### Phase 11: H100/H200 Confirmation
 
 Goal: test the best candidate on scarce premium hardware.
 
@@ -776,7 +816,7 @@ Final record-style run should use the actual competition-like resource shape onl
 - exact command is reviewed;
 - expected cost/fairness impact is acceptable.
 
-### Phase 11: Integration Into Strong Record Stack
+### Phase 12: Integration Into Strong Record Stack
 
 Goal: determine whether qMLP still helps when stacked with stronger known tricks.
 
