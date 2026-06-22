@@ -200,23 +200,29 @@ This phase is complete when:
 
 ## Result
 
-Status: not started
+Status: scaffolded, not started
 
 Evidence:
 
 - Read-only inventory found the likely record-stack candidates and their dependency constraints.
 - No Phase 13 jobs have been submitted.
 - Phase 11 simple-stack `sp16384` export/smoke gate is still active, so Phase 13 implementation is intentionally deferred.
+- On 2026-06-22, Phase 13 A40 scaffolding was prepared while Phase 11 export jobs were running. The scripts are syntax-checked locally but intentionally not submitted.
 
 Artifacts:
 
-- Pending implementation.
+- `goal/13-env.sbatch`: A40 compute-node environment and import check for PyTorch/CUDA, Triton, SentencePiece, `flash_attn_interface`, `lrzip`, record files, and CaseOps shard counts.
+- `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the 04-23 record's `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
+- `goal/13-smoke.sbatch`: minimal one-GPU A40 record-stack smoke with `PREQUANT_ONLY=1`, `TTT_ENABLED=0`, two iterations, and CaseOps data checks.
+- `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings and default TTT enabled.
 
 New facts:
 
 - The strongest local record candidates are all H100/FA3-oriented and import `flash_attn_interface` directly.
 - The 04-27 best record also requires the system `lrzip` binary for its `COMPRESSOR=pergroup` path.
 - The 04-23 candidate is slightly weaker but likely simpler as a first A40 reproduction target.
+- The 04-23 record's CaseOps data prep is CPU-only and consumes `docs_selected.jsonl`; it can reuse `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/docs_selected.jsonl` if that file remains available.
+- The 04-23 record's training script expects explicit `DATA_PATH` and `TOKENIZER_PATH` for portable CaseOps runs; the scaffolding writes CaseOps data under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/`.
 
 Decision:
 

@@ -17,7 +17,7 @@ ENV_PATH=${ENV_PATH:-/nfs/hpc/share/peterj29/pg/envs/pg-py311-torch-smoke-202606
 REPO_PATH=${REPO_PATH:-/nfs/hpc/share/peterj29/pg/src/pg}
 PG_PATH=${PG_PATH:-/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf}
 EXPORT_ROOT=${EXPORT_ROOT:-/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80-cpu16}
-CONFIG_PATH=${CONFIG_PATH:-$RUN_ROOT/sp16384-tokenizer-config.json}
+CONFIG_PATH=${CONFIG_PATH:-$RUN_ROOT/11-sp16384-tokenizer-config.json}
 REUSE_MODEL_PATH=${REUSE_MODEL_PATH:-/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/tokenizers/fineweb_16384_bpe.model}
 JOB_DIR="$RUN_ROOT/$SLURM_JOB_ID"
 
