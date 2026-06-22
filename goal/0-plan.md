@@ -798,6 +798,19 @@ Decision gate:
 - Track the total int8+zlib submission size for every seed; stop if trained artifacts approach 16 MB.
 - Do not treat robust `sp8192` as final winner evidence; it only decides which simple-stack qMLP candidate enters later controls.
 
+Phase 10 result as of 2026-06-22 11:22 PDT:
+
+- added `goal/10-seed.md` and `goal/10-seed.sbatch`;
+- seed `0` job `20483042` and seed `1` job `20483043` were submitted concurrently and both ran on `cn-r-3`, partition `share`, with one A40, 2 CPUs, and 24G RAM per job;
+- seed `0` completed with state `COMPLETED`, exit code `0:0`, elapsed `00:14:18`, A40 UUID `GPU-3ea3bfa5-42e5-767d-1df8-53592b677d3b`;
+- seed `1` completed with state `COMPLETED`, exit code `0:0`, elapsed `00:14:14`, A40 UUID `GPU-c6602d49-5711-7014-67cb-9216db753042`;
+- seed `0` reached `337` steps in `600469ms`, `step_avg:1781.81ms`, final `val_bpb:1.5198`, roundtrip `val_bpb:1.52474158`, peak memory `13971 MiB`, and total int8+zlib submission size `11596618` bytes;
+- seed `1` reached `337` steps in `600819ms`, `step_avg:1782.84ms`, final `val_bpb:1.5201`, roundtrip `val_bpb:1.52563039`, peak memory `13971 MiB`, and total int8+zlib submission size `11595190` bytes;
+- comparison: `sp8192` seed `42`, seed `0`, and seed `1` mean roundtrip BPB is `1.52522489`;
+- comparison: dense `sp1024` Phase 3 roundtrip was `1.58081095`, so replicated `sp8192` improves mean roundtrip BPB by about `0.0556`;
+- comparison: replicated `sp4096` mean was `1.55284646`, so replicated `sp8192` improves mean roundtrip BPB by about `0.0276`;
+- decision: `sp8192` is seed-robust on the simple stack. Keep it as the current simple-stack qMLP candidate and proceed to Phase 11 `sp16384` initial qMLP probe. Do not treat this as final winner evidence before dense budget controls and record-stack comparison.
+
 ### Phase 11: sp16384 Initial qMLP Probe
 
 Goal: check whether one more vocabulary expansion improves simple-stack qMLP under the 16 MB artifact cap before pivoting to record-stack work.

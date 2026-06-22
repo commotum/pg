@@ -133,20 +133,94 @@ This phase is complete when:
 
 ## Result
 
-Status: pending
+Status: complete as of 2026-06-22 11:22 PDT.
 
 Evidence:
 
-- Pending implementation.
+- Added reusable seed benchmark script `goal/10-seed.sbatch`.
+- Staged remote script at:
+
+```text
+/nfs/hpc/share/peterj29/pg/runs/phase10-sp8192-seeds/phase10-seed.sbatch
+```
+
+- Seed `0` benchmark job `20483042` and seed `1` benchmark job `20483043` were submitted concurrently.
+- Both jobs ran in parallel on `cn-r-3`, partition `share`, with one A40, 2 CPUs, and 24G RAM per job.
+- Seed `0` Slurm state was `COMPLETED`, exit code `0:0`, elapsed `00:14:18`.
+- Seed `1` Slurm state was `COMPLETED`, exit code `0:0`, elapsed `00:14:14`.
+- Seed `0` used A40 UUID `GPU-3ea3bfa5-42e5-767d-1df8-53592b677d3b`.
+- Seed `1` used A40 UUID `GPU-c6602d49-5711-7014-67cb-9216db753042`.
+- Both seeds used the exact Phase 9 benchmark shape:
+
+```text
+QUAT_MLP=1
+QUAT_MLP_IMPL=matrix
+VOCAB_SIZE=8192
+TRAIN_BATCH_TOKENS=524288
+VAL_BATCH_SIZE=524288
+MAX_WALLCLOCK_SECONDS=600
+```
+
+- Seed `0` benchmark facts:
+
+```text
+job_id=20483042
+model_params=13652040
+steps=337
+step_avg=1781.81ms
+final_val_bpb=1.5198
+roundtrip_val_bpb=1.52474158
+peak memory allocated: 13971 MiB reserved: 14026 MiB
+Serialized model int8+zlib: 11545409 bytes
+Total submission size int8+zlib: 11596618 bytes
+```
+
+- Seed `1` benchmark facts:
+
+```text
+job_id=20483043
+model_params=13652040
+steps=337
+step_avg=1782.84ms
+final_val_bpb=1.5201
+roundtrip_val_bpb=1.52563039
+peak memory allocated: 13971 MiB reserved: 14026 MiB
+Serialized model int8+zlib: 11543981 bytes
+Total submission size int8+zlib: 11595190 bytes
+```
+
+- Comparison:
+
+```text
+dense_sp1024_phase3_roundtrip_val_bpb=1.58081095
+qmlp_sp4096_mean_roundtrip_val_bpb_seed42_0_1=1.55284646
+qmlp_sp8192_seed42_roundtrip_val_bpb=1.52530269
+qmlp_sp8192_seed0_roundtrip_val_bpb=1.52474158
+qmlp_sp8192_seed1_roundtrip_val_bpb=1.52563039
+qmlp_sp8192_mean_roundtrip_val_bpb_seed42_0_1=1.52522489
+```
+
+- Deltas:
+
+```text
+sp8192_mean_vs_dense_sp1024=-0.05558606 BPB
+sp8192_mean_vs_sp4096_mean=-0.02762157 BPB
+```
 
 Artifacts:
 
-- Pending implementation.
+- `/nfs/hpc/share/peterj29/pg/runs/phase10-sp8192-seeds/20483042/`
+- `/nfs/hpc/share/peterj29/pg/runs/phase10-sp8192-seeds/20483043/`
 
 New facts:
 
-- Pending implementation.
+- `sp8192` is seed-robust on the simple stack: seed `42`, seed `0`, and seed `1` all beat the replicated `sp4096` mean and dense `sp1024`.
+- Parallel seed execution worked under current scheduler/account limits for two concurrent A40 jobs.
+- `sp8192` throughput is stable across seeds: `336-337` steps with `1781.81-1789.26ms/step`.
+- Artifact size remains safely under 16 MB: both added seeds were about `11.60 MB` total int8+zlib submission size.
 
 Decision:
 
-- Pending implementation.
+- Keep `sp8192` as the current simple-stack qMLP candidate.
+- Proceed to Phase 11: an `sp16384` initial qMLP probe with export, smoke/package-size gate, and a parallel seed batch only if the smoke gate passes.
+- Do not treat `sp8192` as final winner evidence; it still needs dense budget controls and record-stack comparison.
