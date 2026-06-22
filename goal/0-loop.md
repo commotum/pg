@@ -69,6 +69,7 @@ During implementation:
 - Do not run training, GPU checks, dataset preparation, or material tests on submit nodes.
 - Use Slurm allocations for compute work.
 - Record commands, job IDs, logs, metrics, and hardware context.
+- Keep generated logs and inventory outputs in run artifact directories rather than leaving them in the source tree.
 - Avoid broad refactors unless they are required for the phase.
 - Treat benchmark results as scientific evidence, not as proof that the current implementation is final.
 

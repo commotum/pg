@@ -38,6 +38,14 @@ No GPU jobs should be submitted without an explicit resource request and an expl
 
 Live checks were run on 2026-06-21 around 12:54 PDT through `submit-a.hpc.engr.oregonstate.edu`.
 
+Phase 0 inventory was later captured on 2026-06-21 at 22:26 PDT through `submit-a.ib.coehpc` and preserved under:
+
+```text
+/nfs/hpc/share/peterj29/pg/runs/inventory/20260621-222534/
+```
+
+That later inventory confirmed the visible Slurm association was still `coehpc|eecs|peterj29|||normal||||`, the user queue was empty, `/nfs/hpc/share/peterj29` had about 1.5T available, and submit-node GPU runtime inspection was intentionally skipped because no Slurm GPU allocation was requested.
+
 Visible Slurm association:
 
 ```text
@@ -277,6 +285,16 @@ Exit criteria:
 - live inventory is captured;
 - no compute work has run on submit.
 
+Phase 0 result as of 2026-06-21 22:26 PDT:
+
+- remote repo exists at `/nfs/hpc/share/peterj29/pg/src/pg`;
+- remote branch is `mac` at `e45bef8afd9c4129850aae14f4d0c1fd8543fbad`;
+- remote source tree is clean after moving generated inventory output into the run tree;
+- `parameter-golf` is checked out at `f5c079314c4877fbb0af378c0abade5a8ca33d3a`;
+- `qham` is checked out at `fb7b546294aecdabace2f5fab0527001df320b77`;
+- full inventory artifact is under `/nfs/hpc/share/peterj29/pg/runs/inventory/20260621-222534/`;
+- no compute work was run on the submit node.
+
 ### Phase 1: Environment Smoke Test
 
 Goal: verify Python, CUDA, PyTorch, and GPU visibility inside Slurm.
@@ -318,6 +336,20 @@ Exit criteria:
 - exit code `0:0`;
 - PyTorch sees exactly the allocated GPU;
 - manifest and logs are preserved under `/nfs/hpc/share/$USER/pg/runs/...`.
+
+Phase 1 result as of 2026-06-21 22:40 PDT:
+
+- shared venv exists at `/nfs/hpc/share/peterj29/pg/envs/pg-py311-torch-smoke-20260621`;
+- `pip install torch numpy` resolved to `torch 2.12.1+cu130`, `torch.version.cuda == 13.0`, and `numpy 2.4.6`;
+- smoke job `20480372` ran on `cn-gpu7` in partition `gpu` with `constraint=rtx8000`, `gres/gpu:1`, 4 CPUs, 16G RAM, and 10 minute walltime;
+- Slurm state was `COMPLETED`, exit code `0:0`, elapsed `00:00:20`;
+- `nvidia-smi -L` saw exactly one `Quadro RTX 8000` with 46080 MiB;
+- job loaded `slurm/current` and `cuda/13.0`;
+- PyTorch saw exactly one CUDA device and completed a small CUDA forward/backward pass;
+- artifacts are under `/nfs/hpc/share/peterj29/pg/runs/phase1-smoke/20480372/`;
+- local reusable batch script is `goal/1-smoke.sbatch`.
+
+Phase 2 should reuse this venv if practical, but it still needs the remaining Parameter Golf dependencies and data preparation through Slurm.
 
 ### Phase 2: Data and Baseline Smoke
 

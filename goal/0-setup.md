@@ -118,20 +118,49 @@ This phase is complete when:
 
 ## Result
 
-Status: pending
+Status: complete
 
 Evidence:
 
-- Pending implementation.
+- Remote source directory exists at `/nfs/hpc/share/peterj29/pg/src/pg`.
+- Remote host was `submit-a.ib.coehpc`.
+- Remote branch is `mac`.
+- Remote commit is `e45bef8afd9c4129850aae14f4d0c1fd8543fbad`.
+- Remote `git status --short` is clean after removing the generated source-tree inventory copy.
+- Remote submodules are initialized:
+  - `parameter-golf` at `f5c079314c4877fbb0af378c0abade5a8ca33d3a`.
+  - `qham` at `fb7b546294aecdabace2f5fab0527001df320b77`.
+- Inventory capture timestamp from the guide: `2026-06-21T22:26:40-07:00`.
+- Submit-node GPU runtime inspection intentionally skipped because the inventory script does not request GPUs.
+- No training, data preparation, compilation, allocation, or GPU probe was run on the submit node.
 
 Artifacts:
 
-- Pending implementation.
+- `/nfs/hpc/share/peterj29/pg/runs/inventory/20260621-222534/summary.txt`
+- `/nfs/hpc/share/peterj29/pg/runs/inventory/20260621-222534/inventory.txt`
+- `/nfs/hpc/share/peterj29/pg/runs/inventory/20260621-222534/guide-inventory/`
 
 New facts:
 
-- Pending implementation.
+- The remote repo did not exist before this phase; it was cloned fresh.
+- The corrected nested SSH form is:
+
+```bash
+ssh peterj29@access.engr.oregonstate.edu "ssh submit-a.hpc.engr.oregonstate.edu '...'"
+```
+
+- Without the corrected quoting, chained commands after the nested SSH can accidentally run on the flip host.
+- The current visible Slurm association remains `coehpc|eecs|peterj29|||normal||||`.
+- The current user queue was empty at inventory time.
+- Current loaded modules on submit are only `slurm/current`.
+- Storage at inventory time:
+  - `$HOME` maps to `/nfs/stak/users/peterj29`, 25G total, 12G used, 14G available.
+  - `/nfs/hpc/share/peterj29` is Lustre, 1.5T total, 23G used, about 1.5T available.
+  - `/scratch` exists on submit, 347G total, 344G available, but compute jobs should use compute-node scratch inside allocations.
+- The generated guide inventory initially dirtied the remote source tree under `osu-hpc-agent-guide/inventory/`; it was copied to the run artifact directory and then removed from the source tree.
 
 Decision:
 
-- Pending implementation.
+- Continue to Phase 1: Environment Smoke Test.
+- Phase 1 should create `goal/1-smoke.md` before implementation.
+- The first GPU allocation should remain a short Slurm smoke job on `gpu` with `rtx8000`, unless a fresh scheduler test shows that target is no longer suitable.
