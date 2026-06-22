@@ -41,6 +41,8 @@ Examples:
 2-baseline.md
 3-a40.md
 4-qmlp.md
+5-qmlp.md
+6-optimize.md
 ```
 
 The descriptor should be lowercase, one word, and stable enough that it still makes sense after the phase is complete.

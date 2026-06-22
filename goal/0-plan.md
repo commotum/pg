@@ -405,15 +405,15 @@ Goal: establish the local A40 speed and BPB baseline.
 Target:
 
 ```text
-partition=ampere or preempt
+partition=share
 constraint=a40
 gres=gpu:1
-time=00:15:00
-cpus=8
-mem=64G
+time=00:25:00
+cpus=2
+mem=24G
 ```
 
-Use `ampere` when we need a stable non-preempt comparison and the queue fit is acceptable. Use `preempt` for cheaper iteration, but make runs short and restartable.
+Use `share/a40` when it is the earliest accessible A40 path. Use `ampere` when we need a stable non-preempt comparison and the queue fit is acceptable. Use `preempt` for cheaper iteration, but make runs short and restartable.
 
 Run settings:
 
@@ -444,6 +444,24 @@ Exit criteria:
 - known A40 steps-per-10-min baseline;
 - known A40 `val_bpb` baseline;
 - run manifest preserved.
+
+Phase 3 result as of 2026-06-22 01:40 PDT:
+
+- completed default `sp1024` data cache with 80 train shards and one validation shard via CPU Slurm job `20480545`;
+- best current A40 path was `share/a40`; `ampere/a40` and `preempt/a40` were later fits;
+- account/QOS pressure made lower CPU requests important: 64G and 32G benchmark attempts were canceled while pending on `QOSGrpCpuLimit`, then the successful benchmark used 2 CPUs and 24G RAM;
+- A40 benchmark job `20480569` ran on `cn-r-3`, partition `share`, one `NVIDIA A40`, 2 CPUs, 24G RAM, and 25 minute Slurm walltime;
+- job `20480569` completed with state `COMPLETED`, exit code `0:0`, elapsed `00:14:26`;
+- run config used the upstream baseline with `TRAIN_BATCH_TOKENS=524288`, `VAL_BATCH_SIZE=524288`, `WARMUP_STEPS=20`, `MAX_WALLCLOCK_SECONDS=600`, `SEED=42`;
+- baseline reached `step:379/20000` with measured train time `601503ms` and step average `1587.08ms`;
+- final validation before quantized roundtrip was `val_loss:2.6312`, `val_bpb:1.5584`;
+- peak memory allocated was `13129 MiB`, reserved `13194 MiB`;
+- fp32 model size was `67224983` bytes;
+- int8+zlib artifact was `9265169` bytes, total int8+zlib submission size `9312855` bytes;
+- roundtrip metrics were `val_loss:2.66913307`, `val_bpb:1.58081095`, eval time `55294ms`;
+- artifacts are under `/nfs/hpc/share/peterj29/pg/runs/phase3-a40/20480569/`.
+
+Phase 4 should use this as the first qMLP comparison reference, especially `model_params:17059912`, `1.587s/step`, `379` steps in 600 seconds, and roundtrip `val_bpb:1.58081095`.
 
 ### Phase 4: Quaternion MLP Correctness
 
@@ -476,6 +494,27 @@ Exit criteria:
 - parameter count reduction matches expectation;
 - compile path does not fail under `torch.compile`.
 
+Phase 4 result as of 2026-06-22 02:02 PDT:
+
+- implemented `QUAT_MLP=1` in `parameter-golf/train_gpt.py` as a feature-flagged MLP-only replacement;
+- `QUAT_MLP=0` preserves the dense `CastedLinear` path;
+- qMLP uses separate 2D `wr`, `wi`, `wj`, and `wk` parameters per quaternion projection, keeping the existing Muon matrix-parameter grouping valid;
+- local syntax check passed with `python3 -m py_compile parameter-golf/train_gpt.py`;
+- remote correctness script passed shape checks, Hamilton equivalence with max error `1.19e-07`, gradient/forward-backward checks, and parameter counting;
+- qMLP model parameters are `9982024` versus dense baseline `17059912`, saving `7077888` parameters;
+- qMLP component matrices counted for Muon grouping: `72`;
+- the initial 2-CPU smoke job `20480593` was canceled while pending on `QOSGrpCpuLimit`; a 1-CPU / 16G A40 request was schedulable immediately and sufficient for the smoke;
+- qMLP smoke job `20480598` ran on `cn-r-4`, partition `share`, one `NVIDIA A40`, 1 CPU, 16G RAM, and 20 minute Slurm walltime;
+- job `20480598` completed with state `COMPLETED`, exit code `0:0`, elapsed `00:07:18`;
+- qMLP smoke ran `ITERATIONS=2`, `WARMUP_STEPS=1`, `TRAIN_BATCH_TOKENS=65536`, `VAL_BATCH_SIZE=65536`, `SEED=42`;
+- qMLP smoke reached `step:2/2`, final `val_loss:6.9227`, `val_bpb:4.1000`, and `step_avg:401.60ms`;
+- qMLP smoke roundtrip metrics were `val_loss:6.92820268`, `val_bpb:4.10327187`, eval time `114807ms`;
+- qMLP smoke peak memory was `1796 MiB` allocated and `1834 MiB` reserved;
+- qMLP fp32 model size was `38930363` bytes;
+- qMLP int8+zlib artifact was `6050417` bytes, total int8+zlib submission size `6100622` bytes;
+- artifacts are under `/nfs/hpc/share/peterj29/pg/runs/phase4-qmlp/20480598/`;
+- the qMLP implementation is correct enough for a same-wallclock Phase 5 benchmark, but its tiny-smoke speed is slower than dense and must be measured under the 600-second benchmark before reinvesting saved parameters.
+
 ### Phase 5: qMLP A40 Benchmark
 
 Goal: compare qMLP with the baseline under the same A40 wallclock.
@@ -507,9 +546,80 @@ Decision gate:
 - If qMLP is close in BPB and not dramatically slower, continue to vocabulary/width/depth reinvestment.
 - If qMLP improves BPB directly, prioritize vocab and seed replication.
 
-### Phase 6: Reinvestment Grid
+Phase 5 result as of 2026-06-22 02:26 PDT:
+
+- exact Phase 3 resource shape was used: `share/a40`, one `NVIDIA A40`, 2 CPUs, 24G RAM, and 25 minute Slurm walltime;
+- qMLP benchmark job `20480606` ran on `cn-r-4` and completed with state `COMPLETED`, exit code `0:0`, elapsed `00:17:51`;
+- qMLP benchmark used `TRAIN_BATCH_TOKENS=524288`, `VAL_BATCH_SIZE=524288`, `WARMUP_STEPS=20`, `MAX_WALLCLOCK_SECONDS=600`, `SEED=42`, and `QUAT_MLP=1`;
+- qMLP model parameters were `9982024`, saving `7077888` parameters versus dense baseline `17059912`;
+- qMLP reached `263` steps under the 600-second training cap versus dense baseline `379` steps;
+- qMLP step average was `2283.03ms` versus dense baseline `1587.08ms`, about `1.44x` slower;
+- qMLP final validation before quantized roundtrip was `val_loss:3.1467`, `val_bpb:1.8637`;
+- qMLP roundtrip metrics were `val_loss:3.16134623`, `val_bpb:1.87232731`, eval time `103987ms`;
+- dense baseline roundtrip was `val_bpb:1.58081095`, so qMLP was worse by about `0.2915` BPB;
+- qMLP peak memory was `13449 MiB` allocated and `13566 MiB` reserved, slightly higher than dense baseline;
+- qMLP int8+zlib artifact was `8332875` bytes, about `0.93 MB` smaller than dense baseline but not enough to offset the BPB loss;
+- artifacts are under `/nfs/hpc/share/peterj29/pg/runs/phase5-qmlp/20480606/`;
+- decision: do not proceed directly to vocabulary/width/depth reinvestment. Insert an optimization phase first.
+
+### Phase 6: qMLP Implementation Optimization
+
+Goal: determine whether the qMLP failure is mainly implementation inefficiency or an inherent architecture/optimization problem.
+
+The naive qMLP implementation expands each quaternion projection into many `F.linear` calls. This preserves parameter count but likely hurts throughput and eval time.
+
+Next implementation should test one or more faster equivalent forms without changing the learned degrees of freedom:
+
+1. materialize the equivalent Hamilton block matrix in a layout that lowers through fewer matmuls;
+2. try a packed component layout that uses grouped/batched matmul instead of repeated small `F.linear` calls;
+3. preserve separate learned `wr`, `wi`, `wj`, and `wk` parameter tensors if that remains the simplest way to keep optimizer grouping correct;
+4. keep tokenizer, attention, depth, width, batch size, and quantization unchanged.
+
+Exit criteria:
+
+- optimized qMLP correctness checks pass against the same Hamilton-equivalence test;
+- optimized qMLP smoke completes;
+- optimized qMLP 10-minute A40 benchmark is rerun against Phase 3;
+- decision says whether qMLP is fast enough to re-open reinvestment.
+
+Decision gate:
+
+- If optimized qMLP remains much slower and worse BPB, stop the simple qMLP path.
+- If optimized qMLP becomes close enough in speed/BPB, continue to the reinvestment grid.
+- If optimized qMLP improves BPB directly, prioritize vocabulary and seed replication.
+
+Phase 6 partial result as of 2026-06-22 03:19 PDT:
+
+- added `QUAT_MLP_IMPL` with `split` and `matrix` qMLP implementations;
+- `split` preserves the Phase 5 repeated-component-matmul path;
+- `matrix` constructs the equivalent Hamilton block matrix and runs one `F.linear` per quaternion projection;
+- both implementations preserve the same learned `wr`, `wi`, `wj`, and `wk` tensors;
+- local syntax checks passed for `parameter-golf/train_gpt.py`, `goal/4-qmlp-check.py`, `goal/6-smoke.sbatch`, and `goal/6-benchmark.sbatch`;
+- remote CPU correctness check passed with `matrix_split_equivalence_max_error=1.19e-07`, `qmlp_params=9982024`, `saved_params=7077888`, and `qmlp_muon_matrix_params=72`;
+- remote training and correctness files were staged under `/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf/`;
+- Phase 6 smoke and benchmark scripts were staged under `/nfs/hpc/share/peterj29/pg/runs/phase6-matrix-smoke/` and `/nfs/hpc/share/peterj29/pg/runs/phase6-matrix-benchmark/`;
+- A40 smoke job `20480617` was submitted but stayed pending on `QOSGrpCpuLimit` with no start estimate;
+- `preempt/a40` and `ampere/a40` were later than `share/a40`, so switching partitions was not useful;
+- job `20480617` was canceled while pending;
+- matrix smoke job `20480622` later ran on `cn-r-4`, partition `share`, one `NVIDIA A40`, 1 CPU, 16G RAM, and completed with state `COMPLETED`, exit code `0:0`, elapsed `00:04:18`;
+- matrix smoke reached `step:2/2`, `step_avg:307.63ms`, final `val_bpb:4.1000`, roundtrip `val_bpb:4.10327189`, peak memory `1748 MiB`, and int8+zlib artifact `6050224` bytes;
+- exact 2-CPU/24G benchmark jobs `20480631` and `20480651` were each submitted after favorable test-only checks, but both stayed pending on `QOSGrpCpuLimit` with no start estimate and were canceled;
+- provisional matrix benchmark job `20480636` ran on `cn-r-3`, partition `share`, one `NVIDIA A40`, 1 CPU, 16G RAM, and completed with state `COMPLETED`, exit code `0:0`, elapsed `00:15:07`;
+- provisional matrix benchmark reached `368` steps in `600140ms`, `step_avg:1630.81ms`, final `val_bpb:1.6420`, roundtrip `val_bpb:1.64863035`, peak memory `13047 MiB`, and int8+zlib artifact `8733639` bytes;
+- comparison: dense Phase 3 used 2 CPUs/24G and reached `379` steps, `step_avg:1587.08ms`, roundtrip `val_bpb:1.58081095`; split qMLP Phase 5 used 2 CPUs/24G and reached `263` steps, `step_avg:2283.03ms`, roundtrip `val_bpb:1.87232731`;
+- interpretation: matrix qMLP fixes most of the split implementation speed problem, but the provisional result still trails dense by about `0.0678` roundtrip BPB;
+- decision: Phase 6 is complete for decision-making. The exact 2-CPU/24G matrix rerun remains useful bookkeeping, but the provisional run is enough to stop looping on `QOSGrpCpuLimit` and move to the original saved-budget question. Proceed to a narrow vocabulary reinvestment phase before any broad width/depth grid.
+
+### Phase 7: Reinvestment Grid
 
 Goal: spend qMLP's saved parameter budget where it most improves BPB.
+
+Revised after Phase 6:
+
+- Start with vocabulary reinvestment, not a broad width/depth grid.
+- The published cached manifest currently exposes only `sp1024`, so larger vocabulary experiments require rebuilding tokenizer/data from the published docs cache.
+- Treat `sp4096` as the first candidate because it uses about `1.57M` extra tied embedding parameters relative to `sp1024`, well inside qMLP's `7.08M` saved parameters.
+- Keep `sp8192` as a second candidate only if `sp4096` improves BPB enough to justify the export cost.
 
 Initial grid:
 
@@ -540,7 +650,28 @@ Decision gate:
 - Penalize candidates that improve fixed-step loss but lose too many wallclock steps.
 - Prefer candidates that remain simple enough to port into record stacks.
 
-### Phase 7: Seed Replication
+Phase 7 progress as of 2026-06-22 03:52 PDT:
+
+- added `goal/7-vocab.md` as the narrow `sp4096` reinvestment phase;
+- patched `data/download_hf_docs_and_tokenize.py` with `--max-train-shards` so retokenized exports can stop after full validation plus 80 train shards;
+- added `goal/7-sp4096-tokenizer-config.json`, `goal/7-docs.sbatch`, and `goal/7-data.sbatch`;
+- remote cached manifest currently exposes only `sp1024`, so `sp4096` requires retokenizing from selected docs;
+- docs materialization job `20480690` completed on `cn-a26`, partition `share`, 1 CPU, 16G RAM, elapsed `00:08:55`;
+- materialized `/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf/data/docs_selected.jsonl` at `45G` and sidecar at `481` bytes;
+- docs SHA256 from the sidecar and file check is `84386dfa7b339a5d4831d5273c4a2028b78b60670d3a235633a8520545d19bc7`;
+- sidecar reports `num_docs=15368808`, `docs_val=50000`, `docs_train=15318808`, and `selection_seed=1337`;
+- first full `sp4096` export attempts, jobs `20480667` and `20480671`, were canceled while pending on `QOSGrpCpuLimit`;
+- bounded `sp4096` export job `20480717` completed on `cn-a14`, partition `share`, 2 CPUs, 24G RAM, elapsed `02:10:25`;
+- export wrote `/nfs/hpc/share/peterj29/pg/data-exports/sp4096-80/` with tokenizer `sp_bpe_4096`, vocab size `4096`, 80 train shards, one validation shard, `8000000433` train tokens, and `45517764` validation tokens;
+- matrix qMLP `sp4096` smoke job `20480883` completed on `cn-r-5`, partition `share`, one A40, 1 CPU, 16G RAM, elapsed `00:04:13`;
+- `sp4096` smoke reported `model_params:11554888`, `step_avg:319.65ms`, roundtrip `val_bpb:3.61143104`, and int8+zlib artifact `6403349` bytes;
+- matrix qMLP `sp4096` benchmark job `20480898` completed on `cn-r-3`, partition `share`, one A40, 2 CPUs, 24G RAM, elapsed `00:14:25`;
+- `sp4096` benchmark reached `352` steps in `601019ms`, `step_avg:1707.44ms`, final `val_bpb:1.5470`, roundtrip `val_bpb:1.55222627`, peak memory `13443 MiB`, and int8+zlib artifact `9931222` bytes;
+- comparison: dense `sp1024` Phase 3 roundtrip was `1.58081095`, so qMLP matrix `sp4096` improved roundtrip BPB by about `0.0286` despite completing `27` fewer steps;
+- comparison: qMLP matrix `sp1024` Phase 6 provisional roundtrip was `1.64863035`, so vocabulary reinvestment improved qMLP by about `0.0964` BPB;
+- decision: this is a positive answer for the core qMLP reinvestment hypothesis. Proceed to Phase 8 seed replication of the `sp4096` candidate before trying `sp8192` or width/depth.
+
+### Phase 8: Seed Replication
 
 Goal: avoid chasing noise.
 
@@ -561,7 +692,54 @@ Promote only if:
 - speed is acceptable;
 - artifact size remains within the challenge budget path.
 
-### Phase 8: H100/H200 Confirmation
+Phase 8 result as of 2026-06-22 07:28 PDT:
+
+- added `goal/8-seed.md` and `goal/8-seed.sbatch` for one-seed-at-a-time replication of the Phase 7 `sp4096` matrix qMLP candidate;
+- seed `0` benchmark job `20480958` ran on `cn-r-3`, partition `share`, one A40, 2 CPUs, 24G RAM, and completed with state `COMPLETED`, exit code `0:0`, elapsed `00:12:44`;
+- seed `1` benchmark job `20480988` ran on `cn-r-6`, partition `share`, one A40, 2 CPUs, 24G RAM, and completed with state `COMPLETED`, exit code `0:0`, elapsed `00:14:25`;
+- seed `0` used `QUAT_MLP=1`, `QUAT_MLP_IMPL=matrix`, `VOCAB_SIZE=4096`, `TRAIN_BATCH_TOKENS=524288`, `VAL_BATCH_SIZE=524288`, `MAX_WALLCLOCK_SECONDS=600`, and `SEED=0`;
+- seed `1` used the same shape with `SEED=1`;
+- seed `0` reached `353` steps in `600379ms`, `step_avg:1700.79ms`, final `val_bpb:1.5419`, roundtrip `val_bpb:1.54759284`, peak memory `13443 MiB`, and int8+zlib artifact `9948374` bytes;
+- seed `1` reached `352` steps in `601374ms`, `step_avg:1708.45ms`, final `val_bpb:1.5534`, roundtrip `val_bpb:1.55872027`, peak memory `13443 MiB`, and int8+zlib artifact `9942683` bytes;
+- comparison: dense `sp1024` Phase 3 roundtrip was `1.58081095`, so seed `0` improved roundtrip BPB by about `0.0332`;
+- comparison: dense `sp1024` Phase 3 roundtrip was `1.58081095`, so seed `1` improved roundtrip BPB by about `0.0221`;
+- comparison: across seed `42`, seed `0`, and seed `1`, qMLP `sp4096` mean roundtrip BPB is about `1.55284646`, an average improvement of about `0.0280` BPB over dense `sp1024`;
+- decision: Phase 8 is complete. Promote `sp4096` matrix qMLP as the current best simple candidate and test `sp8192` next before width/depth or H100/H200 confirmation.
+
+### Phase 9: sp8192 Vocabulary Probe
+
+Goal: test whether the validated qMLP saved-parameter budget can support a larger `sp8192` tokenizer and improve BPB beyond the replicated `sp4096` result.
+
+Revised after Phase 8:
+
+- The relevant local record track is `track_10min_16mb`; `sp4096` being near 10 MB is acceptable but still needs artifact tracking.
+- `sp8192` adds `2,097,152` tied embedding parameters relative to `sp4096`.
+- Predicted qMLP `sp8192` model size is `13,652,040` parameters, still below dense `sp1024` by `3,407,872` parameters.
+- Artifact size is plausible under 16 MB, but must be measured before a full benchmark.
+
+Run sequence:
+
+1. Export bounded `sp8192` tokenizer/data with 80 train shards and one validation shard.
+2. Run a two-step A40 smoke with `VOCAB_SIZE=8192`.
+3. Stop if smoke total int8+zlib submission size is at or above 16 MB.
+4. If the artifact-size gate passes, run one seed `42` 10-minute A40 benchmark.
+5. Compare against `sp4096` seed `42` and the Phase 8 `sp4096` three-run mean.
+
+Decision gate:
+
+- If `sp8192` improves BPB and stays under 16 MB, seed-replicate it before H100/H200.
+- If `sp8192` loses to `sp4096`, keep `sp4096` as the simple candidate and consider width/depth or stronger-stack integration.
+- If `sp8192` exceeds 16 MB, stop the larger-vocab path unless compression changes become the explicit next phase.
+
+Phase 9 files:
+
+- `goal/9-sp8192.md`
+- `goal/9-sp8192-tokenizer-config.json`
+- `goal/9-data.sbatch`
+- `goal/9-smoke.sbatch`
+- `goal/9-benchmark.sbatch`
+
+### Phase 10: H100/H200 Confirmation
 
 Goal: test the best candidate on scarce premium hardware.
 
@@ -598,7 +776,7 @@ Final record-style run should use the actual competition-like resource shape onl
 - exact command is reviewed;
 - expected cost/fairness impact is acceptable.
 
-### Phase 9: Integration Into Strong Record Stack
+### Phase 11: Integration Into Strong Record Stack
 
 Goal: determine whether qMLP still helps when stacked with stronger known tricks.
 
