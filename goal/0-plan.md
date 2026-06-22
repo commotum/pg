@@ -753,6 +753,18 @@ Phase 9 result as of 2026-06-22 10:31 PDT:
 - comparison: Phase 8 `sp4096` three-run mean was `1.55284646`, so `sp8192` improved roundtrip BPB by about `0.0275`;
 - decision: promote `sp8192` matrix qMLP as the current best simple candidate and seed-replicate it before H100/H200, width/depth, or stronger-stack integration.
 
+## Revised Strategy After Phase 9
+
+Phase 9 proves that qMLP can support a useful vocabulary-budget reinvestment on the simple stack. It does not prove qMLP is competitive against a dense or record-stack model that also spends the 16 MB artifact budget intelligently.
+
+The old Phase 10+ trajectory, which moved from simple-stack `sp8192` directly toward H100/H200 confirmation and then stronger-stack integration, is revised rather than erased. H100/H200 confirmation is now deferred until qMLP shows promise against a relevant A40 record-stack control.
+
+The revised decision question is:
+
+> Does qMLP enable a better best-under-16MB configuration than the known dense/record-stack path?
+
+Use the simple-stack vocabulary ladder only long enough to finish the immediate qMLP checks already identified. Then pivot to record-stack relevance and budget-matched controls.
+
 ### Phase 10: sp8192 Seed Replication
 
 Goal: verify the stronger `sp8192` result is not a seed-42 outlier.
@@ -772,73 +784,202 @@ MAX_WALLCLOCK_SECONDS=600
 
 Run at least two additional A40 seeds one at a time, matching the Phase 8 seed-replication discipline.
 
+Record for every seed:
+
+- Slurm job ID, host, GPU, partition, allocation, state, exit code, and elapsed time;
+- steps completed, `step_avg`, final BPB, roundtrip BPB, memory, artifact size, and exact command;
+- comparison against dense `sp1024`, Phase 8 `sp4096` mean, and Phase 9 `sp8192` seed 42.
+
 Decision gate:
 
-- If both added seeds beat the `sp4096` mean and dense `sp1024`, promote `sp8192` to H100/H200 confirmation.
+- If both added seeds beat the `sp4096` mean and dense `sp1024`, keep `sp8192` as the current simple-stack qMLP candidate.
 - If one seed regresses near or above the `sp4096` mean, run one more seed before deciding.
-- If multiple seeds regress, keep `sp4096` as the safer simple candidate and defer H100/H200.
+- If multiple seeds regress, keep `sp4096` as the safer simple candidate.
 - Track the total int8+zlib submission size for every seed; stop if trained artifacts approach 16 MB.
+- Do not treat robust `sp8192` as final winner evidence; it only decides which simple-stack qMLP candidate enters later controls.
 
-### Phase 11: H100/H200 Confirmation
+### Phase 11: sp16384 Initial qMLP Probe
 
-Goal: test the best candidate on scarce premium hardware.
+Goal: check whether one more vocabulary expansion improves simple-stack qMLP under the 16 MB artifact cap before pivoting to record-stack work.
 
-Target:
+Why this is only a probe:
+
+- `sp16384` is expected to have about `17,846,344` parameters in the simple qMLP stack, above dense `sp1024`'s `17,059,912` parameters.
+- The relevant constraint is the 16 MB artifact/package cap, not raw parameter count alone.
+- Full A40 benchmarks are only worthwhile after a cheap smoke/package-size gate.
+
+Run sequence:
+
+1. Create the phase plan file according to `goal/0-loop.md`.
+2. Export bounded `sp16384` tokenizer/data if it does not already exist.
+3. Run a cheap A40 smoke/package-size gate.
+4. If smoke total int8+zlib submission size is at or above 16 MB, stop the `sp16384` path.
+5. If smoke is safely under 16 MB, run one seed-42 A40 10-minute benchmark.
+6. Compare against `sp8192` seed 42, the replicated `sp8192` mean if available, `sp4096` mean, and dense `sp1024`.
+
+Record:
+
+- export manifest, tokenizer path, tokenizer file sizes, train/validation shard counts, token counts;
+- smoke BPB, parameter count, memory, artifact size, and package size;
+- benchmark steps, `step_avg`, BPB, artifact size, memory, host, and job IDs.
+
+Decision gate:
+
+- If `sp16384` is over 16 MB, stop simple-stack vocab expansion and move to record-stack work.
+- If `sp16384` is clearly worse than `sp8192`, stop simple-stack vocab expansion and move to record-stack work.
+- If `sp16384` improves over `sp8192`, or is close enough that seed variance could change the ordering, continue to Phase 12.
+- Do not continue incrementing vocab sizes one at a time; `sp16384` is the last planned simple-stack vocab probe unless it creates a specific new budget/compression question.
+
+### Phase 12: sp16384 Seed Replication If Earned
+
+Goal: verify whether an eligible and promising `sp16384` result is robust enough to replace `sp8192` as the simple-stack qMLP candidate.
+
+Only run this phase if Phase 11 passes the package-size gate and the seed-42 benchmark is competitive with `sp8192`.
+
+Run at least two additional A40 seeds using the exact same `sp16384` benchmark shape. Keep the same one-job-at-a-time discipline as Phases 8 and 10.
+
+Decision gate:
+
+- If replicated `sp16384` beats replicated `sp8192` while staying safely under 16 MB, use `sp16384` as the simple-stack qMLP candidate.
+- If replicated `sp16384` is mixed or worse, use `sp8192` as the simple-stack qMLP candidate.
+- Either way, stop the simple-stack vocabulary ladder after this phase and move to record-stack controls.
+
+## Dense Budget Controls
+
+This is a secondary control track, not the main path.
+
+Question:
+
+> At the simple-stack level, does qMLP beat the best dense configuration that fits under the same artifact cap?
+
+Use cheap smokes/package-size probes to estimate how much vocabulary dense and qMLP simple-stack variants can fit under 16 MB. Do not waste full A40 benchmark cycles by incrementing vocabulary size one point at a time.
+
+Benchmark a dense near-budget simple-stack vocab only if it materially clarifies whether the simple-stack qMLP result is just a larger-vocabulary effect.
+
+Decision rules:
+
+- If dense near-budget simple stack clearly beats simple qMLP, record that before record-stack work.
+- If dense near-budget simple stack is too expensive to establish quickly, proceed to record-stack controls because that is the more relevant comparison.
+- Dense controls must not delay record-stack reproduction unless they answer a specific uncertainty in one or two bounded jobs.
+
+### Phase 13: Record-Stack Inventory And A40 Reproduction
+
+Goal: reproduce the strongest manageable current record-setting stack as-is on A40 before modifying it.
+
+Prefer the local record stack with CaseOps/special vocab and known optimizations if it can run without spending days on H100-only dependency work. A40 is a screening and debugging environment, not final proof.
+
+Actions:
+
+1. Inventory candidate record stacks under `parameter-golf/records/track_10min_16mb/`.
+2. Choose the strongest stack that is feasible on A40 without a major H100/FA3-only porting effort.
+3. Document dependencies, tokenizer/data requirements, compression path, and expected hardware assumptions.
+4. Run a smoke/package-size check.
+5. Run A40 10-minute benchmarks for a few seeds where feasible.
+
+Record:
+
+- exact record script/config, tokenizer/data path, command, environment, and hardware;
+- BPB, steps, `ms/step`, artifact size, memory, job IDs, logs, and seed;
+- any H100-only dependency blockers and the workaround or reason for deferral.
+
+Decision gate:
+
+- If no record stack can be reproduced on A40 within bounded effort, document the blocker and choose the best available dense/record-style control.
+- If the record stack reproduces, it becomes the main A40 control for qMLP relevance.
+- Do not compare qMLP only against underfilled dense `sp1024` after this point.
+
+### Phase 14: Same-Vocab Record-Stack qMLP Tax Measurement
+
+Goal: add qMLP to the reproduced record-stack configuration without changing vocab or unrelated settings, so we can measure the qMLP tax inside a strong stack.
+
+Expected result: same-vocab qMLP may be worse. That is useful evidence.
+
+Measure:
+
+```text
+net_gain = benefit_from_reinvested_budget - qMLP_expressiveness_or_training_tax
+```
+
+Actions:
+
+1. Port the matrix qMLP layer into the chosen record-stack MLP path.
+2. Keep vocab, tokenizer, attention, data, optimizer policy, package/compression path, and wallclock unchanged unless a change is mechanically required and documented.
+3. Run smoke/package-size checks.
+4. Run enough A40 seeds to estimate the tax rather than overfitting to a single lucky or unlucky run.
+
+Decision gate:
+
+- If same-vocab qMLP is mechanically unstable or dramatically slower, stop and document the tax.
+- If same-vocab qMLP is slower/worse but trainable, proceed to budget reinvestment.
+- If same-vocab qMLP unexpectedly improves, still proceed to budget reinvestment, but record the direct gain separately from reinvested-budget gain.
+
+### Phase 15: Record-Stack qMLP Budget-Frontier Probe
+
+Goal: spend qMLP's saved package/model budget inside the record stack and find the best under-16MB qMLP contender.
+
+Actions:
+
+1. Use cheap smoke/package-size probes to approach the 16 MB cap without invalidating runs by cutting too close.
+2. Test near-frontier candidates such as power-of-two vocab sizes and near-cap sizes, but do not run full benchmarks for every increment.
+3. Keep record-stack settings fixed except for the planned qMLP and budget-reinvestment changes.
+4. Benchmark only serious candidates after package-size smoke passes.
+
+Decision gate:
+
+- Promote the qMLP record-stack candidate that has the best A40 BPB under 16 MB and acceptable speed.
+- If no budget-reinvested qMLP candidate beats the original record stack, stop before H100/H200.
+- If a candidate is close but package size is risky, prefer slightly more headroom over a near-invalid 16 MB artifact.
+
+### Phase 16: A40 Head-To-Head Comparison
+
+Goal: compare relevant contenders head-to-head on A40 before spending scarce H100/H200 resources.
+
+Required contenders:
+
+- original record stack as-is;
+- same-vocab record stack with qMLP, to measure qMLP tax;
+- vocab-max or budget-reinvested qMLP record stack.
+
+Use multiple seeds where feasible for the original record stack and final qMLP contender. Record the same metrics for every run: BPB, steps, `ms/step`, artifact size, memory, seed, host, command, job ID, and exit state.
+
+Decision gate:
+
+- If qMLP does not beat or plausibly match the record-stack control under 16 MB on A40, stop qMLP escalation.
+- If qMLP wins on A40 or is close enough that H100/FA3 behavior could plausibly change the ordering, proceed to Phase 17.
+- The decision should be based on best-under-budget performance, not qMLP versus an underfilled dense baseline.
+
+### Phase 17: H100/FA3 Confirmation After A40 Record-Stack Success
+
+Goal: confirm only a record-stack qMLP contender that has earned scarce hardware.
+
+First run a small H100 compatibility/speed check:
 
 ```text
 partition=dgxh
 constraint=h100 or h200
-gres=gpu:1 initially
-time=00:15:00 for single-GPU scaling check
+gres=gpu:1
+time=00:15:00
 ```
 
-Do not request 8 GPUs until a 1-GPU H-class run confirms:
+Confirm:
 
 - environment compatibility;
 - no architecture-specific crash;
 - expected speedup over A40;
-- memory fit.
+- memory fit;
+- FA3 or record-stack dependency availability.
 
-Then, if justified and approved:
+Only after that, and only with explicit human approval, run the relevant 8xH100/FA3 test.
 
-```text
-partition=dgxh
-constraint=h100 or h200
-gres=gpu:8
-time=00:15:00 to 00:30:00 for pilot
-```
+Do not spend H100/H200 resources merely to continue simple-stack vocabulary exploration.
 
-Final record-style run should use the actual competition-like resource shape only after:
+Final H-class run should use the actual competition-like resource shape only after:
 
 - code path is stable;
 - dataset is staged;
 - logs are clean;
 - exact command is reviewed;
 - expected cost/fairness impact is acceptable.
-
-### Phase 12: Integration Into Strong Record Stack
-
-Goal: determine whether qMLP still helps when stacked with stronger known tricks.
-
-Only after the simple baseline proves qMLP is useful:
-
-1. choose a strong but manageable record script, not necessarily the absolute top one;
-2. port qMLP into its MLP layer;
-3. run a fixed-step sanity check;
-4. run A40 short wallclock comparison;
-5. run H-class confirmation if promising.
-
-Avoid porting into the full 1.061 stack first. Too many confounders:
-
-- tokenizer changes;
-- CaseOps;
-- sparse attention gate;
-- SmearGate;
-- LQER;
-- GPTQ;
-- compression;
-- phased TTT;
-- FA3.
 
 ## Benchmark Report Template
 
@@ -901,24 +1042,26 @@ mem=16G
 A40 short smoke:
 
 ```text
-partition=preempt
+partition=share
 constraint=a40
 gres=gpu:1
-time=00:10:00
-cpus-per-task=4
+time=00:20:00
+cpus-per-task=1
 mem=16G
 ```
 
 A40 10-minute benchmark:
 
 ```text
-partition=ampere
+partition=share
 constraint=a40
 gres=gpu:1
-time=00:15:00
-cpus-per-task=8
-mem=64G
+time=00:25:00
+cpus-per-task=2
+mem=24G
 ```
+
+Always run `srun --test-only` before submitting. Use `ampere` or `preempt` only when live scheduler checks show they are materially better for the specific job.
 
 H100/H200 confirmation:
 
@@ -964,26 +1107,28 @@ Filesystem:
 
 ## Near-Term To-Do List
 
-1. Start Codex on HPC submit node from `/nfs/hpc/share/$USER/pg/src/pg`.
-2. Run `osu-hpc-agent-guide/bin/osu-hpc-inventory.sh`.
-3. Create an HPC-specific `scripts/` directory for Parameter Golf Slurm jobs.
-4. Create a GPU smoke sbatch derived from `osu-hpc-agent-guide/templates/gpu.sbatch`.
-5. Create a baseline Parameter Golf sbatch for one-GPU smoke.
-6. Build a minimal Python/PyTorch environment under `/nfs/hpc/share/$USER/pg/envs`.
-7. Download or stage the smallest needed FineWeb/tokenizer data.
-8. Run RTX8000 environment smoke.
-9. Run A40 baseline 10-minute benchmark.
-10. Implement qMLP locally and push branch.
-11. Pull qMLP branch on HPC.
-12. Run qMLP smoke and A40 10-minute benchmark.
-13. Decide whether to reinvest saved params into vocab, width, or depth based on measured BPB and speed.
+The original setup and simple-stack proof-of-concept items are complete through Phase 9. The current to-do list is:
+
+1. Create the detailed Phase 10 file for `sp8192` seed replication before running jobs.
+2. Run at least two additional `sp8192` A40 seeds using the exact Phase 9 benchmark shape.
+3. If `sp8192` is robust, keep it as the current simple-stack qMLP candidate.
+4. Create the detailed Phase 11 file for the `sp16384` initial qMLP probe.
+5. Export/smoke `sp16384`, then benchmark seed 42 only if the package-size gate is safely under 16 MB.
+6. Seed-replicate `sp16384` only if it earns replication.
+7. Stop the simple-stack vocab ladder after `sp16384` and move to record-stack reproduction.
+8. Reproduce a strong manageable record stack as-is on A40.
+9. Measure same-vocab record-stack qMLP tax.
+10. Use qMLP saved budget inside the record stack, then compare A40 head-to-head before any H100/H200 work.
 
 ## First Success Definition
 
-The first milestone is complete when we have:
+The first milestone is complete: the repo has a reproducible A40 dense baseline, qMLP implementation, qMLP benchmark, and vocabulary reinvestment evidence through `sp8192`.
 
-- a reproducible A40 baseline 10-minute run;
-- a reproducible qMLP A40 10-minute run;
-- both run summaries preserved;
-- a clear comparison of `val_bpb`, steps, ms/step, memory, and parameter/artifact size;
-- a decision about whether qMLP is worth reinvesting into larger vocab/width/depth.
+The next success standard is stronger:
+
+- the best simple-stack qMLP candidate has seed evidence and package-size evidence under 16 MB;
+- a strong manageable record stack has been reproduced as-is on A40;
+- same-vocab qMLP tax has been measured inside that record stack;
+- qMLP saved budget has been reinvested inside the record stack;
+- A40 head-to-head results show whether qMLP can beat or plausibly match the best-under-budget record-stack control;
+- only then is H100/H200 confirmation justified.
