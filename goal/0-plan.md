@@ -843,6 +843,16 @@ Decision gate:
 - If the `sp16384` seed batch improves over `sp8192`, or is close enough that additional seed variance could change the ordering, continue to Phase 12.
 - Do not continue incrementing vocab sizes one at a time; `sp16384` is the last planned simple-stack vocab probe unless it creates a specific new budget/compression question.
 
+Phase 11 in-progress status as of 2026-06-22 11:57 PDT:
+
+- added `goal/11-sp16384.md`, `goal/11-sp16384-tokenizer-config.json`, `goal/11-data.sbatch`, `goal/11-smoke.sbatch`, and `goal/11-benchmark.sbatch`;
+- export job `20483087` is running on compute node `cn-a26` as `pg-phase11-data`;
+- the export log shows SentencePiece finished fitting and saved the `sp16384` model and vocab files under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/tokenizers/`;
+- as of 2026-06-22 12:06 PDT, the export had written the validation shard and 15 train shards under `/nfs/hpc/share/peterj29/pg/data-exports/sp16384-80/datasets/fineweb10B_sp16384/`;
+- Slurm `sstat` showed active CPU use and about `2.5G` max RSS, so the export appeared healthy rather than stalled;
+- smoke job `20483144` is queued with `--dependency=afterok:20483087`, so it will only run if the export succeeds;
+- no `sp16384` benchmark jobs have been submitted, because the smoke package-size gate must pass first.
+
 ### Phase 12: sp16384 Additional Seed Replication If Needed
 
 Goal: add more `sp16384` seeds only if the Phase 11 parallel seed batch leaves the ordering ambiguous or promising.
