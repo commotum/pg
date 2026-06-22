@@ -28,6 +28,7 @@ DATASET_NAME=${DATASET_NAME:-fineweb10B_sp${VOCAB_SIZE}_lossless_caps_caseops_v1
 DATA_PATH=${DATA_PATH:-$CASEOPS_OUT/datasets/$DATASET_NAME}
 VAL_DOCS=${VAL_DOCS:-10000}
 MAX_DOCS=${MAX_DOCS:-0}
+MAX_TRAIN_SHARDS=${MAX_TRAIN_SHARDS:-0}
 DUMMY_SHARDS=${DUMMY_SHARDS:-0}
 DUMMY_TRAIN_TOKENS=${DUMMY_TRAIN_TOKENS:-262144}
 DUMMY_VAL_TOKENS=${DUMMY_VAL_TOKENS:-65536}
@@ -79,6 +80,7 @@ fi
     echo "data_path=$DATA_PATH"
     echo "val_docs=$VAL_DOCS"
     echo "max_docs=$MAX_DOCS"
+    echo "max_train_shards=$MAX_TRAIN_SHARDS"
     echo "dummy_shards=$DUMMY_SHARDS"
     echo "dummy_train_tokens=$DUMMY_TRAIN_TOKENS"
     echo "dummy_val_tokens=$DUMMY_VAL_TOKENS"
@@ -106,12 +108,13 @@ fi
     echo "CASEOPS_OUT=$CASEOPS_OUT"
     echo "VAL_DOCS=$VAL_DOCS"
     echo "MAX_DOCS=$MAX_DOCS"
+    echo "MAX_TRAIN_SHARDS=$MAX_TRAIN_SHARDS"
     echo "DUMMY_SHARDS=$DUMMY_SHARDS"
     echo "DUMMY_TRAIN_TOKENS=$DUMMY_TRAIN_TOKENS"
     echo "DUMMY_VAL_TOKENS=$DUMMY_VAL_TOKENS"
     echo "tokenizer_command=python $REPO_PATH/goal/15-train-caseops-tokenizer.py --docs $DOCS_SELECTED --record-path $RECORD_PATH --out-model $TOKENIZER_PATH --vocab-size $VOCAB_SIZE --tokenizer-train-docs $TOKENIZER_TRAIN_DOCS"
     echo "dummy_command=python $REPO_PATH/goal/15-write-dummy-shards.py --data-path $DATA_PATH --vocab-size $VOCAB_SIZE --train-tokens $DUMMY_TRAIN_TOKENS --val-tokens $DUMMY_VAL_TOKENS"
-    echo "data_command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $TOKENIZER_PATH --val-docs $VAL_DOCS --dataset-name $DATASET_NAME --max-docs $MAX_DOCS"
+    echo "data_command=python $RECORD_PATH/prepare_caseops_data.py --docs $DOCS_SELECTED --out $CASEOPS_OUT --sp $TOKENIZER_PATH --val-docs $VAL_DOCS --dataset-name $DATASET_NAME --max-docs $MAX_DOCS --max-train-shards $MAX_TRAIN_SHARDS"
 } >"$JOB_DIR/command.txt"
 
 if [[ "$FORCE_REBUILD_TOKENIZER" == "1" || ! -f "$TOKENIZER_PATH" ]]; then
@@ -135,7 +138,11 @@ else
     val_shards_existing=0
     val_byte_shards_existing=0
 fi
-if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt 1 || "$val_shards_existing" -lt 1 || "$val_byte_shards_existing" -lt 1 ]]; then
+required_train_shards=$MAX_TRAIN_SHARDS
+if [[ "$required_train_shards" -lt 1 || "$DUMMY_SHARDS" == "1" ]]; then
+    required_train_shards=1
+fi
+if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt "$required_train_shards" || "$val_shards_existing" -lt 1 || "$val_byte_shards_existing" -lt 1 ]]; then
     if [[ "$DUMMY_SHARDS" == "1" ]]; then
         python "$REPO_PATH/goal/15-write-dummy-shards.py" \
             --data-path "$DATA_PATH" \
@@ -151,6 +158,7 @@ if [[ "$FORCE_REBUILD_DATA" == "1" || "$train_shards_existing" -lt 1 || "$val_sh
         --val-docs "$VAL_DOCS" \
         --dataset-name "$DATASET_NAME" \
         --max-docs "$MAX_DOCS" \
+        --max-train-shards "$MAX_TRAIN_SHARDS" \
         >"$JOB_DIR/caseops-data.log" 2>&1
     fi
 else

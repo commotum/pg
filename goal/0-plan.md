@@ -916,6 +916,12 @@ Phase plan file:
 - environment check job `20484024` failed because `flash_attn_interface` is not installed in the A40 venv. The local 04-23 record script now has an SDPA fallback, so missing FA3 should be treated as an A40 screening fallback fact, not an automatic Phase 13 blocker.
 - job `20483645` later appeared to be spending hours before writing shards because the old validation byte-sidecar path did repeated prefix decodes. The 04-23 `prepare_caseops_data.py` was patched to compute original-byte sidecars in one linear pass and to support bounded exports with `--max-docs`, `--max-train-shards`, and `--dataset-name`.
 - patched smoke-data job `20484885` completed successfully under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-smoke`, producing one train shard, one validation shard, and one validation-byte sidecar. This is enough for a dense record smoke, while a full CaseOps SP8192 export is still required before the full A40 baseline seeds.
+- dense record pre-quant smoke job `20484894` completed on A40 with exit code `0:0`, using the smoke data, SDPA fallback, `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, `FUSED_MLP_ENABLED=0`, `TTT_ENABLED=0`, `PREQUANT_ONLY=1`, and two train iterations. It reported `model_params:35945658`, pre-quant post-EMA `val_bpb:4.15071003`, and peak memory `7100 MiB` allocated / `7946 MiB` reserved.
+- dense record package smoke job `20484900` completed on A40 smoke data with exit code `0:0`, reporting quantized+brotli model size `15881408` bytes, total submission size `15913223` bytes, and diagnostic quantized `val_bpb:4.15098371`.
+- patched full CaseOps SP8192 export job `20484895` is active under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` with `MAX_TRAIN_SHARDS=80`, `VAL_DOCS=10000`, and 2 CPUs. It reached 34 train shards after about 30 minutes. Old unpatched job `20483645` was canceled after the replacement produced shards while the old job still had none.
+- dependent dense record A40 baseline jobs were submitted behind `afterok:20484895`: seed `42` job `20484970`, seed `0` job `20484971`, and seed `1` job `20484972`.
+- Phase 14 qMLP smoke job `20484979` was queued behind `afterok:20484970`; Phase 14 qMLP seed jobs `20484980`, `20484981`, and `20484982` were queued behind `afterok:20484979`.
+- Phase 15 CaseOps `sp16384` prep job `20484985` was queued behind `afterok:20484895` with bounded `MAX_TRAIN_SHARDS=80`, so data prep can proceed after the current export without competing with it.
 
 Read-only inventory facts from the draft:
 
@@ -927,10 +933,10 @@ Read-only inventory facts from the draft:
 Actions:
 
 1. Continue with `2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE` as the first manageable A40 record control.
-2. Run a record-stack smoke/package check using `VOCAB_SIZE=8192`, `QUAT_MLP=0`, and the completed CaseOps smoke data.
-3. Prepare the full CaseOps SP8192 data path with the patched prep script so it has 80 train shards, at least one validation shard, and the validation byte sidecar.
-4. Rerun or reinterpret the environment check with SDPA fallback accepted for A40 screening.
-5. Run A40 10-minute baseline benchmarks for a few seeds after full data exists, parallelizing independent seeds when scheduler/account limits allow.
+2. Let patched full CaseOps export `20484895` finish or fail so the full data path has 80 train shards, at least one validation shard, and the validation byte sidecar.
+3. If export `20484895` succeeds, monitor dependent dense baseline jobs `20484970`, `20484971`, and `20484972`.
+4. Treat the A40 environment as SDPA fallback with `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, and `FUSED_MLP_ENABLED=0` unless a later smoke proves a different compatibility set works for both dense and qMLP.
+5. If any dependent seed fails from a shared script/config issue, cancel only the still-pending affected siblings and repair before resubmitting.
 
 Record:
 

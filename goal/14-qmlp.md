@@ -117,8 +117,9 @@ Status: pending
 Evidence:
 
 - Phase 14 scripts exist: `goal/14-qmlp-smoke.sbatch` and `goal/14-qmlp-a40.sbatch`.
-- Phase 14 should not run until Phase 13 leaves a dense record `sp8192` control.
+- Phase 14 qMLP smoke job `20484979` was queued behind `afterok:20484970`, so it starts only after the first Phase 13 dense record seed succeeds.
+- Phase 14 qMLP A40 seed jobs were queued behind `afterok:20484979`: seed `42` job `20484980`, seed `0` job `20484981`, and seed `1` job `20484982`.
 
 Decision:
 
-- Pending Phase 13 completion.
+- Pending Phase 13 dense seed `20484970` and qMLP smoke `20484979`.
