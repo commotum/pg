@@ -168,7 +168,7 @@ This phase is complete when:
 
 ## Result
 
-Status: in progress
+Status: complete
 
 Evidence:
 
@@ -198,8 +198,49 @@ Evidence:
 - `athena/a40` failed with `Invalid account or account/partition combination specified`.
 - `all/a40` failed with `User's group not permitted to use this partition`.
 - Baseline smoke job `20480529` was submitted to `share/a40` with one GPU, 4 CPUs, 32G RAM, and 20 minutes.
-- Baseline smoke job `20480529` is currently pending with reason `QOSGrpCpuLimit`.
+- Baseline smoke job `20480529` initially pending with reason `QOSGrpCpuLimit`, then started on `cn-r-5`.
 - Visible association remains `coehpc|eecs|peterj29|||normal||||`, so the job cannot be switched to another visible QOS by the agent.
+- Baseline smoke Slurm accounting:
+  - state `COMPLETED`;
+  - exit code `0:0`;
+  - elapsed `00:03:43`;
+  - allocation `cpu=4, gres/gpu=1, mem=32G, node=1`.
+- Baseline smoke ran on `cn-r-5.hpc.engr.oregonstate.edu`.
+- `nvidia-smi -L` saw exactly one `NVIDIA A40`.
+- A40 memory was `46068 MiB`.
+- Driver was `595.71.05`; `nvidia-smi` reported CUDA `13.2`.
+- Job loaded `slurm/current` and `cuda/13.0`.
+- Training command used:
+
+```text
+RUN_ID=baseline_smoke_a40_job20480529
+DATA_PATH=/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf/data/datasets/fineweb10B_sp1024
+TOKENIZER_PATH=/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf/data/tokenizers/fineweb_1024_bpe.model
+VOCAB_SIZE=1024
+SEED=42
+ITERATIONS=2
+WARMUP_STEPS=1
+TRAIN_LOG_EVERY=1
+VAL_LOSS_EVERY=0
+TRAIN_BATCH_TOKENS=65536
+VAL_BATCH_SIZE=65536
+MAX_WALLCLOCK_SECONDS=0
+```
+
+- Training log confirmed:
+  - `train_loader:dataset:fineweb10B_sp1024 train_shards:1`;
+  - `val_loader` tokens `62021632`;
+  - `model_params:17059912`;
+  - `world_size:1 grad_accum_steps:8`;
+  - `step:1/2 train_loss:6.9365 train_time:272ms step_avg:271.60ms`;
+  - `step:2/2 train_loss:6.9316 train_time:524ms step_avg:261.88ms`;
+  - final validation `val_loss:6.9241 val_bpb:4.1008`;
+  - peak memory allocated `1832 MiB`, reserved `1934 MiB`;
+  - serialized fp32 model `67224983` bytes;
+  - int8+zlib model `4963374` bytes;
+  - total int8+zlib submission size `5011060` bytes;
+  - roundtrip validation `val_loss:6.92959936 val_bpb:4.10409907`.
+- Slurm stdout and stderr were empty.
 
 Artifacts:
 
@@ -208,7 +249,11 @@ Artifacts:
 - Data-prep job directory: `/nfs/hpc/share/peterj29/pg/runs/phase2-data/20480484/`.
 - Local baseline smoke script: `goal/2-baseline.sbatch`.
 - Remote baseline smoke script: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/phase2-baseline.sbatch`.
-- Pending baseline job ID: `20480529`.
+- Baseline job directory: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/`.
+- Baseline job log: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/train.log`.
+- Baseline internal log: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/work/logs/baseline_smoke_a40_job20480529.txt`.
+- Baseline fp32 artifact: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/work/final_model.pt`.
+- Baseline int8+zlib artifact: `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/work/final_model.int8.ptz`.
 
 New facts:
 
@@ -216,8 +261,13 @@ New facts:
 - The Phase 2 data step does not need to run on the submit node.
 - For the current cluster state, A40 availability is gated more by account/QOS CPU limits than by script readiness.
 - Using `share/a40` can still show Slurm preemption candidates; preemption is allowed when Slurm grants it, but the account QOS cap can still block job start.
+- The baseline smoke can complete on A40 with the simple upstream script, one train shard, one validation shard, and very small train settings in under 4 minutes end-to-end.
+- Most elapsed time in this tiny smoke is not training; the final int8+zlib roundtrip validation alone took `62621ms`.
+- The smoke `val_bpb` around `4.10` is not scientifically meaningful as a quality score because the run trained for only two iterations. It is useful only as proof that metrics and artifacts are produced correctly.
 
 Decision:
 
-- Keep baseline smoke job `20480529` queued for now; do not submit duplicates while it is pending.
-- Phase 2 remains incomplete until the baseline smoke job completes and produces `val_bpb` plus roundtrip artifact evidence.
+- Continue to Phase 3: A40 Baseline Benchmark.
+- Phase 3 should create `goal/3-a40.md` before implementation.
+- Phase 3 should reuse the proven environment, data path, and artifact layout, but increase the wallclock-oriented run enough to produce useful A40 throughput and BPB evidence.
+- Because final validation is a fixed nontrivial cost, Phase 3 should use a wallclock budget that leaves room for compile/warmup/final validation, not just the nominal training loop.

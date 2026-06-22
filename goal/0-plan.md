@@ -384,6 +384,20 @@ Exit criteria:
 - no GPU OOM;
 - no missing data/module/dependency issues.
 
+Phase 2 result as of 2026-06-22 01:07 PDT:
+
+- venv `/nfs/hpc/share/peterj29/pg/envs/pg-py311-torch-smoke-20260621` was extended with `huggingface-hub`, `sentencepiece`, and `tqdm`;
+- CPU data-prep job `20480484` ran on `share`/`cn-a14`, completed with exit code `0:0`, and used `HF_HOME=/nfs/hpc/share/peterj29/pg/hf-cache`;
+- data prep produced one `sp1024` train shard, one validation shard, manifest, and tokenizer files under the Parameter Golf submodule;
+- live A40 checks found `share/a40` was the earliest accessible A40 path, while `athena/a40` and `all/a40` were not permitted for this account;
+- baseline smoke job `20480529` ran on `share/a40`/`cn-r-5` with one A40, 4 CPUs, 32G RAM, and 20 minute walltime;
+- job `20480529` initially pending on `QOSGrpCpuLimit`, then completed with state `COMPLETED`, exit code `0:0`, elapsed `00:03:43`;
+- training settings were `ITERATIONS=2`, `WARMUP_STEPS=1`, `TRAIN_BATCH_TOKENS=65536`, `VAL_BATCH_SIZE=65536`, and `MAX_WALLCLOCK_SECONDS=0`;
+- baseline smoke reported `model_params:17059912`, step average about `262ms` for the two measured training steps, final `val_bpb:4.1008`, and int8+zlib roundtrip `val_bpb:4.10409907`;
+- final int8+zlib artifact size was `4963374` bytes, with total int8+zlib submission size `5011060` bytes;
+- artifacts are under `/nfs/hpc/share/peterj29/pg/runs/phase2-baseline/20480529/`;
+- this was a correctness smoke, not a meaningful model-quality benchmark.
+
 ### Phase 3: A40 Baseline Benchmark
 
 Goal: establish the local A40 speed and BPB baseline.
