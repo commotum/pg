@@ -58,6 +58,11 @@ parameter-golf/records/track_10min_16mb/
   showed the `dgxh` partition could accept an 8-GPU H100 request and the user
   QOS allowed up to 8 GPUs and up to 2880 GPU-minutes active, but every H100
   request must re-check live state before submission.
+- As of the 2026-06-23 Phase 0 live check, `--constraint=h100` alone was too
+  broad: Slurm dry-run targeted `dgxh-1`, which is advertised as
+  `gpu:h100-40g:16`. Use an 80GB constraint for the intended competition-class
+  node, currently `--constraint="h100&vram80g"`, and re-check this live before
+  submission.
 - `codex` has been observed on the OSU Engineering gateway and HPC submit node
   at `/nfs/stak/users/peterj29/.local/bin/codex`, but this must be reverified
   before any Slurm job relies on it.
@@ -68,13 +73,14 @@ The H100 node should be treated as an execution window, not an exploration
 window. All code, configs, data, packaging, Slurm scripts, parsers, and fallback
 logic should be prepared before requesting the node.
 
-The preferred H100 run sequence is:
+For a one-hour 8xH100 allocation, the preferred H100 run sequence is:
 
 1. Environment and hardware smoke.
-2. Exact base-stack reproduction smoke.
-3. Same-vocab qMLP stack at CaseOps `sp8192`.
-4. Budget-reinvested qMLP stack at CaseOps `sp16384`.
-5. Optional fallback or rerun only if preplanned and time remains.
+2. Exact base-stack reproduction smoke at CaseOps `sp8192`.
+3. Same-vocab qMLP smoke at CaseOps `sp8192`.
+4. Full budget-reinvested qMLP attempt at CaseOps `sp16384`.
+5. Optional same-vocab qMLP full run or rerun only if preplanned and time
+   remains.
 
 Do not spend scarce H100 time on open-ended debugging, broad sweeps, or
 interactive agent exploration.
@@ -204,7 +210,7 @@ sacctmgr -nP show qos format=Name,MaxTRESPU,MaxTRESRunMinsPU 2>/dev/null || true
 Before requesting 8xH100, dry-run:
 
 ```bash
-srun --test-only -p dgxh --constraint=h100 --gres=gpu:8 \
+srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
   --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G \
   --time=01:00:00 true
 ```
@@ -227,9 +233,13 @@ for the 8xH100 allocation.
   - dense/base MLP;
   - qMLP same-vocab;
   - qMLP budget-reinvested vocab.
+- Staged flag policy:
+  - `QUAT_MLP=0` for dense/base;
+  - `QUAT_MLP=1` for qMLP.
 - A diff summary showing exactly what changed from the base record.
 - A compliance note explaining why the qMLP change does not change data access
   or evaluation legality.
+  Current file: `goal-3/compliance-note.md`.
 
 ### Data And Tokenizer Artifacts
 
@@ -255,6 +265,8 @@ shards, and sidecars.
 - PyTorch/CUDA target documented.
 - FA3 install method documented.
 - `lrzip` availability checked or an approved install/load path documented.
+  Current user-local prep script: `goal-3/prepare-tools.sbatch`, targeting
+  `/nfs/hpc/share/peterj29/pg/tools/lrzip`.
 - Triton/fused-kernel compile behavior tested in a non-scarce allocation where
   possible.
 - Environment smoke script that records:
@@ -271,15 +283,20 @@ shards, and sidecars.
 Create and review these scripts before H100 submission:
 
 ```text
+goal-3/prepare-env.sbatch
+goal-3/prepare-tools.sbatch
 goal-3/h100-env-smoke.sbatch
 goal-3/h100-short-smoke.sbatch
 goal-3/h100-record-runner.sbatch
 goal-3/h100-repair-agent.sbatch
+goal-3/scripts/env_smoke.py
+goal-3/scripts/run_candidate.sh
+goal-3/scripts/parse_train_log.py
 ```
 
 The final runner must:
 
-- request exactly one H100 node and 8 H100 GPUs;
+- request exactly one H100 80GB node and 8 H100 80GB GPUs;
 - explicitly set partition, constraint, GRES, time, nodes, tasks, CPUs, memory,
   stdout, and stderr;
 - record host, Slurm env, Git SHA, dirty status, modules, GPU inventory, and
@@ -414,7 +431,8 @@ change.
 Steps:
 
 1. Port the matrix qMLP implementation into the selected `train_gpt.py` stack.
-2. Add a feature flag such as `QMLP_ENABLED=1`.
+2. Add the `QUAT_MLP=1` feature flag and keep `QUAT_MLP=0` as the dense/base
+   path.
 3. Keep the dense/base path byte-for-byte or behaviorally unchanged when qMLP is
    disabled.
 4. Ensure qMLP participates correctly in:
@@ -437,12 +455,13 @@ Completion requirements:
 
 ### Phase 4: Package And Artifact Smokes
 
-Goal: prove candidates can serialize and stay under the artifact cap before
-H100 training.
+Goal: script the cheapest package and artifact checks, and run them before any
+full record candidate inside an approved allocation. Do not pretend package
+size is proven until the staged qMLP code actually serializes a candidate.
 
 Steps:
 
-1. Run package-size smokes for:
+1. Script package/runtime smokes for:
    - base/dense `sp8192`;
    - qMLP `sp8192`;
    - qMLP `sp16384`.
@@ -451,12 +470,16 @@ Steps:
 4. Check whether qMLP `sp16384` has enough headroom for the full record stack.
 5. Stop `sp32768` unless `sp16384` has large headroom and there is a specific
    reason to inspect it.
+6. If FA3/H100-only dependencies prevent an honest non-H100 package smoke, run
+   the smoke first inside the approved H100 allocation and stop before the full
+   contender if package accounting or qMLP runtime is invalid.
 
 Completion requirements:
 
-- package smoke results recorded;
-- under/over cap status known for required candidates;
-- no full H100 job is needed to answer package feasibility;
+- package smoke scripts exist;
+- package smoke results recorded once the approved runtime smoke runs;
+- under/over cap status known for required candidates before treating any full
+  result as valid;
 - any over-budget candidate is removed from final-run priority.
 
 ### Phase 5: Non-Scarce Runtime Smokes

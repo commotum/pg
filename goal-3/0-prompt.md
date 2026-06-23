@@ -75,17 +75,30 @@ Prepare these required artifacts before asking for H100:
 goal-3/status.md
 goal-3/jobs.csv
 goal-3/findings-summary.md
+goal-3/compliance-note.md
+goal-3/prepare-env.sbatch
+goal-3/prepare-tools.sbatch
 goal-3/h100-env-smoke.sbatch
 goal-3/h100-short-smoke.sbatch
 goal-3/h100-record-runner.sbatch
 goal-3/h100-repair-agent.sbatch
+goal-3/scripts/env_smoke.py
+goal-3/scripts/run_candidate.sh
+goal-3/scripts/parse_train_log.py
+```
+
+For a one-hour 8xH100 allocation, the default candidate order should prioritize
+the record attempt after smoke validation:
+
+```text
+dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
 ```
 
 The required candidate configs are:
 
 1. exact dense/base `sp8192` smoke;
-2. qMLP same-vocab `sp8192`;
-3. qMLP budget-reinvested `sp16384`.
+2. qMLP same-vocab `sp8192` smoke or full run, depending on approved time;
+3. qMLP budget-reinvested `sp16384` full contender.
 
 Optional only if already scripted and time remains:
 
@@ -105,6 +118,8 @@ blocker. Use the 2026-04-29 compliance reproduction as fallback.
 Port qMLP into the selected record stack with minimal unrelated changes.
 
 When qMLP is disabled, the dense/base path should remain behaviorally unchanged.
+The staged implementation uses `QUAT_MLP=0` for dense/base and `QUAT_MLP=1` for
+qMLP.
 
 Make qMLP compatible with:
 
@@ -131,7 +146,7 @@ Preserve compliance-sensitive behavior:
 
 The final H100 runner must:
 
-- request one H100 node and 8 H100 GPUs;
+- request one H100 80GB node and 8 H100 80GB GPUs;
 - explicitly set partition, constraint, GRES, time, nodes, tasks, CPUs, memory,
   stdout, and stderr;
 - record host, Slurm env, Git SHA, dirty status, modules, GPU inventory, and
@@ -145,7 +160,19 @@ The final H100 runner must:
 - copy logs, artifacts, manifests, parser summaries, and final status back to
   shared storage before exit.
 
-Use `srun --test-only` before submitting real H100 work.
+The runner should record `git-status.txt`, `git-diff.stat`, and
+`git-diff.patch`, and should stage the small Goal 3 source/data inputs to
+`/scratch/$USER/$SLURM_JOB_ID/goal3` when practical.
+
+Use `srun --test-only` before submitting real H100 work. Do not use
+`--constraint=h100` alone: the Phase 0 live check showed that can target
+`dgxh-1` with `gpu:h100-40g:16`. For the intended 8xH100 80GB class, use the
+live-validated stricter constraint, currently `--constraint="h100&vram80g"`.
+
+Do not claim package feasibility until the staged qMLP code has actually
+serialized a candidate and emitted total submission bytes. If FA3/H100-only
+dependencies prevent a non-H100 package smoke, the approved H100 runner must do
+the smoke/package gate first and stop before the full contender if it fails.
 
 ## Codex-On-Node Policy
 
