@@ -93,6 +93,9 @@ Released benchmark cells:
 | `2048` | qMLP | `42` | `20485754` | smoke `20485699`, `6777950` bytes |
 | `2048` | qMLP | `0` | `20485755` | smoke `20485699`, `6777950` bytes |
 | `2048` | qMLP | `1` | `20485756` | smoke `20485699`, `6777950` bytes |
+| `2048` | dense | `42` | `20485814` | smoke `20485698`, `14277213` bytes |
+| `2048` | dense | `0` | `20485815` | smoke `20485698`, `14277213` bytes |
+| `2048` | dense | `1` | `20485816` | smoke `20485698`, `14277213` bytes |
 | `8192` | dense | `42` | `20485757` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `0` | `20485758` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `1` | `20485759` | smoke `20485700`, `15912062` bytes |
@@ -116,11 +119,12 @@ New facts:
   three-seed benchmark jobs are queued.
 - At the second release, qMLP `sp8192` and qMLP `sp16384` had passed smoke; their
   three-seed benchmark jobs are queued.
+- At the third release, dense `sp2048` had passed smoke; its three-seed
+  benchmark jobs are queued.
 - Dense `sp16384` passed smoke functionally, but the total submission size was
   `18106381` bytes, so it is excluded from compliant Phase 4 benchmarks.
-- Dense/qMLP cells for `sp1024`, dense `sp2048`, and both `sp4096` variants
-  should be released independently when their smokes pass and stay under the
-  16 MB cap.
+- Dense/qMLP cells for `sp1024` and both `sp4096` variants should be released
+  independently when their smokes pass and stay under the 16 MB cap.
 
 Decision:
 
