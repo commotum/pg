@@ -123,7 +123,8 @@ What it does:
 4. Verifies 8 visible CUDA devices.
 5. Verifies `torch`, `triton`, `sentencepiece`, `brotli`, and
    `flash_attn_interface` imports.
-6. Verifies `lrzip` is on `PATH`.
+6. Verifies `lrzip` is on `PATH` and can execute a lightweight version/help
+   probe.
 7. Verifies `sp8192` and `sp16384` tokenizer vocab sizes.
 8. Writes `env-smoke.json` and `final-status.json`.
 

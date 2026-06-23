@@ -34,6 +34,17 @@ def main():
         train_time_min = float(m.group(3))
         tok_per_sec = int(m.group(4))
 
+    stop_step = None
+    stop_total_steps = None
+    stop_train_time_s = None
+    for m in re.finditer(
+        r"stopping_early: wallclock_cap train_time: ([0-9.]+)ms step: (\d+)/(\d+)",
+        text,
+    ):
+        stop_train_time_s = float(m.group(1)) / 1000.0
+        stop_step = int(m.group(2))
+        stop_total_steps = int(m.group(3))
+
     result = {
         "log": str(log_path),
         "model_params": last_int(r"model_params:(\d+)", text),
@@ -44,6 +55,10 @@ def main():
         "train_steps_last": train_steps,
         "train_time_min_last": train_time_min,
         "tok_per_sec_last": tok_per_sec,
+        "wallclock_stop_step": stop_step,
+        "wallclock_stop_total_steps": stop_total_steps,
+        "wallclock_stop_train_time_s": stop_train_time_s,
+        "train_steps_final": stop_step if stop_step is not None else train_steps,
         "prequant_val_bpb": last_float(
             r"diagnostic pre-quantization post-ema val_loss:[0-9.]+ val_bpb:([0-9.]+)",
             text,

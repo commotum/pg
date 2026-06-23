@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -16,6 +17,33 @@ def tokenizer_vocab(path):
 
     sp = spm.SentencePieceProcessor(model_file=path)
     return int(sp.vocab_size())
+
+
+def command_probe(argv_options):
+    for argv in argv_options:
+        try:
+            completed = subprocess.run(
+                argv,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+        except Exception as exc:
+            last_error = {"argv": argv, "exception": repr(exc)}
+            continue
+        payload = {
+            "argv": argv,
+            "returncode": completed.returncode,
+            "stdout": completed.stdout[-2000:],
+            "stderr": completed.stderr[-2000:],
+        }
+        if completed.returncode == 0:
+            payload["status"] = "passed"
+            return payload
+        last_error = payload
+    last_error["status"] = "failed"
+    return last_error
 
 
 def main():
@@ -32,7 +60,7 @@ def main():
                 "flash_attn_interface",
             ]
         },
-        "lrzip": shutil.which("lrzip"),
+        "lrzip": {"path": shutil.which("lrzip")},
         "tokenizers": {},
         "cuda": {},
     }
@@ -62,10 +90,27 @@ def main():
                 f"expected {expected_devices} CUDA devices, "
                 f"got {torch.cuda.device_count()}"
             )
-        elif result["lrzip"] is None:
+        elif result["lrzip"]["path"] is None:
             result["status"] = "failed"
             result["error"] = "lrzip not found on PATH"
         else:
+            lrzip_probe = command_probe(
+                [
+                    [result["lrzip"]["path"], "--version"],
+                    [result["lrzip"]["path"], "-V"],
+                    [result["lrzip"]["path"], "--help"],
+                ]
+            )
+            result["lrzip"]["probe"] = lrzip_probe
+            if lrzip_probe["status"] != "passed":
+                result["status"] = "failed"
+                result["error"] = "lrzip found but not runnable"
+                payload = json.dumps(result, indent=2, sort_keys=True)
+                if out_path is not None:
+                    out_path.write_text(payload + "\n", encoding="utf-8")
+                print(payload)
+                return 1
+
             checks = [
                 ("sp8192", 8192, os.environ["GOAL3_SP8192_TOKENIZER"]),
                 ("sp16384", 16384, os.environ["GOAL3_SP16384_TOKENIZER"]),

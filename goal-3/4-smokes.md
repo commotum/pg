@@ -74,7 +74,7 @@ execution to check:
 
 - 8 visible CUDA devices;
 - `torch`, `triton`, `sentencepiece`, `brotli`, and `flash_attn_interface`;
-- `lrzip` on `PATH`;
+- `lrzip` on `PATH` and runnable through a lightweight version/help probe;
 - `sp8192` and `sp16384` tokenizer vocab sizes.
 
 ## Verification

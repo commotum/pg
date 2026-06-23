@@ -86,6 +86,15 @@ full record stack runs on the intended H100 class.
 24. The H100 approval packet now exists at `goal-3/7-approval.md`. It requests
     approval only for `goal-3/h100-env-smoke.sbatch`; approval for the later
     one-hour record runner remains separate and unrequested.
+25. Static pre-H100 audit found that `env_smoke.py` previously only checked
+    whether `lrzip` was on `PATH`. It now runs a lightweight version/help probe
+    and fails the H100 env smoke if the compute-built `lrzip` binary cannot
+    execute on the allocated H100 node.
+26. Static parser audit found that `parse_train_log.py` previously reported the
+    last periodic train-loss step rather than the actual wallclock stop step.
+    It now parses `stopping_early: wallclock_cap ... step: N/M` and reports
+    `train_steps_final`. On the known 2026-04-27 seed-42 log it now reports
+    `4945`, matching the record README.
 
 ## Not Yet Known
 

@@ -1,6 +1,6 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 16:05 America/Los_Angeles
+Last updated: 2026-06-23 16:12 America/Los_Angeles
 
 ## Current Phase
 
@@ -82,13 +82,12 @@ dirty: yes
 Observed local dirty state:
 
 ```text
-M goal-3/5-runtime.md
-M goal-3/6-runner.md
+M goal-3/4-smokes.md
+M goal-3/7-approval.md
 M goal-3/findings-summary.md
-M goal-3/jobs.csv
-M goal-3/prepare-tools.sbatch
+M goal-3/scripts/env_smoke.py
+M goal-3/scripts/parse_train_log.py
 M goal-3/status.md
-?? goal-3/7-approval.md
 m parameter-golf
 ```
 
@@ -312,8 +311,10 @@ Additional prep now complete:
   `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip` with user-local LZO and
   LZ4 libraries. Direct submit-node execution of that binary fails due the
   submit node's older glibc, so the valid runtime check is the H100 env smoke.
-- `goal-3/scripts/env_smoke.py` checks CUDA device count, FA3 import, `lrzip`,
-  and tokenizer vocab sizes.
+- `goal-3/scripts/env_smoke.py` checks CUDA device count, FA3 import, `lrzip`
+  presence and executability, and tokenizer vocab sizes.
+- `goal-3/scripts/parse_train_log.py` now reports both the last periodic
+  train-loss step and the final wallclock stop step as `train_steps_final`.
 - `goal-3/scripts/common.sh` exports required Goal 3 paths for child processes.
 - `goal-3/scripts/common.sh` records `git-status.txt`, `git-diff.stat`, and
   `git-diff.patch`.
