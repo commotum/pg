@@ -242,7 +242,7 @@ This phase is complete when:
 
 ## Result
 
-Status: active. Dense record A40 smoke/package gates passed on smoke data; full CaseOps SP8192 export is active and dense baseline seeds are queued behind it.
+Status: active. Dense record A40 smoke/package gates passed on smoke data; full CaseOps SP8192 export completed; dense baseline seeds were resized after OOMs and are running at the A40-fitting batch size.
 
 Evidence:
 
@@ -262,19 +262,34 @@ Evidence:
 - Job `20484894` reported `model_params:35945658`, two train steps, pre-quant post-EMA `val_bpb:4.15071003`, peak memory `7100 MiB` allocated / `7946 MiB` reserved, and proved the dense 04-23 A40 train/eval path works on smoke data.
 - Dense record package-path smoke job `20484900` completed on `cn-r-1` with exit code `0:0`, using the same smoke data, `PREQUANT_ONLY=0`, `GPTQ_CALIBRATION_BATCHES=4`, and `MAX_WALLCLOCK_SECONDS=300`.
 - Job `20484900` reported quantized+brotli model size `15881408` bytes and total submission size `15913223` bytes, under the 16 MB cap. It also reported diagnostic quantized `val_bpb:4.15098371` on smoke data.
-- Patched full CaseOps SP8192 export job `20484895` was submitted under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` with `MAX_TRAIN_SHARDS=80`, `VAL_DOCS=10000`, and 2 CPUs. It reached 34 train shards after about 30 minutes, comfortably ahead of the 4-hour request if throughput holds.
+- Patched full CaseOps SP8192 export job `20484895` completed under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` with `MAX_TRAIN_SHARDS=80`, `VAL_DOCS=10000`, and 2 CPUs. It produced 80 train shards, one validation shard, and one validation-byte sidecar in `01:04:36`.
 - Old unpatched export job `20483645` was canceled after the patched replacement had already produced train shards while the old job still had no output shards after more than two hours.
-- Dependent dense record A40 baseline jobs were submitted behind `afterok:20484895`: seed `42` job `20484970`, seed `0` job `20484971`, and seed `1` job `20484972`. They should remain pending on dependency until the full export succeeds, then Slurm can run them in parallel where resources allow.
-- Phase 14 qMLP smoke job `20484979` was queued behind `afterok:20484970`, so it cannot start until Phase 13 has at least one successful dense baseline. Phase 14 qMLP seed jobs `20484980`, `20484981`, and `20484982` were queued behind `afterok:20484979`.
-- Phase 15 CaseOps `sp16384` prep job `20484985` was queued behind `afterok:20484895` using bounded `MAX_TRAIN_SHARDS=80`, so the next data dependency can prepare after the current export without competing with it.
+- Initial dense record A40 baseline jobs `20484970`, `20484971`, and `20484972` failed with CUDA OOM at `TRAIN_BATCH_TOKENS=786432`.
+- Fit smoke job `20485053` failed with CUDA OOM at `TRAIN_BATCH_TOKENS=524288`.
+- Fit smoke job `20485067` completed at `TRAIN_BATCH_TOKENS=262144`, with two train steps, post-EMA prequant `val_bpb=4.17401789`, and peak memory about `26497 MiB` allocated / `29012 MiB` reserved.
+- Dense record A40 baseline jobs were resubmitted at `TRAIN_BATCH_TOKENS=262144`: seed `42` job `20485084`, seed `0` job `20485085`, and seed `1` job `20485086`.
+- Jobs `20485084`, `20485085`, and `20485086` all reached 65 training steps at the 600-second training cap and entered GPTQ/package work. Their post-EMA prequant BPB values were `3.63358288`, `3.68083747`, and `3.63631925`, respectively.
+- Jobs `20485084`, `20485085`, and `20485086` produced under-cap total submission sizes: `15,948,633`, `15,947,156`, and `15,947,315` bytes.
+- Jobs `20485084`, `20485085`, and `20485086` failed after diagnostic quantized eval with `UnboundLocalError: cannot access local variable 'eval_model' where it is not associated with a value`, caused by deleting `eval_model` before the TTT branch deleted it again.
+- Phase 14 qMLP jobs `20485087`, `20485088`, `20485089`, and `20485090` were canceled while still pending because the submitted script default pointed at the older `caseops-sp8192` data root and the submitted environment override was not visible.
+- Phase 13/14 script defaults were patched so `CASEOPS_ROOT` now defaults to `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`.
+- Replacement Phase 14 qMLP jobs `20485171`, `20485172`, `20485173`, and `20485174` were canceled after dense seed `20485084` failed and their `afterok` dependency could never be satisfied.
+- The 04-23 record `train_gpt.py` cleanup path was patched so `eval_model` stays alive until the TTT branch when TTT is enabled. Local and remote `py_compile` checks passed.
+- Repaired dense seed `42` job `20485200` was submitted with the same model/data settings and `MAX_WALLCLOCK_SECONDS=600`, but a longer `01:30:00` Slurm walltime.
+- Job `20485200` proved the cleanup fix by passing diagnostic quantized eval. It produced total submission size `15,949,143` bytes and diagnostic quantized `val_bpb=3.63838697`.
+- Job `20485200` then failed in TTT compile with CUDA OOM at the record default `TTT_BATCH_SIZE=64`; the A40 had about `9.88 MiB` free and tried to allocate `128 MiB`.
+- Dependent follow-up jobs `20485214`-`20485219` were canceled after `20485200` failed.
+- `goal/13-ttt-eval.sbatch` was added for TTT-only repair runs against an existing quantized artifact, and the dense/qMLP A40 runners now expose/default `TTT_BATCH_SIZE=32`.
+- TTT-only repair job `20485290` was submitted against the `20485200` artifact with `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`.
+- Phase 15 CaseOps `sp16384` prep job `20484985` completed with a 16-CPU allocation and bounded `MAX_TRAIN_SHARDS=80`. File verification found 80 train shards, one validation shard, and one validation-byte sidecar.
 
 Artifacts:
 
 - `goal/13-env.sbatch`: A40 compute-node environment and import check for PyTorch/CUDA, Triton, SentencePiece, `flash_attn_interface`, `lrzip`, record files, and CaseOps shard counts.
 - `goal/13-caseops-data.sbatch`: CPU Slurm CaseOps data-prep script using the patched 04-23 record `prepare_caseops_data.py`, the shipped CaseOps tokenizer, and an existing `docs_selected.jsonl`.
 - `goal/13-smoke.sbatch`: minimal one-GPU A40 record-stack smoke with configurable `PREQUANT_ONLY`, `TTT_ENABLED=0`, two iterations, CaseOps data checks, and A40-safe compatibility switches.
-- `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings, default TTT enabled, and the same A40-safe compatibility switches used in smoke.
-- Remote staged scripts include `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`. The env check was submitted as job `20484024`; the record smoke and baseline benchmark remain pending data readiness.
+- `goal/13-baseline-a40.sbatch`: one-GPU A40 baseline runner for the 04-23 record stack, parameterized by `SEED_VALUE`, with full record settings, default TTT enabled, the same A40-safe compatibility switches used in smoke, and the patched CaseOps SP8192 data root as its default.
+- Remote staged scripts include `/nfs/hpc/share/peterj29/pg/runs/phase13-record-env/13-env.sbatch`, `/nfs/hpc/share/peterj29/pg/runs/phase13-record-smoke/13-smoke.sbatch`, and `/nfs/hpc/share/peterj29/pg/runs/phase13-record-baseline/13-baseline-a40.sbatch`. The active dense baseline run uses the `phase13-record-baseline-262` run root after A40 OOM checks established `TRAIN_BATCH_TOKENS=262144` as the fitting batch size.
 
 New facts:
 
@@ -283,14 +298,14 @@ New facts:
 - The 04-23 candidate is slightly weaker but likely simpler as a first A40 reproduction target.
 - The 04-23 record's CaseOps data prep is CPU-only and consumes `docs_selected.jsonl`; it can reuse `/nfs/hpc/share/peterj29/pg/data-exports/sp8192-80/docs_selected.jsonl` if that file remains available.
 - The 04-23 record's training script expects explicit `DATA_PATH` and `TOKENIZER_PATH` for portable CaseOps runs; the scaffolding writes CaseOps data under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192/`.
-- The 04-23 `prepare_caseops_data.py` remains mostly a single-process Python pipeline, so larger CPU allocations will not necessarily scale linearly. The important speed fix is the linear validation byte-sidecar computation, not more CPUs.
+- The 04-23 `prepare_caseops_data.py` remains mostly a single-process Python pipeline, so larger CPU allocations will not necessarily scale linearly. The important speed fix for SP8192 was the linear validation byte-sidecar computation. For future full-tokenizer exports, request 16 CPUs up front when account limits allow, or run a small smoke export before committing to a full 80-shard export.
 - The Phase 13 dense/qMLP record A40 path should keep `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, and `FUSED_MLP_ENABLED=0` consistent across dense and qMLP comparisons unless a later smoke proves those switches can safely change together.
 - For the resumed goal, Phase 13 should produce the dense record `sp8192` A40 control. Phase 14 measures qMLP tax at `sp8192`, and Phase 15 tests qMLP reinvestment at `sp16384`.
 
 Decision:
 
 - Resume Phase 13.
-- Let patched full CaseOps export `20484895` finish or fail; expected target is 80 train shards, one validation shard, and one validation-byte sidecar under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`.
-- If export `20484895` completes successfully, monitor dependent dense baseline seeds `20484970`, `20484971`, and `20484972`.
-- If any dependent baseline seed fails due a shared script/config issue, cancel only the still-pending affected sibling jobs and repair before resubmitting.
-- If dense seed `20484970` succeeds, monitor qMLP smoke `20484979`; if it succeeds, monitor qMLP seeds `20484980`, `20484981`, and `20484982`.
+- Use completed patched full CaseOps export `20484895` as the SP8192 data path; expected target was satisfied under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`.
+- Monitor TTT-only repair job `20485290`.
+- If `20485290` completes with final TTT output, relaunch dense follow-up seeds and Phase 14 qMLP jobs with `TTT_BATCH_SIZE=32`.
+- If `20485290` fails from TTT memory or walltime, revise Phase 13 explicitly to a no-TTT or bounded-control A40 screening comparison rather than silently mixing controls.

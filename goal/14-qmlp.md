@@ -117,9 +117,14 @@ Status: pending
 Evidence:
 
 - Phase 14 scripts exist: `goal/14-qmlp-smoke.sbatch` and `goal/14-qmlp-a40.sbatch`.
-- Phase 14 qMLP smoke job `20484979` was queued behind `afterok:20484970`, so it starts only after the first Phase 13 dense record seed succeeds.
-- Phase 14 qMLP A40 seed jobs were queued behind `afterok:20484979`: seed `42` job `20484980`, seed `0` job `20484981`, and seed `1` job `20484982`.
+- The qMLP script defaults now point at `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`, matching the completed Phase 13 SP8192 CaseOps export.
+- Earlier queued qMLP jobs `20485087`, `20485088`, `20485089`, and `20485090` were canceled before starting because their captured script default pointed at the older data root and the submitted environment override was not visible.
+- Replacement Phase 14 qMLP jobs `20485171`, `20485172`, `20485173`, and `20485174` were canceled after dense seed `20485084` failed and their `afterok` dependency could never be satisfied.
+- Phase 14 is waiting on the Phase 13 TTT repair. Dense job `20485200` proved the cleanup fix but OOMed in TTT compile at `TTT_BATCH_SIZE=64`.
+- The qMLP jobs queued behind `20485200` were canceled after the dense repair failed.
+- A TTT-only dense repair job `20485290` is testing `TTT_BATCH_SIZE=32` against the existing quantized artifact.
+- If `20485290` succeeds, relaunch Phase 14 qMLP smoke/seeds with `TTT_BATCH_SIZE=32` so dense and qMLP use the same A40-compatible TTT evaluator batch size.
 
 Decision:
 
-- Pending Phase 13 dense seed `20484970` and qMLP smoke `20484979`.
+- Pending Phase 13 TTT-only repair job `20485290`.

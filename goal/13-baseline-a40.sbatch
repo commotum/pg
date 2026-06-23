@@ -21,7 +21,7 @@ REPO_PATH=${REPO_PATH:-/nfs/hpc/share/peterj29/pg/src/pg}
 PG_PATH=${PG_PATH:-/nfs/hpc/share/peterj29/pg/src/pg/parameter-golf}
 RECORD_NAME=${RECORD_NAME:-2026-04-23_SP8192_CaseOps_SparseGate_QuantGate_Loop45_PhasedTTT_PolarNS_MinLR_FusedCE}
 RECORD_PATH=${RECORD_PATH:-$PG_PATH/records/track_10min_16mb/$RECORD_NAME}
-CASEOPS_ROOT=${CASEOPS_ROOT:-/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192}
+CASEOPS_ROOT=${CASEOPS_ROOT:-/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched}
 CASEOPS_OUT=${CASEOPS_OUT:-$CASEOPS_ROOT/datasets}
 DATA_PATH=${DATA_PATH:-$CASEOPS_OUT/datasets/fineweb10B_sp8192_lossless_caps_caseops_v1_reserved}
 TOKENIZER_PATH=${TOKENIZER_PATH:-$CASEOPS_OUT/tokenizers/fineweb_8192_bpe_lossless_caps_caseops_v1_reserved.model}
@@ -31,6 +31,7 @@ ITERATIONS_VALUE=${ITERATIONS_VALUE:-${ITERATIONS:-20000}}
 WARMUP_STEPS_VALUE=${WARMUP_STEPS_VALUE:-${WARMUP_STEPS:-20}}
 TRAIN_LOG_EVERY_VALUE=${TRAIN_LOG_EVERY_VALUE:-${TRAIN_LOG_EVERY:-500}}
 MAX_WALLCLOCK_SECONDS_VALUE=${MAX_WALLCLOCK_SECONDS_VALUE:-${MAX_WALLCLOCK_SECONDS:-600}}
+TTT_BATCH_SIZE_VALUE=${TTT_BATCH_SIZE_VALUE:-${TTT_BATCH_SIZE:-32}}
 JOB_DIR="$RUN_ROOT/$SLURM_JOB_ID"
 WORK_DIR="$JOB_DIR/work"
 ARTIFACT_DIR="$WORK_DIR/artifact"
@@ -132,6 +133,7 @@ cd "$WORK_DIR"
     echo "TRAIN_BATCH_TOKENS=$TRAIN_BATCH_TOKENS_VALUE"
     echo "VAL_BATCH_TOKENS=$VAL_BATCH_TOKENS_VALUE"
     echo "MAX_WALLCLOCK_SECONDS=$MAX_WALLCLOCK_SECONDS_VALUE"
+    echo "TTT_BATCH_SIZE=$TTT_BATCH_SIZE_VALUE"
     echo "command=torchrun --standalone --nproc_per_node=1 $RECORD_PATH/train_gpt.py"
 } >"$JOB_DIR/command.txt"
 
@@ -170,6 +172,7 @@ TRAIN_LOG_EVERY="$TRAIN_LOG_EVERY_VALUE" \
 TRAIN_BATCH_TOKENS="$TRAIN_BATCH_TOKENS_VALUE" \
 VAL_BATCH_TOKENS="$VAL_BATCH_TOKENS_VALUE" \
 MAX_WALLCLOCK_SECONDS="$MAX_WALLCLOCK_SECONDS_VALUE" \
+TTT_BATCH_SIZE="$TTT_BATCH_SIZE_VALUE" \
 torchrun --standalone --nproc_per_node=1 "$RECORD_PATH/train_gpt.py" >"$JOB_DIR/train.log" 2>&1
 
 {
