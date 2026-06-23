@@ -10,6 +10,12 @@ passes Phase 3 package smoke.
 This phase uses the same lean harness as Phase 3, but switches to benchmark
 mode and seeds `42`, `0`, and `1`.
 
+The benchmark wallclock cap is a training-loop cap, not an end-to-end Slurm job
+cap. The harness sets `MAX_WALLCLOCK_SECONDS=600` for training, then still has
+to run validation, EMA, serialization, GPTQ calibration/quantization, brotli
+packaging, and metrics parsing. A job can therefore show more than 10 minutes of
+Slurm elapsed time while still respecting the 10-minute training cap.
+
 ## Why This Matters
 
 Single-seed results are too noisy for deciding whether qMLP helps. The required
@@ -32,6 +38,9 @@ best-under-16MB qMLP candidate under the same A40-friendly no-TTT setup.
   `ALLOW_OVER_BUDGET=1`, but they must stay out of best-under-cap rankings.
 - Use one A40 per job.
 - Run independent cells in parallel where Slurm/account limits allow.
+- Interpret `train_steps` and BPB as the fair screening metrics under the
+  training cap. Interpret total Slurm elapsed as harness overhead and queue
+  occupancy, not as extra training time.
 - If queue limits prevent full parallelism, submit the maximum schedulable subset
   and document pending cells.
 
@@ -88,6 +97,10 @@ Evidence:
 - The launcher writes `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/submitted.tsv` so it can be rerun incrementally without duplicating already-submitted cells.
 - The launcher defaults to enforcing the 16 MB cap. `ALLOW_OVER_BUDGET=1` is
   available only for explicit diagnostics.
+- The Phase 4 benchmark uses a 600-second training-loop cap, not a 600-second
+  end-to-end Slurm cap. Job `20485758` confirmed this distinction: training
+  stopped at `stopping_early: wallclock_cap train_time: 606200ms step: 64`, then
+  continued through eval, serialization, GPTQ, and compression.
 - Per user direction, Phase 4 jobs are released for each individual smoke-passing setup as soon as it passes; the plan does not wait for all Phase 3 smokes to complete.
 
 Released benchmark cells:

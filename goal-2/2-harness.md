@@ -26,6 +26,11 @@ The harness is the shared base for:
 - Phase 4 three-seed dense/qMLP A40 benchmark matrix;
 - Phase 5 matrix QA and reruns.
 
+In `HARNESS_MODE=benchmark`, `MAX_WALLCLOCK_SECONDS=600` caps the training loop,
+not the full Slurm job. End-to-end job time also includes validation, EMA,
+serialization, GPTQ calibration/quantization, brotli packaging, and metrics
+parsing.
+
 ## Current Assumptions
 
 - The active plan is `goal-2/0-plan.md`.

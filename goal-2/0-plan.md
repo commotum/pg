@@ -92,12 +92,20 @@ Default A40 benchmark metrics:
 - total submission bytes;
 - quantized model bytes;
 - training steps;
-- ms/step;
+- training throughput or ms/step;
+- total Slurm elapsed time;
 - peak GPU memory;
 - host/GPU;
 - seed;
 - command/config;
 - run path and job ID.
+
+The default benchmark cap is a training-loop wallclock cap, currently 600
+seconds in `HARNESS_MODE=benchmark`. Total Slurm elapsed can be substantially
+longer because it includes setup, warmup, validation, EMA, serialization, GPTQ
+calibration/quantization, brotli packaging, and metrics parsing. Compare BPB
+and `train_steps` under the training cap; use total elapsed to judge harness
+overhead and operational cost.
 
 Do not use final phased TTT BPB as the primary A40 score. If TTT is touched at all, use a tiny legality smoke only.
 
