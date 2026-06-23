@@ -47,7 +47,7 @@ Checked on `submit-a.ib.coehpc` at `2026-06-23T00:18-00:23 PDT`.
 | `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | present | 80 | 2 | 2 | ready |
 | `8192` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` | present | 80 | 1 | 1 | ready |
 | `16384` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384` | present | 80 | 1 | 1 | ready |
-| `32768` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` | present | 38 | 0 | 0 | export running; train sharding in progress |
+| `32768` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` | present | 80 | 1 | 1 | ready |
 
 ## Build Strategy
 
@@ -90,7 +90,7 @@ Run root:
 | `1024` | `20485659` | `pg-g2-cops1024` | 32 | 96G | `cn-r-4` | `COMPLETED`, exit `0:0` | `00:42:30` |
 | `2048` | `20485660` | `pg-g2-cops2048` | 32 | 96G | `cn-r-5` | `COMPLETED`, exit `0:0` | `00:37:23` |
 | `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | `cn-d11` | `COMPLETED`, exit `0:0` | `01:14:16` |
-| `32768` | `20486174` | `pg-g2-cops32768` | 32 | 96G | `cn-d11` | `RUNNING`, data sharding stage | running |
+| `32768` | `20486174` | `pg-g2-cops32768` | 32 | 96G | `cn-d11` | `COMPLETED`, exit `0:0` | `01:33:58` |
 
 An attempted smaller replacement for `sp4096`, job `20485667`, was cancelled
 after `00:00:14` once the original 32-CPU job had started. Read-only inspection
@@ -139,21 +139,13 @@ Evidence:
   equivalent, so a new CaseOps export is required before smokes can run.
 - Submitted `sp32768` export job `20486174` with 32 CPUs, 96 GB memory, and the
   standard 80-shard CaseOps export settings.
-- `sp32768` export job `20486174` is running on `cn-d11`. Direct inspection of
-  `/nfs/hpc/share/peterj29/pg/runs/goal2-phase1-caseops-data/20486174/`
-  found `manifest.txt`, `command.txt`, a completed tokenizer log, and an active
-  `caseops-data.log` with `loaded sp: vocab=32768`, so the job has moved from
-  tokenizer training into data export/sharding.
+- `sp32768` export job `20486174` completed on `cn-d11` with exit `0:0` after
+  `01:33:58`.
 - The target export root
   `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` now has tokenizer
-  model and vocab files. The export has started writing train shards; the latest
-  read-only artifact count found `tok=yes vocab=yes train=38 val=0 val_bytes=0`.
-  It is not ready until the full train shards, validation shards, byte sidecars,
-  and Slurm completion all verify.
-- Slurm inspection found export job `20486174` running with `TimeLimit=04:00:00`
-  after `00:54:34` elapsed. The dependent smoke jobs still have
-  `afterok:20486174`, and the release handoff still has
-  `afterok:20486178,20486179`, so the dependency chain is healthy.
+  model and vocab files. The final read-only artifact count found
+  `tok=yes vocab=yes train=80 val=1 val_bytes=1`, so the `sp32768` CaseOps
+  export is ready for smoke and benchmark use.
 
 Artifacts:
 
@@ -166,6 +158,5 @@ Artifacts:
 
 Decision:
 
-- Phase 1 data dependencies are complete for the original five CaseOps vocabs.
-- `sp32768` is now the only open Phase 1 dependency; monitor job `20486174`
-  through tokenizer training, data sharding, and final artifact verification.
+- Phase 1 data dependencies are complete for all six CaseOps vocabs, including
+  `sp32768`.
