@@ -10,6 +10,7 @@ MODELS=${MODELS:-"dense qmlp"}
 SEEDS=${SEEDS:-"42 0 1"}
 BYTE_CAP=${BYTE_CAP:-16000000}
 SUBMIT=${SUBMIT:-0}
+ALLOW_OVER_BUDGET=${ALLOW_OVER_BUDGET:-0}
 LEDGER=${LEDGER:-$RUN_ROOT/submitted.tsv}
 
 mkdir -p "$RUN_ROOT"
@@ -18,6 +19,10 @@ touch "$LEDGER"
 case "$SUBMIT" in
     0|1) ;;
     *) echo "SUBMIT must be 0 or 1" >&2; exit 2 ;;
+esac
+case "$ALLOW_OVER_BUDGET" in
+    0|1) ;;
+    *) echo "ALLOW_OVER_BUDGET must be 0 or 1" >&2; exit 2 ;;
 esac
 
 if [[ ! -f "$HARNESS" ]]; then
@@ -80,9 +85,16 @@ for vocab in $VOCABS; do
             echo "SKIP sp${vocab} ${model}: smoke COMPLETE.txt missing"
             continue
         fi
-        if [[ -z "$bytes" || "$bytes" -gt "$BYTE_CAP" ]]; then
+        if [[ -z "$bytes" ]]; then
+            echo "SKIP sp${vocab} ${model}: smoke total_submission_bytes=missing cap=$BYTE_CAP"
+            continue
+        fi
+        if [[ "$bytes" -gt "$BYTE_CAP" && "$ALLOW_OVER_BUDGET" != "1" ]]; then
             echo "SKIP sp${vocab} ${model}: smoke total_submission_bytes=${bytes:-missing} cap=$BYTE_CAP"
             continue
+        fi
+        if [[ "$bytes" -gt "$BYTE_CAP" ]]; then
+            echo "DIAGNOSTIC sp${vocab} ${model}: over budget bytes=$bytes cap=$BYTE_CAP"
         fi
         if [[ "$ttt_seen" != "0" ]]; then
             echo "SKIP sp${vocab} ${model}: smoke ttt_seen=$ttt_seen"

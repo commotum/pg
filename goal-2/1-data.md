@@ -83,11 +83,11 @@ Run root:
 /nfs/hpc/share/peterj29/pg/runs/goal2-phase1-caseops-data
 ```
 
-| Vocab | Job ID | Job Name | CPUs | Memory | Node/State at Submit Follow-up |
-| --- | ---: | --- | ---: | ---: | --- |
-| `1024` | `20485659` | `pg-g2-cops1024` | 32 | 96G | running on `cn-r-4` |
-| `2048` | `20485660` | `pg-g2-cops2048` | 32 | 96G | running on `cn-r-5` |
-| `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | completed in `01:14:16` |
+| Vocab | Job ID | Job Name | CPUs | Memory | Node | Final State | Elapsed |
+| --- | ---: | --- | ---: | ---: | --- | --- | ---: |
+| `1024` | `20485659` | `pg-g2-cops1024` | 32 | 96G | `cn-r-4` | `COMPLETED`, exit `0:0` | `00:42:30` |
+| `2048` | `20485660` | `pg-g2-cops2048` | 32 | 96G | `cn-r-5` | `COMPLETED`, exit `0:0` | `00:37:23` |
+| `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | `cn-d11` | `COMPLETED`, exit `0:0` | `01:14:16` |
 
 An attempted smaller replacement for `sp4096`, job `20485667`, was cancelled
 after `00:00:14` once the original 32-CPU job had started. Read-only inspection
@@ -112,20 +112,33 @@ Status: complete
 Evidence:
 
 - `sp8192` and `sp16384` are verified ready.
-- `sp2048` is verified ready and has been released to Phase 3 smokes.
+- `sp2048` export job `20485660` completed with exit code `0:0` after
+  `00:37:23`; direct counts found 80 train shards, two validation shards, two
+  validation-byte sidecars, one tokenizer model, one tokenizer vocab, and one
+  tokenizer manifest.
 - `sp1024` export job `20485659` completed with exit code `0:0` after
   `00:42:30`; direct counts found 80 train shards, two validation shards, two
-  validation-byte sidecars, and one tokenizer model. It has been released to
-  Phase 3 smokes.
+  validation-byte sidecars, one tokenizer model, one tokenizer vocab, and one
+  tokenizer manifest. It has been released to Phase 3 smokes.
 - `sp4096` export job `20485661` completed with exit code `0:0` after
   `01:14:16`; direct counts found 80 train shards, two validation shards, two
-  validation-byte sidecars, and one tokenizer model. It has been released to
-  Phase 3 smokes.
+  validation-byte sidecars, one tokenizer model, one tokenizer vocab, and one
+  tokenizer manifest. It has been released to Phase 3 smokes.
+- Final verified matrix:
+  - `sp1024`: `tok=yes vocab=yes manifest=yes train=80 val=2 val_bytes=2`
+  - `sp2048`: `tok=yes vocab=yes manifest=yes train=80 val=2 val_bytes=2`
+  - `sp4096`: `tok=yes vocab=yes manifest=yes train=80 val=2 val_bytes=2`
+  - `sp8192`: `tok=yes train=80 val=1 val_bytes=1`
+  - `sp16384`: `tok=yes vocab=yes manifest=yes train=80 val=1 val_bytes=1`
 
 Artifacts:
 
 - Remote run root:
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase1-caseops-data`
+- New export roots:
+  - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp1024`
+  - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp2048`
+  - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096`
 
 Decision:
 

@@ -30,10 +30,10 @@ The harness is the shared base for:
 
 - The active plan is `goal-2/0-plan.md`.
 - The old `goal-1` scripts are reference material only.
+- CaseOps `sp1024`, `sp2048`, and `sp4096` exist remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp<VOCAB>/`.
 - CaseOps `sp8192` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/`.
 - CaseOps `sp16384` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384/`.
-- CaseOps `sp2048`, `sp8192`, and `sp16384` are ready enough for initial matrix cells.
-- CaseOps `sp1024` and `sp4096` are being produced by another agent and should be added when their shard counts verify cleanly.
+- All five target CaseOps vocabs are ready for the A40 smoke/benchmark matrix.
 - The local 04-23 record `train_gpt.py` has SDPA fallback and qMLP support.
 
 ## Implementation Steps
