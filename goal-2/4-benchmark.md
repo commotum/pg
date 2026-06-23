@@ -149,6 +149,7 @@ Completed benchmark metrics:
 | `8192` | dense | `1` | `20485759` | `3.65672897` | `3.64769098` | `64` | `15946703` | `29258` | `cn-r-5` | `0` |
 | `8192` | qMLP | `42` | `20485785` | `3.02871907` | `3.02677027` | `64` | `8464901` | `28931` | `cn-r-2` | `0` |
 | `8192` | qMLP | `0` | `20485786` | `3.01040323` | `3.00791804` | `64` | `8464608` | `28931` | `cn-r-5` | `0` |
+| `8192` | qMLP | `1` | `20485787` | `3.01325051` | `3.01171267` | `64` | `8465289` | `28931` | `cn-r-5` | `0` |
 
 Completed cell summaries:
 
@@ -156,6 +157,7 @@ Completed cell summaries:
 | --- | --- | --- | ---: | ---: | ---: | --- |
 | `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
 | `8192` | dense | `42,0,1` | `3.66039918` | `3.65026259` | `64` | complete under-cap dense baseline cell |
+| `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
 
 Current paired deltas:
 
@@ -163,6 +165,7 @@ Current paired deltas:
 | --- | ---: | ---: | ---: | ---: |
 | `8192` | `42` | `3.63584015` | `3.02871907` | `-0.60712108` |
 | `8192` | `0` | `3.68862843` | `3.01040323` | `-0.67822520` |
+| `8192` | `1` | `3.65672897` | `3.01325051` | `-0.64347846` |
 
 Artifacts:
 
@@ -192,8 +195,8 @@ New facts:
   three-seed Phase 4 cell.
 - Dense `sp8192` seeds `42`, `0`, and `1` completed under the 16 MB cap. This
   is the first complete dense Phase 4 cell.
-- qMLP `sp8192` seeds `42` and `0` completed under the 16 MB cap. Both paired
-  completed seeds beat dense `sp8192` by more than `0.60` BPB.
+- qMLP `sp8192` seeds `42`, `0`, and `1` completed under the 16 MB cap. The
+  three-seed mean beats dense `sp8192` by `0.64294158` BPB.
 - Both `sp4096` variants should be released independently when their smokes pass
   and stay under the 16 MB cap.
 

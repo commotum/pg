@@ -543,6 +543,25 @@ Exit criteria:
   first sanity point, not the only dense baseline.
 - Full A40 phased TTT is too slow to be a useful default benchmark.
 
+## Current Live Facts
+
+- All five target CaseOps exports exist and have reached Phase 3 or later.
+- Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
+  Slurm cap. Total elapsed includes validation, EMA, serialization,
+  quantization, compression, and metrics parsing.
+- qMLP `sp2048` has completed all three Phase 4 seeds with mean quantized BPB
+  `3.25738655`.
+- Dense `sp8192` has completed all three Phase 4 seeds with mean quantized BPB
+  `3.66039918`.
+- qMLP `sp8192` completed all three Phase 4 seeds with mean quantized BPB
+  `3.01745760`; dense `sp8192` completed all three seeds with mean quantized
+  BPB `3.66039918`. qMLP wins the matched three-seed mean by `0.64294158` BPB
+  while staying well under the 16 MB cap.
+- Dense `sp16384` is intentionally included as an over-budget diagnostic, not a
+  compliant best-under-cap candidate.
+- Phase 5 summarizer artifacts are generated under
+  `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
+
 ## Success Criteria
 
 The goal succeeds if it produces:

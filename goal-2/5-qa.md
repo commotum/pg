@@ -115,10 +115,11 @@ New facts:
   `1` complete.
 - Dense `sp8192` has two completed seeds so far: `42` and `1`.
 - Dense `sp8192` now has all three seeds complete.
-- qMLP `sp8192` has two completed seeds so far: `42` and `0`.
-- The refreshed summarizer produced the first paired dense-vs-qMLP deltas:
-  qMLP `sp8192` beat dense `sp8192` by `0.60712108` BPB on seed `42` and
-  `0.67822520` BPB on seed `0`.
+- qMLP `sp8192` now has all three seeds complete.
+- The refreshed summarizer produced the first complete paired dense-vs-qMLP
+  comparison: qMLP `sp8192` mean quantized BPB is `3.01745760`, dense `sp8192`
+  mean quantized BPB is `3.66039918`, and qMLP wins the matched three-seed mean
+  by `0.64294158` BPB.
 
 Decision:
 
