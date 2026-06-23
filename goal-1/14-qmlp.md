@@ -112,7 +112,7 @@ This phase is complete when:
 
 ## Result
 
-Status: pending
+Status: complete. Same-vocab record-stack qMLP `sp8192` completed three A40 seeds and beat the dense record `sp8192` A40 control.
 
 Evidence:
 
@@ -120,15 +120,29 @@ Evidence:
 - The qMLP script defaults now point at `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`, matching the completed Phase 13 SP8192 CaseOps export.
 - Earlier queued qMLP jobs `20485087`, `20485088`, `20485089`, and `20485090` were canceled before starting because their captured script default pointed at the older data root and the submitted environment override was not visible.
 - Replacement Phase 14 qMLP jobs `20485171`, `20485172`, `20485173`, and `20485174` were canceled after dense seed `20485084` failed and their `afterok` dependency could never be satisfied.
-- Phase 14 is waiting on the Phase 13 TTT repair. Dense job `20485200` proved the cleanup fix but OOMed in TTT compile at `TTT_BATCH_SIZE=64`.
+- Phase 14 initially waited on the Phase 13 TTT repair. Dense job `20485200` proved the cleanup fix but OOMed in TTT compile at `TTT_BATCH_SIZE=64`.
 - The qMLP jobs queued behind `20485200` were canceled after the dense repair failed.
-- A TTT-only dense repair job `20485290` is testing `TTT_BATCH_SIZE=32` against the existing quantized artifact.
-- `20485290` is running and has passed TTT compile warmup. The Phase 14 qMLP chain is queued behind it without bypassing the gate: smoke job `20485346` depends on `afterok:20485290`, and qMLP seed jobs `20485348`, `20485349`, and `20485350` depend on `afterok:20485346`.
+- A TTT-only dense repair job `20485290` tested `TTT_BATCH_SIZE=32` against the existing quantized artifact.
+- `20485290` then ran and passed TTT compile warmup. The Phase 14 qMLP chain was queued behind it without bypassing the gate: smoke job `20485346` depended on `afterok:20485290`, and qMLP seed jobs `20485348`, `20485349`, and `20485350` depended on `afterok:20485346`.
 - After `20485290` logged `ttpr: phase:1/3 t:1975.1s`, queued qMLP seed jobs `20485348`, `20485349`, and `20485350` were extended to `02:30:00` to avoid repeating a likely full-TTT timeout; their dependency on qMLP smoke `20485346` remains intact.
 - `20485290` completed successfully with `quantized_ttt_phased val_bpb:2.48394114`, releasing qMLP smoke `20485346`.
 - `20485346` completed successfully in `00:06:57`, with `model_params:18644154`, step-2 `val_bpb:4.3033`, post-EMA pre-quant `val_bpb:4.17302032`, and max RSS about `3.97 GB`.
-- qMLP seed jobs `20485348`, `20485349`, and `20485350` were released and are running with `TTT_BATCH_SIZE=32`, matching the dense A40-compatible TTT evaluator batch size.
+- qMLP seed jobs `20485348`, `20485349`, and `20485350` were released and ran with `TTT_BATCH_SIZE=32`, matching the dense A40-compatible TTT evaluator batch size.
+- qMLP seed `42` job `20485348` completed in `01:31:26` with 66 training steps, total submission size `8,465,062` bytes, diagnostic quantized `val_bpb=2.98003322`, and final `quantized_ttt_phased val_bpb=2.28242806` with TTT eval time `3428.9s`.
+- qMLP seed `0` job `20485349` completed in `01:36:07` with 66 training steps, total submission size `8,465,567` bytes, diagnostic quantized `val_bpb=2.98579482`, and final `quantized_ttt_phased val_bpb=2.28778189` with TTT eval time `3469.6s`.
+- qMLP seed `1` job `20485350` completed in `01:32:18` with 66 training steps, total submission size `8,464,761` bytes, diagnostic quantized `val_bpb=2.98862174`, and final `quantized_ttt_phased val_bpb=2.28335877` with TTT eval time `3445.3s`.
+- The three qMLP record `sp8192` A40 seeds have mean final TTT BPB `2.28452291` and mean total submission size about `8,465,130` bytes.
+- The Phase 13 dense record `sp8192` A40 control has mean final TTT BPB `2.48517592` across seeds `42`, `0`, and `1`.
+- Same-vocab qMLP tax is therefore negative on this A40 screening setup:
+
+```text
+qMLP tax = qMLP mean - dense mean = 2.28452291 - 2.48517592 = -0.20065301 BPB
+```
+
+This means same-vocab qMLP improved final TTT BPB while also reducing mean package size by roughly `7.48 MB`.
 
 Decision:
 
-- Monitor qMLP seed jobs `20485348`, `20485349`, and `20485350`.
+- Phase 14 is complete.
+- qMLP `sp8192` is the current best A40 record-stack candidate.
+- Proceed to Phase 15 qMLP `sp16384` as the fixed budget-reinvestment test. Because same-vocab qMLP already beats dense `sp8192`, Phase 15 should now answer whether larger vocab improves on qMLP `sp8192`, not whether qMLP is viable at all.

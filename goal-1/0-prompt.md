@@ -37,29 +37,38 @@ Current facts:
 - Repaired dense seed `42` job `20485200` proved the cleanup fix by passing diagnostic quantized eval and package output, but failed during TTT compile with CUDA OOM at the record default `TTT_BATCH_SIZE=64`.
 - Dependent follow-up jobs `20485214`-`20485219` were canceled after `20485200` failed.
 - Dense/qMLP A40 runners now expose/default `TTT_BATCH_SIZE=32`.
-- TTT-only repair job `20485290` is running against the existing `20485200` quantized artifact with `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`; it has passed TTT compile warmup and is in full phased TTT eval.
-- Gated follow-up jobs are queued without bypassing the Phase 13 gate: dense seed `0` `20485344` and dense seed `1` `20485345` depend on `afterok:20485290`; qMLP smoke `20485346` depends on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depend on `afterok:20485346`.
+- TTT-only repair job `20485290` completed successfully against the existing `20485200` quantized artifact with `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`, producing final `quantized_ttt_phased val_bpb=2.48394114`.
+- Gated follow-up jobs were queued without bypassing the Phase 13 gate: dense seed `0` `20485344` and dense seed `1` `20485345` depended on `afterok:20485290`; qMLP smoke `20485346` depended on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depended on `afterok:20485346`.
 - `20485290` reached `ttpr: phase:1/3 t:1975.1s`, so full phased TTT may exceed the original `01:30:00` A40 limit. Slurm denied extending the running repair, but queued full seed jobs `20485344`, `20485345`, `20485348`, `20485349`, and `20485350` were extended to `02:30:00`; dependency checks still showed the intended `afterok` gates.
 - `20485290` completed successfully in `01:01:45`, producing `quantized_ttt_phased val_loss:5.33687296 val_bpb:2.48394114 eval_time:3407345ms` and `total_eval_time:3407.3s`. Dense seed `42` should be treated as a combined repaired result from `20485200` plus `20485290`.
-- The successful gate released dense seed jobs `20485344` and `20485345` plus Phase 14 qMLP smoke `20485346`; qMLP seed jobs `20485348`, `20485349`, and `20485350` remain gated on `afterok:20485346`.
-- Phase 14 qMLP smoke `20485346` completed successfully in `00:06:57`, reporting `model_params:18644154`, step-2 `val_bpb:4.3033`, post-EMA pre-quant `val_bpb:4.17302032`, and max RSS about `3.97 GB`. It released qMLP seed jobs `20485348`, `20485349`, and `20485350`, which are running.
+- The successful gate released dense seed jobs `20485344` and `20485345` plus Phase 14 qMLP smoke `20485346`; after the qMLP smoke passed, qMLP seed jobs `20485348`, `20485349`, and `20485350` were released and completed.
+- Phase 14 qMLP smoke `20485346` completed successfully in `00:06:57`, reporting `model_params:18644154`, step-2 `val_bpb:4.3033`, post-EMA pre-quant `val_bpb:4.17302032`, and max RSS about `3.97 GB`.
+- Phase 13 dense record `sp8192` A40 control completed across three final-TTT seeds:
+  - seed `42`: combined jobs `20485200` + `20485290`, total submission size `15,949,143` bytes, diagnostic quantized `val_bpb=3.63838697`, final `val_bpb=2.48394114`;
+  - seed `0`: job `20485344`, total submission size `15,947,462` bytes, diagnostic quantized `val_bpb=3.69540335`, final `val_bpb=2.48788026`;
+  - seed `1`: job `20485345`, total submission size `15,948,080` bytes, diagnostic quantized `val_bpb=3.65207914`, final `val_bpb=2.48370635`;
+  - mean final TTT BPB `2.48517592`, mean total submission size about `15,948,228` bytes.
+- Phase 14 qMLP record `sp8192` A40 completed across three final-TTT seeds:
+  - seed `42`: job `20485348`, total submission size `8,465,062` bytes, diagnostic quantized `val_bpb=2.98003322`, final `val_bpb=2.28242806`;
+  - seed `0`: job `20485349`, total submission size `8,465,567` bytes, diagnostic quantized `val_bpb=2.98579482`, final `val_bpb=2.28778189`;
+  - seed `1`: job `20485350`, total submission size `8,464,761` bytes, diagnostic quantized `val_bpb=2.98862174`, final `val_bpb=2.28335877`;
+  - mean final TTT BPB `2.28452291`, mean total submission size about `8,465,130` bytes.
+- Same-vocab qMLP tax was negative on the A40 screening setup: `2.28452291 - 2.48517592 = -0.20065301 BPB`.
 - Phase 15 CaseOps `sp16384` prep job `20484985` completed in `00:50:28` with bounded `MAX_TRAIN_SHARDS=80` and 16 CPUs. File verification found 80 train shards, one validation shard, and one validation-byte sidecar.
-- Phase 14 measures same-vocab record-stack qMLP tax at `sp8192`.
-- Phase 15 tests fixed record-stack qMLP `sp16384` as the budget-reinvestment candidate.
+- Phase 14 is complete, and qMLP `sp8192` is the current best A40 record-stack candidate.
+- Phase 15 now tests fixed record-stack qMLP `sp16384` as the budget-reinvestment candidate, asking whether larger vocab improves on qMLP `sp8192`.
 - The package-frontier search beyond `sp16384` is deferred. A `11776` canary, job `20484777`, fit easily at `9,376,232` total submission bytes, so `sp16384` is safe enough to benchmark, but do not push to `24576` or `32768` until the fixed A40 comparison says larger vocab is worth pursuing.
 
 Current strategic trajectory:
 
-1. Resume Phase 13 from `goal/13-record.md`.
-2. Use completed patched full CaseOps export `20484895` as the Phase 13 SP8192 data path.
-3. Monitor dense follow-up jobs `20485344` and `20485345` to complete the Phase 13 dense `sp8192` A40 control, using seed `42` from `20485200` plus `20485290`.
-4. Treat missing `flash_attn_interface` on A40 as an SDPA-fallback screening condition, and keep `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, and `FUSED_MLP_ENABLED=0` consistent across dense and qMLP A40 record runs unless a later paired smoke proves a different compatibility set works.
-5. Extract final dense record-stack `sp8192` A40 baseline metrics only after a repaired dense job reaches terminal state with final output.
-6. Monitor qMLP seeds `20485348`, `20485349`, and `20485350`.
-7. Run Phase 15 qMLP record-stack `sp16384` package/path smoke and A40 seeds.
-8. Compare A40 head-to-head: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
-9. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
-10. Only if A40 record-stack qMLP results are promising, run H100/FA3 confirmation after explicit review and approval.
+1. Start Phase 15 from `goal/15-sp16384.md`.
+2. Use completed patched full CaseOps `sp16384` export `20484985` as the Phase 15 data path.
+3. Treat Phase 13 dense record `sp8192` and Phase 14 qMLP record `sp8192` A40 controls as complete.
+4. Treat missing `flash_attn_interface` on A40 as an SDPA-fallback screening condition, and keep `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, `FUSED_MLP_ENABLED=0`, `TRAIN_BATCH_TOKENS=262144`, and `TTT_BATCH_SIZE=32` consistent across the A40 record runs unless a later paired smoke proves a different compatibility set works.
+5. Run Phase 15 qMLP record-stack `sp16384` package/path smoke and A40 seeds in parallel where scheduler/account limits allow.
+6. Compare A40 head-to-head: dense record `sp8192`, qMLP record `sp8192`, and qMLP record `sp16384`.
+7. Reopen package-frontier probing only if qMLP record `sp16384` is promising and still has meaningful package headroom.
+8. Only if A40 record-stack qMLP results are promising, run H100/FA3 confirmation after explicit review and approval.
 
 Use dense budget controls as a secondary track, not the main path. The dense control question is:
 

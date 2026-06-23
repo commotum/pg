@@ -242,7 +242,7 @@ This phase is complete when:
 
 ## Result
 
-Status: active. Dense record A40 smoke/package gates passed on smoke data; full CaseOps SP8192 export completed; dense baseline seeds were resized after OOMs and are running at the A40-fitting batch size.
+Status: complete. Dense record A40 smoke/package gates passed, full CaseOps SP8192 export completed, and the dense record `sp8192` A40 control now has three completed final-TTT seeds.
 
 Evidence:
 
@@ -281,13 +281,17 @@ Evidence:
 - Dependent follow-up jobs `20485214`-`20485219` were canceled after `20485200` failed.
 - `goal/13-ttt-eval.sbatch` was added for TTT-only repair runs against an existing quantized artifact, and the dense/qMLP A40 runners now expose/default `TTT_BATCH_SIZE=32`.
 - TTT-only repair job `20485290` was submitted against the `20485200` artifact with `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`.
-- `20485290` is running on `cn-r-1`; it passed TTT compile warmup and is in full phased TTT eval, using about `40.6 GB` of A40 memory at `100%` GPU utilization.
-- To avoid idle handoff while preserving the gate, dependent follow-up jobs are queued: dense seed `0` `20485344` and dense seed `1` `20485345` depend on `afterok:20485290`; Phase 14 qMLP smoke `20485346` depends on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depend on `afterok:20485346`.
+- `20485290` ran on `cn-r-1`; it passed TTT compile warmup and entered full phased TTT eval, using about `40.6 GB` of A40 memory at `100%` GPU utilization during the run.
+- To avoid idle handoff while preserving the gate, dependent follow-up jobs were queued: dense seed `0` `20485344` and dense seed `1` `20485345` depended on `afterok:20485290`; Phase 14 qMLP smoke `20485346` depended on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depended on `afterok:20485346`.
 - `20485290` reached `ttpr: phase:1/3 t:1975.1s`, so full phased TTT on A40 may exceed `01:30:00`. Extending the running job was denied by Slurm, but the queued full seed jobs were updated to `02:30:00`, and `squeue` confirmed their dependencies remained intact.
 - `20485290` completed successfully in `01:01:45`, producing `quantized_ttt_phased val_loss:5.33687296 val_bpb:2.48394114 eval_time:3407345ms` and `total_eval_time:3407.3s`.
-- The successful `20485290` gate released dense seed `0` `20485344`, dense seed `1` `20485345`, and qMLP smoke `20485346`; qMLP seed jobs `20485348`, `20485349`, and `20485350` are still gated on `afterok:20485346`.
+- The successful `20485290` gate released dense seed `0` `20485344`, dense seed `1` `20485345`, and qMLP smoke `20485346`; qMLP seed jobs `20485348`, `20485349`, and `20485350` remained gated on `afterok:20485346` until the qMLP smoke passed.
 - Phase 14 qMLP smoke `20485346` completed successfully in `00:06:57` with `model_params:18644154`, step-2 `val_bpb:4.3033`, post-EMA pre-quant `val_bpb:4.17302032`, and max RSS about `3.97 GB`. qMLP seed jobs `20485348`, `20485349`, and `20485350` were released and started.
 - Phase 15 CaseOps `sp16384` prep job `20484985` completed with a 16-CPU allocation and bounded `MAX_TRAIN_SHARDS=80`. File verification found 80 train shards, one validation shard, and one validation-byte sidecar.
+- Dense seed `42` is a repaired combined result: training/package job `20485200` plus TTT-only repair job `20485290`. It used `TTT_BATCH_SIZE=32`, produced total submission size `15,949,143` bytes, diagnostic quantized `val_bpb=3.63838697`, and final `quantized_ttt_phased val_bpb=2.48394114` with TTT eval time `3407.3s`.
+- Dense seed `0` job `20485344` completed in `02:10:01` with 65 training steps, total submission size `15,947,462` bytes, diagnostic quantized `val_bpb=3.69540335`, and final `quantized_ttt_phased val_bpb=2.48788026` with TTT eval time `3182.4s`.
+- Dense seed `1` job `20485345` completed in `01:40:44` with 65 training steps, total submission size `15,948,080` bytes, diagnostic quantized `val_bpb=3.65207914`, and final `quantized_ttt_phased val_bpb=2.48370635` with TTT eval time `3394.0s`.
+- The three dense record `sp8192` A40 control seeds have mean final TTT BPB `2.48517592` and mean total submission size about `15,948,228` bytes. All are under the 16 MB cap, but with little package headroom.
 
 Artifacts:
 
@@ -310,8 +314,7 @@ New facts:
 
 Decision:
 
-- Resume Phase 13.
-- Use completed patched full CaseOps export `20484895` as the SP8192 data path; expected target was satisfied under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`.
-- Treat dense seed `42` as a combined repaired result from training/package job `20485200` plus TTT-only job `20485290`.
-- Monitor the released dense seed jobs `20485344` and `20485345` through final output so Phase 13 has a three-seed dense A40 control.
-- Monitor qMLP seeds `20485348`, `20485349`, and `20485350` now that smoke `20485346` passed.
+- Phase 13 is complete.
+- Use dense record `sp8192` A40 final-TTT mean `2.48517592` as the Phase 13 record-stack control for Phase 14 and Phase 15.
+- Keep the A40 screening compatibility set fixed for the immediate comparison: SDPA fallback, `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, `FUSED_MLP_ENABLED=0`, `TRAIN_BATCH_TOKENS=262144`, and `TTT_BATCH_SIZE=32`.
+- Phase 14 can be judged directly against this control, and Phase 15 may proceed if the qMLP `sp8192` result remains viable after documentation.
