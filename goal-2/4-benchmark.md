@@ -144,6 +144,8 @@ Completed benchmark metrics:
 
 | Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `1024` | qMLP | `42` | `20485820` | `3.35503787` | `3.35051733` | `66` | `6539552` | `26077` | `cn-r-2` | `0` |
+| `1024` | qMLP | `1` | `20485822` | `3.36968348` | `3.36458550` | `66` | `6536757` | `26077` | `cn-r-5` | `0` |
 | `2048` | qMLP | `42` | `20485754` | `3.27018661` | `3.26684355` | `66` | `6812458` | `26212` | `cn-r-5` | `0` |
 | `2048` | qMLP | `0` | `20485755` | `3.27763883` | `3.27243947` | `66` | `6814438` | `26212` | `cn-r-2` | `0` |
 | `2048` | qMLP | `1` | `20485756` | `3.22433420` | `3.21899798` | `66` | `6815170` | `26212` | `cn-r-5` | `0` |
@@ -218,6 +220,13 @@ New facts:
   benchmark jobs: `20486109`, `20486110`, and `20486111`.
 - Dense `sp4096` should be released independently when its smoke passes and
   stays under the 16 MB cap.
+- qMLP `sp1024` seeds `42` and `1` completed under the 16 MB cap. Seed `0`
+  remains incomplete as of the latest poll, so the qMLP `sp1024` cell is not
+  yet a three-seed result.
+- The latest dry-run of the Phase 4 launcher confirms no additional compliant
+  cells are currently eligible for submission: dense `sp4096` is skipped because
+  smoke job `20485825` has no metrics yet, and all other smoke-passing cells
+  have already been released.
 
 Decision:
 

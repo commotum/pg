@@ -126,6 +126,11 @@ New facts:
   by `1.01200596` BPB.
 - Dense `sp2048` seed `0` completed; paired qMLP `sp2048` seed `0` is better
   by `0.95995357` BPB.
+- qMLP `sp1024` seeds `42` and `1` completed with quantized BPB `3.35503787`
+  and `3.36968348`. Seed `0` is still missing metrics, so QA should not treat
+  this as a complete three-seed cell yet.
+- The current launcher dry-run has no newly eligible submissions. Dense
+  `sp4096` remains gated on smoke job `20485825` producing under-cap metrics.
 
 Decision:
 

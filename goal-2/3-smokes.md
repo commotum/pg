@@ -168,6 +168,9 @@ New facts:
   submitted.
 - qMLP `sp4096` smoke job `20485826` completed under the 16 MB cap and was
   released to Phase 4.
+- Dense `sp4096` smoke job `20485825` is still running and has not produced
+  `metrics.env` as of the latest poll. The Phase 4 dry-run correctly skips the
+  dense `sp4096` benchmark cell until this smoke gate passes.
 
 Decision:
 
