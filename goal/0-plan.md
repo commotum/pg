@@ -929,6 +929,12 @@ Phase plan file:
 - dependent follow-up jobs `20485214`-`20485219` were canceled after `20485200` failed.
 - A40 dense/qMLP runners now expose and default `TTT_BATCH_SIZE=32`.
 - TTT-only repair job `20485290` was submitted against the existing `20485200` quantized artifact using `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`, to test whether the mathematically same TTT evaluation can fit on A40 without retraining.
+- as of the latest check, `20485290` is running on `cn-r-1`, has passed TTT compile warmup, and is in full phased TTT eval with about `40.6 GB` A40 memory used and `100%` GPU utilization.
+- gated follow-up jobs were submitted with dependencies so they do not bypass the Phase 13 gate: dense seed `0` job `20485344` and dense seed `1` job `20485345` depend on `afterok:20485290`; Phase 14 qMLP smoke job `20485346` also depends on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depend on `afterok:20485346`.
+- `20485290` later logged `ttpr: phase:1/3 t:1975.1s`, implying full phased TTT may exceed the original `01:30:00` Slurm limit on A40. Slurm denied extending the already-running repair job, but queued full seed jobs `20485344`, `20485345`, `20485348`, `20485349`, and `20485350` were extended to `02:30:00`. Dependency verification still showed the correct `afterok` gates.
+- `20485290` completed successfully in `01:01:45`. It produced final TTT output `quantized_ttt_phased val_loss:5.33687296 val_bpb:2.48394114 eval_time:3407345ms`, with total TTT eval time `3407.3s`. This validates `TTT_BATCH_SIZE=32` as A40-feasible for this artifact, but also shows full TTT eval is a large share of runtime.
+- after `20485290` completed, dense seed `0` job `20485344`, dense seed `1` job `20485345`, and qMLP smoke `20485346` were released from dependency hold and started. qMLP seed jobs `20485348`, `20485349`, and `20485350` remain gated on `afterok:20485346`.
+- Phase 14 qMLP smoke job `20485346` completed successfully in `00:06:57` with `QUAT_MLP=1`, `PREQUANT_ONLY=1`, and no TTT. It reported `model_params:18644154`, `val_bpb:4.3033` at step 2, post-EMA pre-quant `val_bpb:4.17302032`, and peak RSS about `3.97 GB`. This released qMLP seed jobs `20485348`, `20485349`, and `20485350`, which started on A40 nodes.
 - Phase 15 CaseOps `sp16384` prep job `20484985` completed in `00:50:28` with a 16-CPU allocation and bounded `MAX_TRAIN_SHARDS=80`. File verification found 80 train shards, one validation shard, and one validation-byte sidecar under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384/`.
 
 Read-only inventory facts from the draft:
@@ -945,6 +951,7 @@ Actions:
 3. Monitor TTT-only repair job `20485290` to see whether the dense `sp8192` artifact can complete TTT on A40 at `TTT_BATCH_SIZE=32`.
 4. Treat the A40 environment as SDPA fallback with `DOCUMENT_PACKING=0`, `TORCH_COMPILE=0`, and `FUSED_MLP_ENABLED=0` unless a later smoke proves a different compatibility set works for both dense and qMLP.
 5. If any dependent seed fails from a shared script/config issue, cancel only the still-pending affected siblings and repair before resubmitting.
+6. `20485290` succeeded and qMLP smoke `20485346` passed, so monitor the released dense seeds `20485344`/`20485345` and qMLP seeds `20485348`/`20485349`/`20485350`.
 
 Record:
 
@@ -968,7 +975,7 @@ Phase plan file:
 
 - `goal/14-qmlp.md` is the detailed plan for the same-vocab record-stack qMLP tax measurement.
 - `goal/14-qmlp-smoke.sbatch` and `goal/14-qmlp-a40.sbatch` are the current local script scaffolds.
-- Phase 14 is waiting on the Phase 13 TTT repair. If `20485290` succeeds, relaunch dense follow-up seeds and the Phase 14 qMLP chain with `TTT_BATCH_SIZE=32`. If it fails, revise Phase 13 explicitly to a no-TTT or bounded-control A40 comparison before launching qMLP.
+- Phase 14 qMLP smoke `20485346` passed and released qMLP seeds `20485348`, `20485349`, and `20485350`.
 
 Measure:
 

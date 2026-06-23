@@ -281,6 +281,12 @@ Evidence:
 - Dependent follow-up jobs `20485214`-`20485219` were canceled after `20485200` failed.
 - `goal/13-ttt-eval.sbatch` was added for TTT-only repair runs against an existing quantized artifact, and the dense/qMLP A40 runners now expose/default `TTT_BATCH_SIZE=32`.
 - TTT-only repair job `20485290` was submitted against the `20485200` artifact with `TTT_EVAL_ONLY=1` and `TTT_BATCH_SIZE=32`.
+- `20485290` is running on `cn-r-1`; it passed TTT compile warmup and is in full phased TTT eval, using about `40.6 GB` of A40 memory at `100%` GPU utilization.
+- To avoid idle handoff while preserving the gate, dependent follow-up jobs are queued: dense seed `0` `20485344` and dense seed `1` `20485345` depend on `afterok:20485290`; Phase 14 qMLP smoke `20485346` depends on `afterok:20485290`; qMLP seed jobs `20485348`, `20485349`, and `20485350` depend on `afterok:20485346`.
+- `20485290` reached `ttpr: phase:1/3 t:1975.1s`, so full phased TTT on A40 may exceed `01:30:00`. Extending the running job was denied by Slurm, but the queued full seed jobs were updated to `02:30:00`, and `squeue` confirmed their dependencies remained intact.
+- `20485290` completed successfully in `01:01:45`, producing `quantized_ttt_phased val_loss:5.33687296 val_bpb:2.48394114 eval_time:3407345ms` and `total_eval_time:3407.3s`.
+- The successful `20485290` gate released dense seed `0` `20485344`, dense seed `1` `20485345`, and qMLP smoke `20485346`; qMLP seed jobs `20485348`, `20485349`, and `20485350` are still gated on `afterok:20485346`.
+- Phase 14 qMLP smoke `20485346` completed successfully in `00:06:57` with `model_params:18644154`, step-2 `val_bpb:4.3033`, post-EMA pre-quant `val_bpb:4.17302032`, and max RSS about `3.97 GB`. qMLP seed jobs `20485348`, `20485349`, and `20485350` were released and started.
 - Phase 15 CaseOps `sp16384` prep job `20484985` completed with a 16-CPU allocation and bounded `MAX_TRAIN_SHARDS=80`. File verification found 80 train shards, one validation shard, and one validation-byte sidecar.
 
 Artifacts:
@@ -306,6 +312,6 @@ Decision:
 
 - Resume Phase 13.
 - Use completed patched full CaseOps export `20484895` as the SP8192 data path; expected target was satisfied under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched`.
-- Monitor TTT-only repair job `20485290`.
-- If `20485290` completes with final TTT output, relaunch dense follow-up seeds and Phase 14 qMLP jobs with `TTT_BATCH_SIZE=32`.
-- If `20485290` fails from TTT memory or walltime, revise Phase 13 explicitly to a no-TTT or bounded-control A40 screening comparison rather than silently mixing controls.
+- Treat dense seed `42` as a combined repaired result from training/package job `20485200` plus TTT-only job `20485290`.
+- Monitor the released dense seed jobs `20485344` and `20485345` through final output so Phase 13 has a three-seed dense A40 control.
+- Monitor qMLP seeds `20485348`, `20485349`, and `20485350` now that smoke `20485346` passed.
