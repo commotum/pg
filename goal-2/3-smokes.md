@@ -109,7 +109,7 @@ Submitted smoke jobs:
 | Vocab | Model | Job ID | Latest State |
 | --- | --- | ---: | --- |
 | `1024` | dense | `20485707` | running on `cn-r-1` |
-| `1024` | qMLP | `20485708` | running on `cn-r-5` |
+| `1024` | qMLP | `20485708` | completed |
 | `2048` | dense | `20485698` | completed |
 | `2048` | qMLP | `20485699` | completed |
 | `8192` | dense | `20485700` | completed |
@@ -121,6 +121,7 @@ Completed smoke metrics:
 
 | Vocab | Model | Job ID | Quant BPB | Total Bytes | Peak MiB | Host | TTT |
 | --- | --- | ---: | ---: | ---: | ---: | --- | ---: |
+| `1024` | qMLP | `20485708` | `4.55731441` | `6507663` | `6771` | `cn-r-5` | `0` |
 | `2048` | qMLP | `20485699` | `4.34588020` | `6777950` | `6805` | `cn-r-5` | `0` |
 | `2048` | dense | `20485698` | `4.34837669` | `14277213` | `7062` | `cn-r-2` | `0` |
 | `8192` | dense | `20485700` | `4.17584110` | `15912062` | `7756` | `cn-r-5` | `0` |
@@ -153,6 +154,7 @@ New facts:
 - qMLP `sp8192` and qMLP `sp16384` were also released to Phase 4 after passing
   smoke.
 - Dense `sp2048` passed smoke under the 16 MB cap and was released to Phase 4.
+- qMLP `sp1024` passed smoke under the 16 MB cap and was released to Phase 4.
 - Dense `sp16384` passed functionally but exceeded the 16 MB cap at `18106381`
   bytes, so it is excluded from Phase 4 unless the user explicitly wants an
   over-budget diagnostic.

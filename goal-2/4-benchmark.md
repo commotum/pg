@@ -90,6 +90,9 @@ Released benchmark cells:
 
 | Vocab | Model | Seed | Job ID | Smoke Gate |
 | --- | --- | ---: | ---: | --- |
+| `1024` | qMLP | `42` | `20485820` | smoke `20485708`, `6507663` bytes |
+| `1024` | qMLP | `0` | `20485821` | smoke `20485708`, `6507663` bytes |
+| `1024` | qMLP | `1` | `20485822` | smoke `20485708`, `6507663` bytes |
 | `2048` | qMLP | `42` | `20485754` | smoke `20485699`, `6777950` bytes |
 | `2048` | qMLP | `0` | `20485755` | smoke `20485699`, `6777950` bytes |
 | `2048` | qMLP | `1` | `20485756` | smoke `20485699`, `6777950` bytes |
@@ -121,10 +124,12 @@ New facts:
   three-seed benchmark jobs are queued.
 - At the third release, dense `sp2048` had passed smoke; its three-seed
   benchmark jobs are queued.
+- At the fourth release, qMLP `sp1024` had passed smoke; its three-seed
+  benchmark jobs are queued.
 - Dense `sp16384` passed smoke functionally, but the total submission size was
   `18106381` bytes, so it is excluded from compliant Phase 4 benchmarks.
-- Dense/qMLP cells for `sp1024` and both `sp4096` variants should be released
-  independently when their smokes pass and stay under the 16 MB cap.
+- Dense `sp1024` and both `sp4096` variants should be released independently
+  when their smokes pass and stay under the 16 MB cap.
 
 Decision:
 
