@@ -90,7 +90,7 @@ Run root:
 | `1024` | `20485659` | `pg-g2-cops1024` | 32 | 96G | `cn-r-4` | `COMPLETED`, exit `0:0` | `00:42:30` |
 | `2048` | `20485660` | `pg-g2-cops2048` | 32 | 96G | `cn-r-5` | `COMPLETED`, exit `0:0` | `00:37:23` |
 | `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | `cn-d11` | `COMPLETED`, exit `0:0` | `01:14:16` |
-| `32768` | `20486174` | `pg-g2-cops32768` | 32 | 96G | pending | `PENDING` | pending |
+| `32768` | `20486174` | `pg-g2-cops32768` | 32 | 96G | `cn-d11` | `RUNNING`, tokenizer stage | running |
 
 An attempted smaller replacement for `sp4096`, job `20485667`, was cancelled
 after `00:00:14` once the original 32-CPU job had started. Read-only inspection
@@ -138,8 +138,16 @@ Evidence:
   existing `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` or patched
   equivalent, so a new CaseOps export is required before smokes can run.
 - Submitted `sp32768` export job `20486174` with 32 CPUs, 96 GB memory, and the
-  standard 80-shard CaseOps export settings. At submission it was pending in
-  the Slurm queue.
+  standard 80-shard CaseOps export settings.
+- `sp32768` export job `20486174` is running on `cn-d11`. Direct inspection of
+  `/nfs/hpc/share/peterj29/pg/runs/goal2-phase1-caseops-data/20486174/`
+  found `manifest.txt`, `command.txt`, and an active `tokenizer.log`; no
+  `caseops-data.log` exists yet, so the job is still in tokenizer training and
+  has not begun data sharding.
+- The target export root
+  `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` now exists with a
+  `datasets/tokenizers` subtree, but the export is not ready until the tokenizer
+  model, shards, byte sidecars, and Slurm completion all verify.
 
 Artifacts:
 
@@ -153,4 +161,5 @@ Artifacts:
 Decision:
 
 - Phase 1 data dependencies are complete for the original five CaseOps vocabs.
-- `sp32768` is now the only open Phase 1 dependency; monitor job `20486174`.
+- `sp32768` is now the only open Phase 1 dependency; monitor job `20486174`
+  through tokenizer training, data sharding, and final artifact verification.

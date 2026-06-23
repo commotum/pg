@@ -557,6 +557,10 @@ Exit criteria:
 - Submitted `sp32768` CaseOps export job `20486174` with 32 CPUs and 96 GB
   memory. Dense and qMLP `sp32768` smoke jobs `20486178` and `20486179` are
   queued with `afterok:20486174`.
+- `sp32768` export job `20486174` is running on `cn-d11` and is currently in
+  tokenizer training. Its Slurm stdout/stderr are empty because the batch script
+  redirects stage output to the job directory; direct inspection found an active
+  `tokenizer.log` and no `caseops-data.log` yet.
 - Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
   Slurm cap. Total elapsed includes validation, EMA, serialization,
   quantization, compression, and metrics parsing.
