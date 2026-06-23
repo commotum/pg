@@ -76,6 +76,35 @@ ensure_autoconf() {
     export PATH="$ac_prefix/bin:$PATH"
 }
 
+ensure_lzo() {
+    local lzo_prefix="$GOAL3_TOOLS_DIR/lzo-2.10"
+    if [[ ! -f "$lzo_prefix/lib/liblzo2.so" && ! -f "$lzo_prefix/lib/liblzo2.a" ]]; then
+        local lzo_root="$build_root/lzo-build"
+        mkdir -p "$lzo_root"
+        cd "$lzo_root"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz \
+                -o lzo-2.10.tar.gz
+        elif command -v wget >/dev/null 2>&1; then
+            wget -O lzo-2.10.tar.gz \
+                https://www.oberhumer.com/opensource/lzo/download/lzo-2.10.tar.gz
+        else
+            echo "Neither curl nor wget is available for lzo download." >&2
+            exit 4
+        fi
+        tar -xf lzo-2.10.tar.gz
+        cd lzo-2.10
+        ./configure --prefix="$lzo_prefix"
+        make -j"${SLURM_CPUS_PER_TASK:-4}"
+        make install
+    fi
+
+    export CPPFLAGS="-I$lzo_prefix/include ${CPPFLAGS:-}"
+    export LDFLAGS="-L$lzo_prefix/lib -Wl,-rpath,$lzo_prefix/lib ${LDFLAGS:-}"
+    export LD_LIBRARY_PATH="$lzo_prefix/lib:${LD_LIBRARY_PATH:-}"
+    export PKG_CONFIG_PATH="$lzo_prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+}
+
 cd "$build_root"
 lrzip_version=${GOAL3_LRZIP_VERSION:-0.651}
 lrzip_url=${GOAL3_LRZIP_TARBALL_URL:-https://github.com/ckolivas/lrzip/releases/download/v${lrzip_version}/lrzip-${lrzip_version}.tar.xz}
@@ -119,6 +148,7 @@ else
     autoreconf -fi
 fi
 
+ensure_lzo
 ./configure --prefix="$prefix"
 make -j"${SLURM_CPUS_PER_TASK:-4}"
 make install
