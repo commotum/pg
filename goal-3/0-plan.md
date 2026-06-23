@@ -292,6 +292,7 @@ goal-3/h100-repair-agent.sbatch
 goal-3/scripts/env_smoke.py
 goal-3/scripts/run_candidate.sh
 goal-3/scripts/parse_train_log.py
+goal-3/scripts/static_goal3_audit.py
 ```
 
 The final runner must:
@@ -519,6 +520,7 @@ Steps:
 Completion requirements:
 
 - all required scripts exist and pass static checks;
+- static Goal 3 audit verifies qMLP wiring and H100 runner guardrails;
 - final runner has an ordered config list and no hidden broad sweep;
 - final runner writes final status even on failure;
 - repair agent is bounded, optional, and not the default execution path.

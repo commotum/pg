@@ -61,9 +61,24 @@ goal3_assert_inputs
 
 cd "$GOAL3_STAGE_DIR"
 
+launcher=()
+if [[ -n "${SLURM_JOB_ID:-}" && "${GOAL3_USE_SRUN_LAUNCHER:-1}" == "1" ]]; then
+    launcher=(srun --ntasks=1 --cpus-per-task="${SLURM_CPUS_PER_TASK:-1}")
+fi
+
+{
+    printf 'launcher='
+    if [[ "${#launcher[@]}" -eq 0 ]]; then
+        printf 'direct'
+    else
+        printf '%q ' "${launcher[@]}"
+    fi
+    printf '\n'
+} >>"$candidate_dir/env.txt"
+
 set +e
 timeout "$candidate_timeout" \
-    torchrun --standalone --nproc_per_node="${GOAL3_NPROC_PER_NODE:-8}" train_gpt.py \
+    "${launcher[@]}" torchrun --standalone --nproc_per_node="${GOAL3_NPROC_PER_NODE:-8}" train_gpt.py \
     > >(tee "$candidate_dir/stdout.log") \
     2> >(tee "$candidate_dir/stderr.log" >&2)
 exit_code=$?
@@ -73,7 +88,7 @@ python "$script_dir/parse_train_log.py" \
     "$candidate_dir/stdout.log" \
     "$candidate_dir/summary.json" || true
 
-python - "$candidate_dir/summary.json" "$GOAL3_ARTIFACT_LIMIT" "$exit_code" <<'PY'
+python - "$candidate_dir/summary.json" "$GOAL3_ARTIFACT_LIMIT" "$exit_code" "$candidate_timeout" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -81,11 +96,14 @@ from pathlib import Path
 summary = Path(sys.argv[1])
 limit = int(sys.argv[2])
 exit_code = int(sys.argv[3])
+timeout_label = sys.argv[4]
 payload = json.loads(summary.read_text()) if summary.exists() else {}
 total = payload.get("total_submission_bytes")
 under = total is not None and total < limit
 status = {
     "exit_code": exit_code,
+    "timed_out": exit_code == 124,
+    "timeout": timeout_label,
     "total_submission_bytes": total,
     "artifact_limit": limit,
     "artifact_under_limit": under if total is not None else None,

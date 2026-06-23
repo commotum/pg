@@ -25,6 +25,20 @@ script_dir="$repo_root/goal-3/scripts"
 source "$script_dir/common.sh"
 
 goal3_init_run_dir
+
+cleanup() {
+    status=$?
+    trap - EXIT TERM INT
+    if [[ "$status" -eq 0 ]]; then
+        goal3_write_final_status 0 passed || true
+    else
+        goal3_write_final_status "$status" early_exit || true
+    fi
+    goal3_cleanup_local_workspace || true
+    exit "$status"
+}
+trap cleanup EXIT TERM INT
+
 goal3_activate_env
 goal3_record_context "$GOAL3_RUN_DIR"
 goal3_record_gpu_context "$GOAL3_RUN_DIR"
@@ -34,19 +48,15 @@ export GOAL3_EXPECT_CUDA_DEVICES=8
 srun --ntasks=1 --cpus-per-task="$SLURM_CPUS_PER_TASK" \
     python "$script_dir/env_smoke.py" "$GOAL3_RUN_DIR/env-smoke.json"
 
-cleanup() {
-    status=$?
-    trap - EXIT TERM INT
-    goal3_cleanup_local_workspace || true
-    exit "$status"
-}
-trap cleanup EXIT TERM INT
-
 goal3_prepare_local_workspace
+
+export GOAL3_SMOKE_TIMEOUT=${GOAL3_SMOKE_TIMEOUT:-8m}
+export GOAL3_FULL_TIMEOUT=${GOAL3_FULL_TIMEOUT:-36m}
 
 candidate_order=${GOAL3_CANDIDATES:-"dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384"}
 seed=${GOAL3_SEED:-42}
-printf 'candidate_order=%s\nseed=%s\n' "$candidate_order" "$seed" \
+printf 'candidate_order=%s\nseed=%s\nsmoke_timeout=%s\nfull_timeout=%s\n' \
+    "$candidate_order" "$seed" "$GOAL3_SMOKE_TIMEOUT" "$GOAL3_FULL_TIMEOUT" \
     >"$GOAL3_RUN_DIR/run-order.txt"
 
 status=0
@@ -67,22 +77,38 @@ for candidate in $candidate_order; do
         | tee -a "$GOAL3_RUN_DIR/progress.txt"
 done
 
-python - "$GOAL3_RUN_DIR" "$status" <<'PY'
+python - "$GOAL3_RUN_DIR" "$status" "$candidate_order" "$seed" "$GOAL3_SMOKE_TIMEOUT" "$GOAL3_FULL_TIMEOUT" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 run_dir = Path(sys.argv[1])
 status = int(sys.argv[2])
+candidate_order = sys.argv[3].split()
+seed = sys.argv[4]
+smoke_timeout = sys.argv[5]
+full_timeout = sys.argv[6]
 summaries = []
 for path in sorted(run_dir.glob("candidates/*/seed_*/summary.json")):
     try:
         summaries.append(json.loads(path.read_text()))
     except Exception as exc:
         summaries.append({"log": str(path), "parse_error": str(exc)})
+candidate_statuses = []
+for candidate in candidate_order:
+    path = run_dir / "candidates" / candidate / f"seed_{seed}" / "status.json"
+    if path.exists():
+        candidate_statuses.append({"candidate": candidate, **json.loads(path.read_text())})
+    else:
+        candidate_statuses.append({"candidate": candidate, "status_missing": str(path)})
 final = {
     "status": "passed" if status == 0 else "failed",
     "exit_code": status,
+    "candidate_order": candidate_order,
+    "seed": seed,
+    "smoke_timeout": smoke_timeout,
+    "full_timeout": full_timeout,
+    "candidate_statuses": candidate_statuses,
     "summaries": summaries,
 }
 (run_dir / "final-status.json").write_text(json.dumps(final, indent=2) + "\n")

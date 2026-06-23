@@ -26,11 +26,34 @@ Shared candidate runner:
 goal-3/scripts/run_candidate.sh
 ```
 
+Inside Slurm allocations, `run_candidate.sh` launches the candidate workload as:
+
+```text
+srun --ntasks=1 --cpus-per-task=$SLURM_CPUS_PER_TASK torchrun --standalone --nproc_per_node=8 train_gpt.py
+```
+
+This keeps the training/package step under Slurm accounting while still letting
+`torchrun` own the single-node eight-process distributed launch. The behavior
+can be disabled only with `GOAL3_USE_SRUN_LAUNCHER=0`, which should be treated
+as a reviewed exception.
+
 Parser:
 
 ```text
 goal-3/scripts/parse_train_log.py
 ```
+
+Static Goal 3 guardrail audit:
+
+```text
+goal-3/scripts/static_goal3_audit.py
+```
+
+This script does not import the record stack. It checks text-level invariants
+for qMLP wiring, candidate mapping, H100 80GB constraints, final-status traps,
+scratch staging, and bounded default candidate order/timeouts.
+It intentionally avoids newer Python-only syntax so it can run under the older
+submit-node `python3` used for static checks.
 
 Environment smoke:
 
@@ -65,6 +88,19 @@ The one-hour-oriented default is:
 dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
 ```
 
+Default per-candidate timeouts in `goal-3/h100-record-runner.sbatch`:
+
+```text
+dense_sp8192_smoke: 8m
+qmlp_sp8192_smoke: 8m
+qmlp_sp16384: 36m
+```
+
+This leaves a default candidate-timeout ceiling of 52 minutes inside the
+one-hour allocation, preserving time for the env smoke, context capture, scratch
+staging, parser summaries, and final status writing. The values can be
+overridden only as part of a reviewed H100 request.
+
 Reasoning:
 
 - `dense_sp8192_smoke` checks the base stack, CaseOps `sp8192`, FA3, fused
@@ -84,6 +120,9 @@ sbatch goal-3/h100-record-runner.sbatch
 Full `qmlp_sp8192` can be inserted only if the reviewed allocation has enough
 time or if the user chooses same-vocab measurement over the `sp16384` record
 attempt.
+
+The separate `goal-3/h100-short-smoke.sbatch` defaults to 10 minutes per smoke
+candidate inside its 45-minute allocation.
 
 ## Outputs
 
@@ -111,6 +150,16 @@ Expected files:
 - `candidates/<candidate>/seed_<seed>/summary.json`;
 - `candidates/<candidate>/seed_<seed>/status.json`;
 - `final-status.json`.
+
+Each candidate `env.txt` records the effective launcher as either `direct` or
+the quoted `srun ...` command.
+Each candidate `status.json` records `exit_code`, `timeout`, and `timed_out` so
+a bounded timeout is visible without reading the whole stderr log.
+The H100 env, short-smoke, record-runner, and optional repair-agent scripts
+install an exit trap that writes `final-status.json` on early failure or signal
+if the normal summary path has not already written one. The short-smoke and
+record-runner normal summaries also include candidate order, seed, timeout
+settings, and the per-candidate `status.json` payloads.
 
 ## Repair Agent
 
@@ -148,6 +197,8 @@ bash -n goal-3/h100-repair-agent.sbatch
 bash -n goal-3/scripts/run_candidate.sh
 python3 -m py_compile goal-3/scripts/parse_train_log.py
 python3 -m py_compile goal-3/scripts/env_smoke.py
+python3 -m py_compile goal-3/scripts/static_goal3_audit.py
+python3 goal-3/scripts/static_goal3_audit.py
 ```
 
 Runtime checks pending:
@@ -160,6 +211,11 @@ Runtime checks completed:
 - `srun --test-only` was refreshed on 2026-06-23 at 16:05 Pacific for both the
   15-minute env smoke and the one-hour record runner. Both currently fit on
   `dgxh-3` with predicted start `2026-06-27T08:29:30`.
+- Local `bash -n` checks were rerun on 2026-06-23 at 16:30 Pacific after the
+  final-status trap and summary updates.
+- Local `static_goal3_audit.py` passed on 2026-06-23 at 16:35 Pacific.
+- Remote submit-node static checks, including `static_goal3_audit.py`, passed
+  on 2026-06-23 at 16:38 Pacific after syncing through the OSU gateway.
 
 ## Scratch Staging
 
@@ -188,6 +244,7 @@ directory.
 - Runner writes machine-readable final status: complete.
 - Repair agent exists and is disabled by default: complete.
 - H100 dry-run is current: complete, recorded in `goal-3/7-approval.md`.
+- Static Goal 3 audit passes locally: complete.
 - User approval for exact H100 request: pending.
 
 ## Next Phase

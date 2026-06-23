@@ -127,6 +127,8 @@ What it does:
    probe.
 7. Verifies `sp8192` and `sp16384` tokenizer vocab sizes.
 8. Writes `env-smoke.json` and `final-status.json`.
+9. Uses an exit trap so early failure still writes `final-status.json` when
+   possible.
 
 What it does not do:
 
@@ -143,7 +145,7 @@ Stop conditions:
 - FA3 import failure;
 - `lrzip` missing or not runnable on the H100 node;
 - tokenizer load failure or wrong vocab size;
-- any nonzero script exit.
+- any nonzero script exit, with `final-status.json` written when possible.
 
 Known risks:
 
@@ -194,11 +196,34 @@ Default candidate order:
 dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
 ```
 
+Default candidate timeouts:
+
+```text
+dense_sp8192_smoke: 8m
+qmlp_sp8192_smoke: 8m
+qmlp_sp16384: 36m
+```
+
+The default candidate-timeout ceiling is therefore 52 minutes inside the
+one-hour allocation, leaving room for environment smoke, context capture,
+scratch staging, parser summaries, and final status writing.
+
 Default seed:
 
 ```text
 42
 ```
+
+Candidate launch behavior:
+
+```text
+srun --ntasks=1 --cpus-per-task=$SLURM_CPUS_PER_TASK \
+  torchrun --standalone --nproc_per_node=8 train_gpt.py
+```
+
+The candidate `env.txt` records the effective launcher. Direct non-`srun`
+candidate launch is available only by setting `GOAL3_USE_SRUN_LAUNCHER=0`, which
+should require review before H100 use.
 
 Runner stop conditions:
 
@@ -212,6 +237,13 @@ Runner stop conditions:
 This runner approval is not currently requested. The correct next step is the
 15-minute H100 env smoke.
 
+Normal runner output:
+
+- `final-status.json` includes candidate order, seed, smoke/full timeout
+  settings, per-candidate `status.json` payloads, and parsed summaries.
+- The exit trap writes a fallback `final-status.json` for early failures before
+  the normal summary path is reached.
+
 ## Verification Steps
 
 Completed before this document:
@@ -223,14 +255,30 @@ bash -n goal-3/h100-record-runner.sbatch
 bash -n goal-3/h100-repair-agent.sbatch
 python3 -m py_compile goal-3/scripts/env_smoke.py
 python3 -m py_compile goal-3/scripts/parse_train_log.py
+python3 -m py_compile goal-3/scripts/static_goal3_audit.py
 python3 -m py_compile goal-3/stage/primary-qmlp/train_gpt.py
+python3 goal-3/scripts/static_goal3_audit.py
 ```
+
+The H100 sbatch syntax checks were rerun locally on 2026-06-23 at 16:30 Pacific
+after moving the short-smoke and record-runner final-status traps ahead of the
+env smoke and after adding richer normal final summaries.
+
+The static Goal 3 qMLP/runner audit passed locally on 2026-06-23 at 16:35
+Pacific. It checks qMLP wiring, candidate mappings, H100 80GB constraints,
+final-status traps, scratch staging, and default candidate timeout/order
+guardrails without importing H100-only dependencies.
 
 Remote static checks also passed after syncing `goal-3/` to:
 
 ```text
 /nfs/hpc/share/peterj29/pg/src/pg/goal-3
 ```
+
+The latest sync/check was completed on 2026-06-23 at 16:38 Pacific through the
+OSU gateway using SSH ProxyJump to `submit-a.hpc.engr.oregonstate.edu`. Remote
+static checks included `python3 goal-3/scripts/static_goal3_audit.py`, which
+passed.
 
 ## Completion Requirements
 

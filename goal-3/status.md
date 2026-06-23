@@ -1,17 +1,22 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 16:12 America/Los_Angeles
+Last updated: 2026-06-23 16:38 America/Los_Angeles
 
 ## Current Phase
 
 Phase 7: Human review and H100 request gate.
 
 Status: Phase 3 qMLP source port is statically complete, and the H100 runner
-artifacts are scripted and `bash -n` checked. The runner now records dirty diffs
-and stages Goal 3 source/data inputs to node-local scratch. `goal-3/` has been
-synced to the remote HPC checkout and remote submit-node static checks passed.
-CPU Slurm prep jobs have completed for the shared Python environment and
-user-local `lrzip`. Phase 7 approval packet exists at
+artifacts are scripted and `bash -n` checked. The runner records dirty diffs,
+stages Goal 3 source/data inputs to node-local scratch, launches candidates
+through Slurm-accounted `srun` by default, and writes machine-readable
+`final-status.json` on normal completion or early failure when possible.
+`goal-3/scripts/static_goal3_audit.py` now provides a repeatable local/remote
+text-level guardrail check for qMLP integration and H100 runner invariants.
+`goal-3/` has been synced to the remote HPC checkout through the OSU gateway
+and remote submit-node static checks passed, including the static Goal 3 audit.
+CPU Slurm prep jobs have completed for the shared Python
+environment and user-local `lrzip`. Phase 7 approval packet exists at
 `goal-3/7-approval.md`. No H100/H200 work has been submitted, and the
 15-minute H100 env smoke is pending explicit approval.
 
@@ -82,11 +87,16 @@ dirty: yes
 Observed local dirty state:
 
 ```text
-M goal-3/4-smokes.md
+M goal-3/6-runner.md
 M goal-3/7-approval.md
 M goal-3/findings-summary.md
-M goal-3/scripts/env_smoke.py
-M goal-3/scripts/parse_train_log.py
+M goal-3/h100-env-smoke.sbatch
+M goal-3/h100-record-runner.sbatch
+M goal-3/h100-repair-agent.sbatch
+M goal-3/h100-short-smoke.sbatch
+M goal-3/scripts/common.sh
+M goal-3/scripts/run_candidate.sh
+?? goal-3/scripts/static_goal3_audit.py
 M goal-3/status.md
 m parameter-golf
 ```
@@ -118,7 +128,7 @@ Important note: the remote checkout is stale relative to local Goal 3 work and
 still contains older `goal/`/`goal-2/` state. Sync or patch the remote checkout
 before any Goal 3 Slurm work.
 
-Remote Goal 3 sync from 2026-06-23 16:05:
+Remote Goal 3 sync from 2026-06-23 16:38:
 
 ```text
 goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
@@ -138,6 +148,14 @@ bash -n goal-3/h100-short-smoke.sbatch
 bash -n goal-3/h100-record-runner.sbatch
 bash -n goal-3/h100-repair-agent.sbatch
 python compile() syntax check for env_smoke.py, parse_train_log.py, train_gpt.py
+python goal-3/scripts/static_goal3_audit.py
+```
+
+Transport note: local `hpc` alias was not available directly. The successful
+sync/check path used SSH ProxyJump through:
+
+```text
+peterj29@access.engr.oregonstate.edu -> peterj29@submit-a.hpc.engr.oregonstate.edu
 ```
 
 ## Live HPC State
@@ -315,6 +333,24 @@ Additional prep now complete:
   presence and executability, and tokenizer vocab sizes.
 - `goal-3/scripts/parse_train_log.py` now reports both the last periodic
   train-loss step and the final wallclock stop step as `train_steps_final`.
+- `goal-3/scripts/static_goal3_audit.py` checks qMLP flag/component wiring,
+  qMLP Hessian and compression key coverage, candidate-to-vocab mappings,
+  H100 80GB constraints, final-status traps, and bounded runner defaults.
+  It intentionally avoids newer Python-only syntax because the submit-node
+  `python3` used for static checks is older than the local Mac Python.
+- `goal-3/scripts/run_candidate.sh` launches `torchrun` through `srun` by
+  default inside Slurm allocations and records the effective launcher in each
+  candidate `env.txt`.
+- `goal-3/h100-record-runner.sbatch` now bounds the default one-hour candidate
+  timeouts to `8m + 8m + 36m`; `goal-3/h100-short-smoke.sbatch` now defaults
+  to `10m` per smoke candidate inside its 45-minute allocation.
+- Candidate `status.json` now records `timeout` and `timed_out` so a timeout
+  kill is explicit in machine-readable summaries.
+- H100 env, short-smoke, record-runner, and optional repair-agent scripts now
+  use `goal3_write_final_status` traps so early failures still leave
+  `final-status.json` when possible.
+- H100 short-smoke and record-runner normal summaries include candidate order,
+  seed, timeout settings, and per-candidate `status.json` contents.
 - `goal-3/scripts/common.sh` exports required Goal 3 paths for child processes.
 - `goal-3/scripts/common.sh` records `git-status.txt`, `git-diff.stat`, and
   `git-diff.patch`.

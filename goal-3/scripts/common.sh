@@ -115,6 +115,33 @@ PY
     } >"$out_dir/python.txt" 2>&1
 }
 
+goal3_write_final_status() {
+    local status=${1:-1}
+    local reason=${2:-unknown}
+    local out_dir=${3:-$GOAL3_RUN_DIR}
+    mkdir -p "$out_dir"
+    python - "$out_dir" "$status" "$reason" "$(goal3_timestamp)" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+out_dir = Path(sys.argv[1])
+exit_code = int(sys.argv[2])
+reason = sys.argv[3]
+timestamp = sys.argv[4]
+path = out_dir / "final-status.json"
+if path.exists():
+    raise SystemExit(0)
+payload = {
+    "status": "passed" if exit_code == 0 else "failed",
+    "exit_code": exit_code,
+    "reason": reason,
+    "timestamp": timestamp,
+}
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+PY
+}
+
 goal3_cleanup_local_workspace() {
     local local_root=${GOAL3_LOCAL_ROOT:-}
     if [[ -z "$local_root" ]]; then

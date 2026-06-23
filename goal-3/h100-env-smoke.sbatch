@@ -25,6 +25,19 @@ script_dir="$repo_root/goal-3/scripts"
 source "$script_dir/common.sh"
 
 goal3_init_run_dir
+
+cleanup() {
+    status=$?
+    trap - EXIT TERM INT
+    if [[ "$status" -eq 0 ]]; then
+        goal3_write_final_status 0 passed || true
+    else
+        goal3_write_final_status "$status" early_exit || true
+    fi
+    exit "$status"
+}
+trap cleanup EXIT TERM INT
+
 goal3_activate_env
 goal3_record_context "$GOAL3_RUN_DIR"
 goal3_record_gpu_context "$GOAL3_RUN_DIR"
@@ -34,5 +47,4 @@ export GOAL3_EXPECT_CUDA_DEVICES=8
 srun --ntasks=1 --cpus-per-task="$SLURM_CPUS_PER_TASK" \
     python "$script_dir/env_smoke.py" "$GOAL3_RUN_DIR/env-smoke.json"
 
-printf '{"status":"passed","timestamp":"%s"}\n' "$(goal3_timestamp)" \
-    >"$GOAL3_RUN_DIR/final-status.json"
+goal3_write_final_status 0 passed

@@ -95,6 +95,40 @@ full record stack runs on the intended H100 class.
     It now parses `stopping_early: wallclock_cap ... step: N/M` and reports
     `train_steps_final`. On the known 2026-04-27 seed-42 log it now reports
     `4945`, matching the record README.
+27. Static runner audit found that candidate workloads were launched with direct
+    `torchrun` inside the batch allocation. `run_candidate.sh` now wraps
+    `torchrun` in `srun --ntasks=1 --cpus-per-task=$SLURM_CPUS_PER_TASK` by
+    default when `SLURM_JOB_ID` is present, preserving Slurm accounting while
+    keeping `torchrun` responsible for the single-node 8-process launch.
+28. Static timeout audit found that the one-hour record runner's inherited
+    default candidate timeouts could add up to 65 minutes before env smoke or
+    scratch staging. `h100-record-runner.sbatch` now defaults to 8-minute smoke
+    timeouts and a 36-minute full-candidate timeout, for a 52-minute
+    candidate-timeout ceiling. `h100-short-smoke.sbatch` now defaults to
+    10-minute smoke timeouts inside its 45-minute allocation.
+29. Candidate `status.json` now records `timeout` and `timed_out` in addition
+    to `exit_code` and artifact-size fields, making timeout kills explicit in
+    the H100 run summaries.
+30. Static final-status audit found early env/staging failure paths that could
+    exit before writing `final-status.json`. `goal-3/scripts/common.sh` now
+    provides `goal3_write_final_status`, and the H100 env, short-smoke, and
+    record-runner scripts install traps that write failure status when the
+    normal summary path has not already done so.
+31. Follow-up final-status audit moved the short-smoke and record-runner traps
+    ahead of env-smoke execution and added the same bounded final-status trap to
+    the optional repair-agent. Normal short-smoke and record-runner summaries
+    now include candidate order, seed, timeout settings, and per-candidate
+    status payloads.
+32. The local `hpc` alias is not available directly in the Mac shell. The
+    successful noninteractive sync/static-check path uses SSH ProxyJump through
+    `peterj29@access.engr.oregonstate.edu` to
+    `peterj29@submit-a.hpc.engr.oregonstate.edu`.
+33. Added `goal-3/scripts/static_goal3_audit.py`, a text-level guardrail check
+    that avoids importing H100-only dependencies while verifying qMLP
+    flag/component wiring, Hessian/compression keys, candidate mappings, H100
+    80GB constraints, final-status traps, scratch staging, and bounded runner
+    defaults. It passed locally and on the remote submit node after removing a
+    Python future import unsupported by the submit-node `python3`.
 
 ## Not Yet Known
 
@@ -118,6 +152,7 @@ full record stack runs on the intended H100 class.
 The next useful work is to ask for explicit approval to submit only the
 15-minute H100 env smoke described in `goal-3/7-approval.md`. The CPU
 environment and tools prep are complete, live Slurm state has been refreshed,
-and the exact H100 env-smoke request has a current `srun --test-only` estimate.
-No H100/H200 submission should happen until the user approves that exact smoke
-request.
+the exact H100 env-smoke request has a current `srun --test-only` estimate, and
+the synced remote Goal 3 scripts pass submit-node static checks including the
+static Goal 3 guardrail audit. No H100/H200 submission should happen until the
+user approves that exact smoke request.
