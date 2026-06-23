@@ -18,7 +18,7 @@ Current best clean under-cap candidates:
 |---|---:|---:|---|---|
 | dense | 8192 | 3.66039918 | under 16 MB | best clean dense control |
 | qMLP | 16384 | 2.99609830 | under 16 MB | best clean qMLP candidate |
-| qMLP | 32768 | 3.03410127 | under 16 MB | diagnostic frontier, worse than `sp16384` |
+| qMLP | 32768 | 3.03443461 | under 16 MB | diagnostic frontier, worse than `sp16384` |
 
 Lower BPB is better. The best qMLP candidate beats the best clean dense candidate by about `0.66430088` BPB on the A40 screening harness.
 
@@ -37,7 +37,7 @@ These are three-seed means unless noted in the phase docs. The dense `sp16384` a
 | dense | 8192 | 3.66039918 | best clean dense control |
 | qMLP | 8192 | 3.01745760 | strong qMLP, but below `sp16384` |
 | qMLP | 16384 | 2.99609830 | best clean qMLP result |
-| qMLP | 32768 | 3.03410127 | clean under-cap, but worse than `sp16384` |
+| qMLP | 32768 | 3.03443461 | clean under-cap, but worse than `sp16384` |
 
 Matched-vocab qMLP wins:
 
@@ -81,9 +81,9 @@ Clean means:
 | Model | Vocab | Mean Quantized BPB | Mean Prequant BPB | Mean Steps |
 |---|---:|---:|---:|---:|
 | dense | 32768 | 3.56331962 | 3.55820177 | 57 |
-| qMLP | 32768 | 3.03410127 | 3.03255332 | 57 |
+| qMLP | 32768 | 3.03443461 | 3.03255332 | 57 |
 
-The clean `sp32768` qMLP result is under the cap, but it is worse than `sp16384` qMLP by about `0.03800297` BPB. That makes `sp16384` the better carry-forward qMLP candidate.
+The clean `sp32768` qMLP result is under the cap, but it is worse than `sp16384` qMLP by about `0.03833631` BPB. That makes `sp16384` the better carry-forward qMLP candidate.
 
 ## Difference From Goal 1
 
@@ -113,4 +113,4 @@ The most important practical shift is that Goal 2 no longer frames qMLP as "same
 - This is A40 screening evidence, not a final H100/FA3 record attempt.
 - The no-TTT constraint was intentional for lean single-GPU exploration.
 - Absolute BPB values should not be compared directly to Goal 1 simple-stack results.
-- The `sp32768` reruns are included here, but other phase tables may still need doc cleanup if they were written before the 3-hour reruns completed.
+- The `sp32768` reruns are included here and in the refreshed Phase 4/5 summaries.

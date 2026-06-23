@@ -597,17 +597,18 @@ Exit criteria:
 - qMLP `sp4096` completed all three Phase 4 seeds with mean quantized BPB
   `3.11496067`.
 - Dense `sp32768` benchmark seeds `0` and `1` completed cleanly but are
-  over-budget diagnostics with mean quantized BPB `3.55036562`. Dense seed `42`
-  timed out after final diagnostics; recovered quantized BPB is `3.59665155`.
+  over-budget diagnostics. Dense seed `42` timed out after final diagnostics,
+  then clean 3-hour rerun `20487148` completed. The clean dense `sp32768`
+  diagnostic mean is `3.56331962`.
 - `goal-2/4-submit-benchmark-matrix.sh` now defaults
   `DIAGNOSTIC_VOCABS=32768`, so user-requested `sp32768` benchmark seeds can be
   released as diagnostic-only runs if their smokes exceed the 16 MB cap, without
   globally allowing unrelated over-budget cells.
 - qMLP `sp32768` seed `1` completed cleanly under the 16 MB cap with quantized
-  BPB `3.01680995`. qMLP seeds `42` and `0` timed out after final diagnostics;
-  recovered quantized BPB values are `3.01188054` and `3.03050732`.
-- Across all timeout-recovered final log metrics, qMLP `sp32768` mean
-  quantized BPB is `3.01973260`, worse than qMLP `sp16384` mean `2.99609830`.
+  BPB `3.01680995`. The original qMLP seeds `42` and `0` timed out after final
+  diagnostics, then clean 3-hour reruns `20487146` and `20487147` completed.
+- Across clean completed rows, qMLP `sp32768` mean quantized BPB is
+  `3.03443461`, worse than qMLP `sp16384` mean `2.99609830`.
 - Best clean under-cap dense candidate is dense `sp8192` with mean quantized BPB
   `3.66039918`. Best clean under-cap qMLP candidate is qMLP `sp16384` with
   mean quantized BPB `2.99609830`.

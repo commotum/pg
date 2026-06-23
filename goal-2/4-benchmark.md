@@ -228,7 +228,7 @@ Completed cell summaries:
 | `16384` | dense | `42,0,1` | `3.57978517` | `3.57264240` | `61.67` | complete over-budget diagnostic; all three runs exceed 16 MB |
 | `16384` | qMLP | `42,0,1` | `2.99609830` | `2.99432190` | `62` | current best qMLP cell |
 | `32768` | dense | `42,0,1` | `3.56331962` | `3.55820177` | `57` | complete over-budget diagnostic; seed `42` uses clean 3-hour rerun `20487148` |
-| `32768` | qMLP | `42,0,1` | `3.03410127` | `3.03255332` | `57` | complete under-cap frontier diagnostic; seeds `42` and `0` use clean 3-hour reruns `20487146` and `20487147`; worse than qMLP `sp16384` |
+| `32768` | qMLP | `42,0,1` | `3.03443461` | `3.03255332` | `57` | complete under-cap frontier diagnostic; seeds `42` and `0` use clean 3-hour reruns `20487146` and `20487147`; worse than qMLP `sp16384` |
 
 Superseded timeout-recovered cell summaries:
 
@@ -353,7 +353,7 @@ New facts:
   timed out after final diagnostics, then clean 3-hour reruns `20487146` and
   `20487147` completed with quantized BPB values `3.04764432` and `3.03884955`.
 - Across clean completed rows, qMLP `sp32768` has mean quantized BPB
-  `3.03410127`, worse than qMLP `sp16384` mean `2.99609830`. This suggests the
+  `3.03443461`, worse than qMLP `sp16384` mean `2.99609830`. This suggests the
   useful qMLP vocab frontier is near `sp16384`, not `sp32768`, under this lean
   A40 setup.
 

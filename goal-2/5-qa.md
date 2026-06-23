@@ -89,7 +89,7 @@ Phase 5 is complete when:
 
 ## Result
 
-Status: in progress
+Status: complete
 
 Evidence:
 
@@ -99,7 +99,7 @@ Evidence:
 - A no-data local smoke run wrote `/tmp/goal2-summary-test/matrix-summary.md`.
 - The script was synced to HPC and ran successfully with the submit-node
   default `python3`.
-- Current generated HPC summary:
+- Current generated HPC summary refreshed after the `sp32768` 3-hour reruns:
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/matrix-summary.md`
 
 Artifacts:
@@ -156,15 +156,18 @@ New facts:
 - User direction added `sp32768` dense and qMLP cells with three seeds each.
   The `sp32768` export, dense/qMLP smokes, and release handoff completed.
 - Dense `sp32768` smoke is over budget, and all dense `sp32768` benchmark
-  evidence is diagnostic only. Dense seeds `0` and `1` completed cleanly; seed
-  `42` timed out after final diagnostics and was recovered from `train.log`.
-- qMLP `sp32768` seed `1` completed cleanly under the cap. qMLP seeds `42` and
-  `0` timed out after final diagnostics and were recovered from `train.log`.
-  Recovered qMLP `sp32768` mean quantized BPB is `3.01973260`, worse than
-  qMLP `sp16384` mean `2.99609830`.
-- The summarizer now marks timeout-recovered rows as `incomplete` because
-  `complete_file=0`, while still preserving their BPB and package-size fields
-  for diagnostic review.
+  evidence is diagnostic only. Dense seeds `0` and `1` completed cleanly. The
+  original seed `42` job timed out after final diagnostics, then clean 3-hour
+  rerun `20487148` completed. The refreshed dense `sp32768` diagnostic mean is
+  `3.56331962`.
+- qMLP `sp32768` seed `1` completed cleanly under the cap. The original qMLP
+  seeds `42` and `0` timed out after final diagnostics, then clean 3-hour reruns
+  `20487146` and `20487147` completed. Clean qMLP `sp32768` mean quantized BPB
+  is `3.03443461`, worse than qMLP `sp16384` mean `2.99609830`.
+- The summarizer marks the original timeout-recovered rows as `incomplete`
+  because `complete_file=0`, while still preserving their BPB and package-size
+  fields for diagnostic review. The clean rerun rows are used for current
+  `sp32768` means and paired deltas.
 - Best clean under-cap dense candidate is dense `sp8192` with mean quantized BPB
   `3.66039918`. Best clean under-cap qMLP candidate is qMLP `sp16384` with
   mean quantized BPB `2.99609830`.

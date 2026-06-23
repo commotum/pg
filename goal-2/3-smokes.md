@@ -92,7 +92,7 @@ Phase 3 is complete when:
 
 ## Result
 
-Status: in progress
+Status: complete
 
 Evidence:
 

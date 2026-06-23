@@ -110,7 +110,7 @@ This phase is complete when every target vocab has:
 
 ## Result
 
-Status: reopened for `sp32768`
+Status: complete
 
 Evidence:
 
