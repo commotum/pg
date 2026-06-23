@@ -1,17 +1,19 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 15:29 America/Los_Angeles
+Last updated: 2026-06-23 16:05 America/Los_Angeles
 
 ## Current Phase
 
-Phase 6: Runner scripting, with Phase 4/5 runtime smokes still pending.
+Phase 7: Human review and H100 request gate.
 
 Status: Phase 3 qMLP source port is statically complete, and the H100 runner
 artifacts are scripted and `bash -n` checked. The runner now records dirty diffs
 and stages Goal 3 source/data inputs to node-local scratch. `goal-3/` has been
 synced to the remote HPC checkout and remote submit-node static checks passed.
-No Slurm jobs have been submitted from this phase, no H100/H200 work has been
-submitted, and runtime/package smokes are still pending.
+CPU Slurm prep jobs have completed for the shared Python environment and
+user-local `lrzip`. Phase 7 approval packet exists at
+`goal-3/7-approval.md`. No H100/H200 work has been submitted, and the
+15-minute H100 env smoke is pending explicit approval.
 
 ## Objective
 
@@ -73,35 +75,21 @@ Local workspace:
 ```text
 path: /Users/jake/Developer/pg
 branch: mac
-HEAD: aa7b89cee2c29bc1a0acbe7d57f100aa27c58ed9
+HEAD: 60a7c1afbe43a47f4b8d9e1db8b35474eb5c2ece
 dirty: yes
 ```
 
 Observed local dirty state:
 
 ```text
-M goal-3/0-plan.md
-M goal-3/0-prompt.md
+M goal-3/5-runtime.md
+M goal-3/6-runner.md
+M goal-3/findings-summary.md
+M goal-3/jobs.csv
+M goal-3/prepare-tools.sbatch
+M goal-3/status.md
+?? goal-3/7-approval.md
 m parameter-golf
-?? goal-3/0-inventory.md
-?? goal-3/1-base.md
-?? goal-3/2-data.md
-?? goal-3/3-qmlp-port.md
-?? goal-3/4-smokes.md
-?? goal-3/5-runtime.md
-?? goal-3/6-runner.md
-?? goal-3/compliance-note.md
-?? goal-3/data-manifest.csv
-?? goal-3/findings-summary.md
-?? goal-3/jobs.csv
-?? goal-3/stage/
-?? goal-3/status.md
-?? goal-3/prepare-env.sbatch
-?? goal-3/h100-env-smoke.sbatch
-?? goal-3/h100-short-smoke.sbatch
-?? goal-3/h100-record-runner.sbatch
-?? goal-3/h100-repair-agent.sbatch
-?? goal-3/scripts/
 ```
 
 Submodules:
@@ -131,7 +119,7 @@ Important note: the remote checkout is stale relative to local Goal 3 work and
 still contains older `goal/`/`goal-2/` state. Sync or patch the remote checkout
 before any Goal 3 Slurm work.
 
-Remote Goal 3 sync from 2026-06-23 15:29:
+Remote Goal 3 sync from 2026-06-23 16:05:
 
 ```text
 goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
@@ -159,11 +147,10 @@ Read-only live check timestamp:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T14:53:08-07:00
+time: 2026-06-23T16:05:06-07:00
 user: peterj29
 association: coehpc|eecs|peterj29|||normal
 current queue: no jobs listed for peterj29
-codex on submit node: /nfs/stak/users/peterj29/.local/bin/codex, codex-cli 0.130.0
 ```
 
 Storage:
@@ -193,12 +180,18 @@ Dry-run findings:
 
 ```text
 --constraint=h100:
-  predicted dgxh-1 at 2026-06-27T18:19:57
+  previously predicted dgxh-1
   not acceptable for the intended 8xH100 80GB run because dgxh-1 is h100-40g
 
---constraint="h100&vram80g":
-  predicted dgxh-3 at 2026-06-27T04:29:30
-  correct target class for the intended H100 80GB competition-style run
+goal-3/h100-env-smoke.sbatch equivalent:
+  srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
+  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=00:15:00 true
+  predicted dgxh-3 at 2026-06-27T08:29:30
+
+goal-3/h100-record-runner.sbatch equivalent:
+  srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
+  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=01:00:00 true
+  predicted dgxh-3 at 2026-06-27T08:29:30
 ```
 
 ## Current Decision
@@ -254,12 +247,9 @@ the submit-node system Python lacks `sentencepiece`.
 
 ## Next Action
 
-Submit the CPU `goal-3/prepare-env.sbatch` job if the user wants to proceed
-with environment preparation. This is not an H100/H200 job, but it will build a
-large CUDA/Python environment under `/nfs/hpc/share/peterj29/pg/envs/`.
-Before any H100 submission, refresh live Slurm state, run the exact
-`srun --test-only` check, show the final request and candidate order to the
-user, and wait for explicit approval.
+Ask the user to approve only the 15-minute H100 env smoke documented in
+`goal-3/7-approval.md`. Do not submit the env smoke, short smoke, or record
+runner until the exact corresponding request is explicitly approved.
 
 Phase 3 preserved `QUAT_MLP=0` behavior while adding:
 
@@ -309,12 +299,19 @@ Default one-hour runner order:
 dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
 ```
 
-H100 approval status: not requested and not granted.
+H100 approval status: env-smoke request prepared in `goal-3/7-approval.md`;
+not yet granted.
 
 Additional prep now complete:
 
 - `goal-3/compliance-note.md` states the qMLP compliance assumptions and the
   runtime proof still required.
+- CPU environment prep completed as job `20487397`, producing
+  `/nfs/hpc/share/peterj29/pg/envs/goal3-cu128`.
+- CPU tools prep completed as job `20487617`, producing
+  `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip` with user-local LZO and
+  LZ4 libraries. Direct submit-node execution of that binary fails due the
+  submit node's older glibc, so the valid runtime check is the H100 env smoke.
 - `goal-3/scripts/env_smoke.py` checks CUDA device count, FA3 import, `lrzip`,
   and tokenizer vocab sizes.
 - `goal-3/scripts/common.sh` exports required Goal 3 paths for child processes.

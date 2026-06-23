@@ -26,11 +26,29 @@ source "$script_dir/common.sh"
 goal3_init_run_dir
 goal3_record_context "$GOAL3_RUN_DIR"
 
-prefix="$GOAL3_TOOLS_DIR/lrzip"
-if [[ -x "$prefix/bin/lrzip" ]]; then
-    "$prefix/bin/lrzip" --version >"$GOAL3_RUN_DIR/lrzip-version.txt" 2>&1 || true
-    echo "lrzip already exists at $prefix/bin/lrzip" | tee "$GOAL3_RUN_DIR/status.txt"
-    exit 0
+lrzip_prefix="$GOAL3_TOOLS_DIR/lrzip"
+
+record_lrzip_version() {
+    local lrzip_bin=$1
+    if "$lrzip_bin" --version >"$GOAL3_RUN_DIR/lrzip-version.txt" 2>&1; then
+        return 0
+    fi
+    if "$lrzip_bin" -V >"$GOAL3_RUN_DIR/lrzip-version.txt" 2>&1; then
+        return 0
+    fi
+    "$lrzip_bin" --help >"$GOAL3_RUN_DIR/lrzip-version.txt" 2>&1
+}
+
+if [[ -x "$lrzip_prefix/bin/lrzip" ]]; then
+    if record_lrzip_version "$lrzip_prefix/bin/lrzip"; then
+        {
+            echo "status=passed"
+            echo "lrzip=$lrzip_prefix/bin/lrzip"
+            cat "$GOAL3_RUN_DIR/lrzip-version.txt"
+        } | tee "$GOAL3_RUN_DIR/status.txt"
+        exit 0
+    fi
+    echo "Existing lrzip is not runnable; rebuilding it." >&2
 fi
 
 build_root="/scratch/$USER/${SLURM_JOB_ID:-manual}/goal3-tools"
@@ -105,6 +123,35 @@ ensure_lzo() {
     export PKG_CONFIG_PATH="$lzo_prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 }
 
+ensure_lz4() {
+    local lz4_version=${GOAL3_LZ4_VERSION:-1.9.4}
+    local lz4_prefix="$GOAL3_TOOLS_DIR/lz4-$lz4_version"
+    if [[ ! -f "$lz4_prefix/lib/liblz4.so" && ! -f "$lz4_prefix/lib/liblz4.a" ]]; then
+        local lz4_root="$build_root/lz4-build"
+        mkdir -p "$lz4_root"
+        cd "$lz4_root"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL "https://github.com/lz4/lz4/archive/refs/tags/v${lz4_version}.tar.gz" \
+                -o "lz4-${lz4_version}.tar.gz"
+        elif command -v wget >/dev/null 2>&1; then
+            wget -O "lz4-${lz4_version}.tar.gz" \
+                "https://github.com/lz4/lz4/archive/refs/tags/v${lz4_version}.tar.gz"
+        else
+            echo "Neither curl nor wget is available for lz4 download." >&2
+            exit 4
+        fi
+        tar -xf "lz4-${lz4_version}.tar.gz"
+        cd "lz4-$lz4_version"
+        make -j"${SLURM_CPUS_PER_TASK:-4}"
+        make PREFIX="$lz4_prefix" install
+    fi
+
+    export CPPFLAGS="-I$lz4_prefix/include ${CPPFLAGS:-}"
+    export LDFLAGS="-L$lz4_prefix/lib -Wl,-rpath,$lz4_prefix/lib ${LDFLAGS:-}"
+    export LD_LIBRARY_PATH="$lz4_prefix/lib:${LD_LIBRARY_PATH:-}"
+    export PKG_CONFIG_PATH="$lz4_prefix/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+}
+
 cd "$build_root"
 lrzip_version=${GOAL3_LRZIP_VERSION:-0.651}
 lrzip_url=${GOAL3_LRZIP_TARBALL_URL:-https://github.com/ckolivas/lrzip/releases/download/v${lrzip_version}/lrzip-${lrzip_version}.tar.xz}
@@ -138,6 +185,10 @@ fi
 
 cd "$src_dir"
 
+ensure_lzo
+ensure_lz4
+cd "$src_dir"
+
 if [[ -x ./configure ]]; then
     :
 elif [[ -x ./autogen.sh ]]; then
@@ -148,14 +199,24 @@ else
     autoreconf -fi
 fi
 
-ensure_lzo
-./configure --prefix="$prefix"
+cd "$src_dir"
+./configure --prefix="$lrzip_prefix"
 make -j"${SLURM_CPUS_PER_TASK:-4}"
 make install
 
-"$prefix/bin/lrzip" --version >"$GOAL3_RUN_DIR/lrzip-version.txt" 2>&1 || true
+if [[ ! -x "$lrzip_prefix/bin/lrzip" ]]; then
+    echo "lrzip install did not create $lrzip_prefix/bin/lrzip" >&2
+    exit 6
+fi
+
+if ! record_lrzip_version "$lrzip_prefix/bin/lrzip"; then
+    echo "Installed lrzip exists but is not runnable." >&2
+    cat "$GOAL3_RUN_DIR/lrzip-version.txt" >&2 || true
+    exit 7
+fi
+
 {
     echo "status=passed"
-    echo "lrzip=$prefix/bin/lrzip"
+    echo "lrzip=$lrzip_prefix/bin/lrzip"
     cat "$GOAL3_RUN_DIR/lrzip-version.txt"
 } | tee "$GOAL3_RUN_DIR/status.txt"

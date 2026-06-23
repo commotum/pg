@@ -152,9 +152,14 @@ python3 -m py_compile goal-3/scripts/env_smoke.py
 
 Runtime checks pending:
 
-- `srun --test-only` has not been refreshed after these scripts were created;
 - no H100 script has been submitted;
 - no final runner output exists yet.
+
+Runtime checks completed:
+
+- `srun --test-only` was refreshed on 2026-06-23 at 16:05 Pacific for both the
+  15-minute env smoke and the one-hour record runner. Both currently fit on
+  `dgxh-3` with predicted start `2026-06-27T08:29:30`.
 
 ## Scratch Staging
 
@@ -182,7 +187,7 @@ directory.
 - Runner has bounded candidate order: complete.
 - Runner writes machine-readable final status: complete.
 - Repair agent exists and is disabled by default: complete.
-- H100 dry-run is current: pending.
+- H100 dry-run is current: complete, recorded in `goal-3/7-approval.md`.
 - User approval for exact H100 request: pending.
 
 ## Next Phase

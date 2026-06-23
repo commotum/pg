@@ -68,6 +68,24 @@ full record stack runs on the intended H100 class.
 19. `goal-3/` has been synced to the remote HPC checkout at
     `/nfs/hpc/share/peterj29/pg/src/pg/goal-3`. Remote submit-node static checks
     pass for the Goal 3 shell scripts and Python syntax.
+20. CPU environment prep completed as Slurm job `20487397`, producing
+    `/nfs/hpc/share/peterj29/pg/envs/goal3-cu128` with Python 3.12,
+    `torch==2.9.1+cu128`, Triton, `sentencepiece`, `brotli`, and
+    `flash_attn_3`.
+21. CPU tools prep completed as Slurm job `20487617`, producing user-local
+    `lrzip 0.651` under `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip`.
+    The build required user-local LZO and LZ4. The binary cannot be validated by
+    executing it on the submit node because the submit node has an older glibc;
+    the valid next check is inside the H100 env smoke allocation.
+22. Phase 7 live Slurm refresh on 2026-06-23 at 16:05 Pacific still shows
+    `dgxh-3` as the valid H100 80GB target class for
+    `--constraint="h100&vram80g"`. `dgxh-1` remains unsuitable for the intended
+    competition-class run because it is advertised as `h100-40g`.
+23. `srun --test-only` for both the 15-minute H100 env smoke and the one-hour
+    record runner currently predicts `dgxh-3` at `2026-06-27T08:29:30`.
+24. The H100 approval packet now exists at `goal-3/7-approval.md`. It requests
+    approval only for `goal-3/h100-env-smoke.sbatch`; approval for the later
+    one-hour record runner remains separate and unrequested.
 
 ## Not Yet Known
 
@@ -81,16 +99,16 @@ full record stack runs on the intended H100 class.
 - Whether qMLP matrix materialization adds enough overhead to reduce H100 step
   count materially versus the dense record.
 - Whether the `sp16384` tokenizer loads with vocab size 16384 in the eventual
-  H100/Goal 3 Python environment; submit-node system Python lacks
-  `sentencepiece`, so this direct load check is deferred.
+  H100/Goal 3 Python environment.
 - Whether scratch staging overhead is small enough relative to the one-hour
   allocation. The datasets are small enough to stage in principle, but the real
   copy time should be visible in `scratch-stage.txt` and job logs.
 
 ## Current Conclusion
 
-The next useful work is to run the CPU `goal-3/prepare-env.sbatch` environment
-prep job if the user wants to proceed. H100 submission is not ready until the
-environment is prepared or verified, live Slurm is refreshed, the exact
-`srun --test-only` request is reviewed, and the user approves the exact H100
-script, candidate order, walltime, and stop conditions.
+The next useful work is to ask for explicit approval to submit only the
+15-minute H100 env smoke described in `goal-3/7-approval.md`. The CPU
+environment and tools prep are complete, live Slurm state has been refreshed,
+and the exact H100 env-smoke request has a current `srun --test-only` estimate.
+No H100/H200 submission should happen until the user approves that exact smoke
+request.

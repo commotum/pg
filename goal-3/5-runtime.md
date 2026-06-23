@@ -17,10 +17,23 @@ Completed locally:
 
 Pending on HPC:
 
-- build or verify the shared Python environment with `goal-3/prepare-env.sbatch`;
-- build or verify user-local `lrzip` with `goal-3/prepare-tools.sbatch`;
 - run `goal-3/h100-env-smoke.sbatch` only after H100 approval;
 - run `goal-3/h100-short-smoke.sbatch` only after H100 approval.
+
+Completed on HPC CPU compute nodes:
+
+- `goal-3/prepare-env.sbatch` completed as Slurm job `20487397` on `cn-r-6`;
+  it built `/nfs/hpc/share/peterj29/pg/envs/goal3-cu128` with Python 3.12,
+  `torch==2.9.1+cu128`, Triton, `sentencepiece`, `brotli`, and
+  `flash_attn_3`;
+- `goal-3/prepare-tools.sbatch` completed as Slurm job `20487617` on `cn-r-5`;
+  it built `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip` using
+  user-local LZO and LZ4 libraries.
+
+Important caveat: running the compute-built `lrzip` binary directly on the
+submit node fails because the submit node exposes an older glibc. That does not
+invalidate the compute-node build, but it means the next meaningful check is
+the H100 env smoke inside the H100 allocation.
 
 Completed on HPC submit node:
 
@@ -58,9 +71,6 @@ bash -n goal-3/h100-repair-agent.sbatch
 
 Runtime verification still needed:
 
-- environment preparation reaches terminal Slurm state;
-- tools preparation reaches terminal Slurm state or another `lrzip` path is
-  documented;
 - H100 env smoke confirms 8 CUDA devices, FA3 import, `lrzip`, and tokenizer
   vocab sizes;
 - H100 short smoke confirms dense `sp8192`, qMLP `sp8192`, and qMLP `sp16384`
@@ -68,13 +78,13 @@ Runtime verification still needed:
 
 ## Completion Requirements
 
-- CPU environment-prep job submitted and terminal: pending.
-- CPU tools-prep job submitted and terminal: pending.
+- CPU environment-prep job submitted and terminal: complete, job `20487397`.
+- CPU tools-prep job submitted and terminal: complete, job `20487617`.
 - H100 env smoke approved, submitted, and terminal: pending.
 - H100 short qMLP smoke approved, submitted, and terminal: pending.
-- Runtime logs and parser summaries recorded in `goal-3/jobs.csv`: pending.
+- Runtime logs and parser summaries recorded in `goal-3/jobs.csv`: partial.
 
 ## Next Phase
 
-Do not request H100 yet. First prepare the shared Python environment and
-user-local `lrzip` through CPU Slurm jobs.
+The next runtime step is the H100 env smoke, but only after explicit approval
+of the H100 request.
