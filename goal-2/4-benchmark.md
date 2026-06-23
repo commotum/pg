@@ -119,6 +119,9 @@ Released benchmark cells:
 | `2048` | dense | `42` | `20485814` | smoke `20485698`, `14277213` bytes |
 | `2048` | dense | `0` | `20485815` | smoke `20485698`, `14277213` bytes |
 | `2048` | dense | `1` | `20485816` | smoke `20485698`, `14277213` bytes |
+| `4096` | qMLP | `42` | `20486109` | smoke `20485826`, `7324881` bytes |
+| `4096` | qMLP | `0` | `20486110` | smoke `20485826`, `7324881` bytes |
+| `4096` | qMLP | `1` | `20486111` | smoke `20485826`, `7324881` bytes |
 | `8192` | dense | `42` | `20485757` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `0` | `20485758` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `1` | `20485759` | smoke `20485700`, `15912062` bytes |
@@ -211,8 +214,10 @@ New facts:
   qMLP `sp2048` beats it by `1.01200596` BPB.
 - Dense `sp2048` seed `0` completed under the 16 MB cap. On the paired seed,
   qMLP `sp2048` beats it by `0.95995357` BPB.
-- Both `sp4096` variants should be released independently when their smokes pass
-  and stay under the 16 MB cap.
+- qMLP `sp4096` smoke passed under the 16 MB cap and released three Phase 4
+  benchmark jobs: `20486109`, `20486110`, and `20486111`.
+- Dense `sp4096` should be released independently when its smoke passes and
+  stays under the 16 MB cap.
 
 Decision:
 

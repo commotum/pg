@@ -112,8 +112,8 @@ Submitted smoke jobs:
 | `1024` | qMLP | `20485708` | completed |
 | `2048` | dense | `20485698` | completed |
 | `2048` | qMLP | `20485699` | completed |
-| `4096` | dense | `20485825` | pending |
-| `4096` | qMLP | `20485826` | pending |
+| `4096` | dense | `20485825` | running |
+| `4096` | qMLP | `20485826` | completed |
 | `8192` | dense | `20485700` | completed |
 | `8192` | qMLP | `20485701` | completed |
 | `16384` | dense | `20485702` | completed, over budget |
@@ -127,6 +127,7 @@ Completed smoke metrics:
 | `1024` | qMLP | `20485708` | `4.55731441` | `6507663` | `6771` | `cn-r-5` | `0` |
 | `2048` | qMLP | `20485699` | `4.34588020` | `6777950` | `6805` | `cn-r-5` | `0` |
 | `2048` | dense | `20485698` | `4.34837669` | `14277213` | `7062` | `cn-r-2` | `0` |
+| `4096` | qMLP | `20485826` | `4.22163187` | `7324881` | `7036` | `cn-r-5` | `0` |
 | `8192` | dense | `20485700` | `4.17584110` | `15912062` | `7756` | `cn-r-5` | `0` |
 | `8192` | qMLP | `20485701` | `4.17319096` | `8421755` | `7497` | `cn-r-1` | `0` |
 | `16384` | dense | `20485702` | `4.20013989` | `18106381` | `8683` | `cn-r-5` | `0` |
@@ -165,9 +166,11 @@ New facts:
 - `sp4096` export job `20485661` completed, verified 80 train shards plus
   validation bytes, and dense/qMLP smoke jobs `20485825` and `20485826` were
   submitted.
+- qMLP `sp4096` smoke job `20485826` completed under the 16 MB cap and was
+  released to Phase 4.
 
 Decision:
 
-- Monitor remaining Phase 3 jobs `20485825` and `20485826`.
-- Release both `sp4096` variants to Phase 4 as soon as their individual smoke
-  jobs pass under the 16 MB cap.
+- Monitor remaining Phase 3 job `20485825`.
+- Release dense `sp4096` to Phase 4 as soon as its smoke job passes under the
+  16 MB cap.
