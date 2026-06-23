@@ -37,7 +37,7 @@ vocab_size)` pair.
 
 ```text
 model variants: dense, qmlp
-vocab sizes: ready subset of 1024, 2048, 4096, 8192, 16384
+vocab sizes: ready subset of 1024, 2048, 4096, 8192, 16384, 32768
 seed: 42
 ```
 
@@ -138,7 +138,7 @@ Skipped cells:
 
 | Vocab | Reason |
 | --- | --- |
-| none | all target vocab exports have reached Phase 3 or later |
+| `32768` | CaseOps export does not exist yet; added by user after original smoke matrix |
 
 Artifacts:
 
@@ -149,8 +149,10 @@ New facts:
 
 - The Phase 3 launcher can be rerun incrementally without resubmitting already
   launched cells.
-- The current smoke matrix covers all five target vocabs: `1024`, `2048`,
-  `4096`, `8192`, and `16384`.
+- The original smoke matrix covers the first five target vocabs: `1024`,
+  `2048`, `4096`, `8192`, and `16384`.
+- User direction added `sp32768` to the goal for dense and qMLP. It should be
+  smoke-tested for both model variants after its CaseOps export verifies.
 - The first two completed smoke cells are under the 16 MB cap and did not run
   TTT.
 - qMLP `sp2048` and dense `sp8192` were released to Phase 4 three-seed
@@ -174,5 +176,6 @@ New facts:
 
 Decision:
 
-- Phase 3 smoke gates for the target matrix have all resolved. Continue in
-  Phase 4/5 by monitoring benchmark completions and summarizer output.
+- Phase 3 smoke gates for the original five target vocabs have resolved.
+- Continue monitoring Phase 4/5 for those jobs while Phase 1 prepares
+  `sp32768`; then submit dense and qMLP `sp32768` smokes.

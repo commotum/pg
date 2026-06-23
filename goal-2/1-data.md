@@ -15,6 +15,7 @@ Target vocab sizes:
 4096
 8192
 16384
+32768
 ```
 
 ## Why This Matters
@@ -46,6 +47,7 @@ Checked on `submit-a.ib.coehpc` at `2026-06-23T00:18-00:23 PDT`.
 | `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | present | 80 | 2 | 2 | ready |
 | `8192` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` | present | 80 | 1 | 1 | ready |
 | `16384` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384` | present | 80 | 1 | 1 | ready |
+| `32768` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` | missing | 0 | 0 | 0 | added by user; export required |
 
 ## Build Strategy
 
@@ -107,7 +109,7 @@ This phase is complete when every target vocab has:
 
 ## Result
 
-Status: complete
+Status: reopened for `sp32768`
 
 Evidence:
 
@@ -130,6 +132,10 @@ Evidence:
   - `sp4096`: `tok=yes vocab=yes manifest=yes train=80 val=2 val_bytes=2`
   - `sp8192`: `tok=yes train=80 val=1 val_bytes=1`
   - `sp16384`: `tok=yes vocab=yes manifest=yes train=80 val=1 val_bytes=1`
+- User direction on 2026-06-23 added `sp32768` to the target matrix for both
+  dense and qMLP, three benchmark seeds each. Direct remote inspection found no
+  existing `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768` or patched
+  equivalent, so a new CaseOps export is required before smokes can run.
 
 Artifacts:
 
@@ -142,4 +148,5 @@ Artifacts:
 
 Decision:
 
-- Phase 1 data dependencies are complete for the five target CaseOps vocabs.
+- Phase 1 data dependencies are complete for the original five CaseOps vocabs.
+- `sp32768` is now the only open Phase 1 dependency.

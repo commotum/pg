@@ -20,7 +20,7 @@ In scope:
 
 - single-GPU A40 training/eval/package runs;
 - CaseOps tokenizer/data preparation;
-- vocab sizes `1024`, `2048`, `4096`, `8192`, and `16384`;
+- vocab sizes `1024`, `2048`, `4096`, `8192`, `16384`, and `32768`;
 - dense baseline variants at all listed vocab sizes as their CaseOps exports
   become available;
 - qMLP variants at all listed vocab sizes;
@@ -81,6 +81,7 @@ caseops-sp2048
 caseops-sp4096
 caseops-sp8192
 caseops-sp16384
+caseops-sp32768
 ```
 
 ## Benchmark Contract
@@ -325,7 +326,8 @@ Goal: capture the current repo, remote state, existing CaseOps exports, and usab
 Actions:
 
 1. Check local and remote git status.
-2. List existing CaseOps exports for `1024`, `2048`, `4096`, `8192`, and `16384`.
+2. List existing CaseOps exports for `1024`, `2048`, `4096`, `8192`, `16384`,
+   and `32768`.
 3. List existing qMLP patches and record-stack patches.
 4. Check user queue and live A40 availability.
 5. Record whether old `goal-1` jobs are still running, but do not cancel them without approval.
@@ -356,6 +358,7 @@ Vocab targets:
 4096
 8192
 16384
+32768
 ```
 
 Exit criteria:
@@ -407,7 +410,7 @@ Matrix:
 
 ```text
 model variants: dense, qmlp
-vocab sizes:    1024, 2048, 4096, 8192, 16384
+vocab sizes:    1024, 2048, 4096, 8192, 16384, 32768
 seed:           42 for smoke
 ```
 
@@ -506,7 +509,8 @@ Actions:
    16 MB cap.
 4. Use additional dense budget controls only if the matrix leaves the conclusion
    ambiguous.
-5. Do not extend beyond `sp16384` unless the user explicitly redirects.
+5. `sp32768` was explicitly added by user direction. Do not extend beyond
+   `sp32768` unless the user explicitly redirects again.
 
 Exit criteria:
 
@@ -545,7 +549,11 @@ Exit criteria:
 
 ## Current Live Facts
 
-- All five target CaseOps exports exist and have reached Phase 3 or later.
+- The original five target CaseOps exports exist and have reached Phase 3 or
+  later.
+- User direction added `sp32768` to the goal for both dense and qMLP formats
+  with three seeds each. `sp32768` has no existing CaseOps export yet, so Phase
+  1 is reopened for that vocab before Phase 3 smoke and Phase 4 benchmark jobs.
 - Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
   Slurm cap. Total elapsed includes validation, EMA, serialization,
   quantization, compression, and metrics parsing.
@@ -568,6 +576,9 @@ Exit criteria:
   compliant best-under-cap candidate.
 - Dense diagnostic `sp16384` seed `42` completed with quantized BPB
   `3.60139160` and total submission size `18133059` bytes. It remains an
+  over-budget control only.
+- Dense diagnostic `sp16384` seed `0` completed with quantized BPB
+  `3.56315533` and total submission size `18134380` bytes. It remains an
   over-budget control only.
 - Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
   submission bytes and released three Phase 4 benchmark jobs: `20486127`,

@@ -244,6 +244,12 @@ New facts:
 - Dense diagnostic `sp16384` seed `42` completed over budget with quantized BPB
   `3.60139160` and total submission size `18133059` bytes. It is useful as an
   over-budget control only and remains excluded from compliant rankings.
+- Dense diagnostic `sp16384` seed `0` completed over budget with quantized BPB
+  `3.56315533` and total submission size `18134380` bytes. It remains excluded
+  from compliant rankings.
+- User direction added `sp32768` to the goal for both dense and qMLP formats
+  with three seeds each. These cells must enter Phase 4 only after the
+  `sp32768` CaseOps export verifies and dense/qMLP Phase 3 smokes complete.
 
 Decision:
 

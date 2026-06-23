@@ -44,6 +44,7 @@ Use the common record-track CaseOps `sp8192` vocab as the first sanity point, no
 4096
 8192
 16384
+32768
 ```
 
 For every verified CaseOps vocab size, run both core models:
@@ -69,6 +70,11 @@ CaseOps policy:
 - For each vocab size, use a CaseOps tokenizer trained on `encode_lossless_caps_v2` transformed docs with reserved control symbols and original-byte sidecar accounting.
 - Dense and qMLP runs at the same vocab must use the exact same tokenizer model, vocab file, train shards, validation shards, and validation-byte sidecars.
 - Different vocab sizes need different CaseOps tokenizer/data exports.
+- `sp32768` has been explicitly added to the goal by user direction. It still
+  follows the same dependency order: CaseOps export, dense/qMLP smoke, then
+  three benchmark seeds for each model. Dense `sp32768` may be over budget; if
+  so, keep it labeled as a diagnostic control rather than a compliant
+  best-under-cap candidate.
 
 For each phase:
 
