@@ -26,8 +26,10 @@ best-under-16MB qMLP candidate under the same A40-friendly no-TTT setup.
 ## Current Assumptions
 
 - Phase 3 package smokes are the gate for Phase 4.
-- Do not run benchmarks for cells with failed smoke, missing metrics, missing
-  `COMPLETE.txt`, `ttt_seen=1`, or package size over 16,000,000 bytes.
+- Do not run compliant benchmarks for cells with failed smoke, missing metrics,
+  missing `COMPLETE.txt`, `ttt_seen=1`, or package size over 16,000,000 bytes.
+- Explicit user-approved over-budget diagnostics may be submitted with
+  `ALLOW_OVER_BUDGET=1`, but they must stay out of best-under-cap rankings.
 - Use one A40 per job.
 - Run independent cells in parallel where Slurm/account limits allow.
 - If queue limits prevent full parallelism, submit the maximum schedulable subset
@@ -84,6 +86,8 @@ Evidence:
 - Phase file created.
 - `goal-2/4-submit-benchmark-matrix.sh` was staged on HPC and syntax-checked.
 - The launcher writes `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/submitted.tsv` so it can be rerun incrementally without duplicating already-submitted cells.
+- The launcher defaults to enforcing the 16 MB cap. `ALLOW_OVER_BUDGET=1` is
+  available only for explicit diagnostics.
 - Per user direction, Phase 4 jobs are released for each individual smoke-passing setup as soon as it passes; the plan does not wait for all Phase 3 smokes to complete.
 
 Released benchmark cells:
@@ -109,6 +113,14 @@ Released benchmark cells:
 | `16384` | qMLP | `0` | `20485789` | smoke `20485703`, `10615703` bytes |
 | `16384` | qMLP | `1` | `20485790` | smoke `20485703`, `10615703` bytes |
 
+Diagnostic over-budget cells:
+
+| Vocab | Model | Seed | Job ID | Smoke Gate |
+| --- | --- | ---: | ---: | --- |
+| `16384` | dense | `42` | `20485837` | smoke `20485702`, `18106381` bytes, over budget |
+| `16384` | dense | `0` | `20485838` | smoke `20485702`, `18106381` bytes, over budget |
+| `16384` | dense | `1` | `20485839` | smoke `20485702`, `18106381` bytes, over budget |
+
 Artifacts:
 
 - Launcher: `goal-2/4-submit-benchmark-matrix.sh`
@@ -128,6 +140,9 @@ New facts:
   benchmark jobs are queued.
 - Dense `sp16384` passed smoke functionally, but the total submission size was
   `18106381` bytes, so it is excluded from compliant Phase 4 benchmarks.
+- Per user direction, dense `sp16384` was later released as an over-budget
+  diagnostic control to compare against qMLP `sp16384`. It remains excluded from
+  compliant best-under-16MB rankings.
 - Dense `sp1024` and both `sp4096` variants should be released independently
   when their smokes pass and stay under the 16 MB cap.
 
