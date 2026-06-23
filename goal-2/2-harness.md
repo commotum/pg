@@ -22,9 +22,9 @@ The previous goal showed that full phased TTT on A40 takes roughly an hour and i
 
 The harness is the shared base for:
 
-- Phase 3 dense CaseOps `sp8192`;
-- Phase 4 qMLP CaseOps `sp8192`;
-- Phase 5 qMLP vocab ladder over `1024`, `2048`, `4096`, `8192`, and `16384`.
+- Phase 3 dense/qMLP package-smoke matrix over ready CaseOps vocabs;
+- Phase 4 three-seed dense/qMLP A40 benchmark matrix;
+- Phase 5 matrix QA and reruns.
 
 ## Current Assumptions
 
@@ -32,7 +32,8 @@ The harness is the shared base for:
 - The old `goal-1` scripts are reference material only.
 - CaseOps `sp8192` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/`.
 - CaseOps `sp16384` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384/`.
-- CaseOps `sp1024`, `sp2048`, and `sp4096` still need exports before their qMLP ladder runs.
+- CaseOps `sp2048`, `sp8192`, and `sp16384` are ready enough for initial matrix cells.
+- CaseOps `sp1024` and `sp4096` are being produced by another agent and should be added when their shard counts verify cleanly.
 - The local 04-23 record `train_gpt.py` has SDPA fallback and qMLP support.
 
 ## Implementation Steps
@@ -135,13 +136,48 @@ This phase is complete when:
 
 ## Result
 
-Status: in progress
+Status: complete
 
 Evidence:
 
-- Phase file created.
+- Local syntax checks passed:
+  - `bash -n goal-2/2-a40-harness.sbatch`
+  - `python3 -m py_compile goal-2/2-parse-metrics.py`
+- Remote syntax checks passed with the controlled py311 venv.
+- A40 smoke job `20485638` ran on `cn-r-2`, Slurm state `COMPLETED`, exit code `0:0`, elapsed `00:28:55`.
+- Smoke configuration:
+  - `HARNESS_MODE=smoke`
+  - `MODEL_VARIANT=dense`
+  - `VOCAB_SIZE=8192`
+  - `SEED_VALUE=42`
+  - `TTT_ENABLED=0`
+  - `DOCUMENT_PACKING=0`
+  - `TORCH_COMPILE=0`
+  - `FUSED_MLP_ENABLED=0`
+  - `FUSED_CE_ENABLED=0`
+- The smoke used `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/` and found 80 train shards, one validation shard, and one validation-byte sidecar.
+- Key smoke metrics:
+  - model params: `35945658`
+  - train steps: `2`
+  - pre-quant BPB: `4.17567098`
+  - quantized no-TTT BPB: `4.17580903`
+  - quantized model+brotli: `15880682` bytes
+  - total submission size: `15912502` bytes
+  - peak memory: `7756 MiB` allocated / `8090 MiB` reserved
+- The run wrote `COMPLETE.txt`, `metrics.env`, `metrics.json`, and `metrics.tsv`.
+
+Artifacts:
+
+- Harness: `goal-2/2-a40-harness.sbatch`
+- Parser: `goal-2/2-parse-metrics.py`
+- Run root: `/nfs/hpc/share/peterj29/pg/runs/goal2-phase2-lean-a40/20485638/`
+
+New facts:
+
+- Dense CaseOps `sp8192` package smoke is under the 16 MB artifact cap.
+- The harness can run the A40-friendly record-stack path with TTT disabled and parse post-quant no-TTT BPB.
+- The original harness parsed metrics before writing `COMPLETE.txt`, causing `complete_file=0` in the successful smoke metrics. The harness was patched to re-run the parser after writing `COMPLETE.txt` so future successful runs report `complete_file=1`.
 
 Decision:
 
-- Implement the Slurm harness and parser next.
-
+- Proceed to Phase 3 package-smoke matrix for every ready dense/qMLP CaseOps vocab cell.

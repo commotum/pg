@@ -256,4 +256,4 @@ torchrun --standalone --nproc_per_node=1 "$RECORD_PATH/train_gpt.py" >"$JOB_DIR/
 python "$REPO_PATH/goal-2/2-parse-metrics.py" "$JOB_DIR" >"$JOB_DIR/metrics.stdout.json"
 
 echo "complete" >"$JOB_DIR/COMPLETE.txt"
-
+python "$REPO_PATH/goal-2/2-parse-metrics.py" "$JOB_DIR" >"$JOB_DIR/metrics.stdout.json"

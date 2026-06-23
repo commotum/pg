@@ -37,13 +37,13 @@ shard, and validation-byte sidecar exist.
 
 ## Remote Export Matrix
 
-Checked on `submit-a.ib.coehpc` at `2026-06-22T23:34:02-07:00`.
+Checked on `submit-a.ib.coehpc` at `2026-06-23T00:18-00:23 PDT`.
 
 | Vocab | Export Root | Tokenizer | Train Shards | Val Shards | Val Byte Sidecars | Status |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `1024` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp1024` | missing | 0 | 0 | 0 | building |
-| `2048` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp2048` | missing | 0 | 0 | 0 | building |
-| `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | missing | 0 | 0 | 0 | building |
+| `1024` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp1024` | present | 80 | 2 | 2 | ready |
+| `2048` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp2048` | present | 80 | 2 | 2 | ready |
+| `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | present | not ready | not ready | not ready | building |
 | `8192` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` | present | 80 | 1 | 1 | ready |
 | `16384` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384` | present | 80 | 1 | 1 | ready |
 
@@ -112,8 +112,15 @@ Status: in progress
 Evidence:
 
 - `sp8192` and `sp16384` are verified ready.
-- `sp1024`, `sp2048`, and `sp4096` were missing and have active Slurm export
-  jobs.
+- `sp2048` is verified ready and has been released to Phase 3 smokes.
+- `sp1024` export job `20485659` completed with exit code `0:0` after
+  `00:42:30`; direct counts found 80 train shards, two validation shards, two
+  validation-byte sidecars, and one tokenizer model. It has been released to
+  Phase 3 smokes.
+- `sp4096` export job `20485661` is still running. The tokenizer model is
+  visible, but the harness data path is not yet ready. Do not run `sp4096` A40
+  cells until it reaches 80 train shards, has validation bytes, and reaches
+  terminal `COMPLETED`.
 
 Artifacts:
 
@@ -122,5 +129,6 @@ Artifacts:
 
 Decision:
 
-- Monitor jobs `20485659`, `20485660`, and `20485661`.
-- After terminal states, verify artifact counts directly under each export root.
+- Continue monitoring job `20485661` for `sp4096`.
+- Add `sp4096` dense/qMLP Phase 3 smoke cells only after the export verifies
+  cleanly.
