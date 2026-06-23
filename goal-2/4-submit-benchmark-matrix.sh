@@ -11,6 +11,7 @@ SEEDS=${SEEDS:-"42 0 1"}
 BYTE_CAP=${BYTE_CAP:-16000000}
 SUBMIT=${SUBMIT:-0}
 ALLOW_OVER_BUDGET=${ALLOW_OVER_BUDGET:-0}
+DIAGNOSTIC_VOCABS=${DIAGNOSTIC_VOCABS:-"32768"}
 LEDGER=${LEDGER:-$RUN_ROOT/submitted.tsv}
 
 mkdir -p "$RUN_ROOT"
@@ -54,6 +55,17 @@ already_submitted() {
         "$LEDGER"
 }
 
+is_diagnostic_vocab() {
+    local vocab=$1
+    local diagnostic
+    for diagnostic in $DIAGNOSTIC_VOCABS; do
+        if [[ "$diagnostic" == "$vocab" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 find_smoke_metrics() {
     local vocab=$1
     local model=$2
@@ -89,7 +101,12 @@ for vocab in $VOCABS; do
             echo "SKIP sp${vocab} ${model}: smoke total_submission_bytes=missing cap=$BYTE_CAP"
             continue
         fi
-        if [[ "$bytes" -gt "$BYTE_CAP" && "$ALLOW_OVER_BUDGET" != "1" ]]; then
+        diagnostic_vocab=0
+        if is_diagnostic_vocab "$vocab"; then
+            diagnostic_vocab=1
+        fi
+
+        if [[ "$bytes" -gt "$BYTE_CAP" && "$ALLOW_OVER_BUDGET" != "1" && "$diagnostic_vocab" != "1" ]]; then
             echo "SKIP sp${vocab} ${model}: smoke total_submission_bytes=${bytes:-missing} cap=$BYTE_CAP"
             continue
         fi

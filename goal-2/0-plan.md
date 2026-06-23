@@ -603,6 +603,10 @@ Exit criteria:
   cells: all smoke-passing cells are already in the submission ledger,
   default-compliant dense `sp16384` remains skipped as over budget, and
   `sp32768` dense/qMLP remain gated on Phase 3 smoke metrics.
+- `goal-2/4-submit-benchmark-matrix.sh` now defaults
+  `DIAGNOSTIC_VOCABS=32768`, so user-requested `sp32768` benchmark seeds can be
+  released as diagnostic-only runs if their smokes exceed the 16 MB cap, without
+  globally allowing unrelated over-budget cells.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 

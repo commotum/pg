@@ -35,7 +35,8 @@ best-under-16MB qMLP candidate under the same A40-friendly no-TTT setup.
 - Do not run compliant benchmarks for cells with failed smoke, missing metrics,
   missing `COMPLETE.txt`, `ttt_seen=1`, or package size over 16,000,000 bytes.
 - Explicit user-approved over-budget diagnostics may be submitted with
-  `ALLOW_OVER_BUDGET=1`, but they must stay out of best-under-cap rankings.
+  `ALLOW_OVER_BUDGET=1` or via `DIAGNOSTIC_VOCABS`, but they must stay out of
+  best-under-cap rankings.
 - Use one A40 per job.
 - Run independent cells in parallel where Slurm/account limits allow.
 - Interpret `train_steps` and BPB as the fair screening metrics under the
@@ -96,7 +97,9 @@ Evidence:
 - `goal-2/4-submit-benchmark-matrix.sh` was staged on HPC and syntax-checked.
 - The launcher writes `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/submitted.tsv` so it can be rerun incrementally without duplicating already-submitted cells.
 - The launcher defaults to enforcing the 16 MB cap. `ALLOW_OVER_BUDGET=1` is
-  available only for explicit diagnostics.
+  available only for explicit diagnostics, and `DIAGNOSTIC_VOCABS` defaults to
+  `32768` so user-requested `sp32768` cells can be benchmarked as diagnostics
+  if their smokes exceed the cap.
 - The Phase 4 benchmark uses a 600-second training-loop cap, not a 600-second
   end-to-end Slurm cap. Job `20485758` confirmed this distinction: training
   stopped at `stopping_early: wallclock_cap train_time: 606200ms step: 64`, then
@@ -282,6 +285,9 @@ New facts:
   have submitted benchmark seeds in the ledger, dense `sp16384` remains skipped
   by default as over budget, and `sp32768` dense/qMLP are skipped because Phase
   3 smoke metrics do not exist yet.
+- The launcher now treats `sp32768` as the only default diagnostic vocab. If an
+  `sp32768` smoke is over budget, its benchmark seeds can still be released
+  without globally allowing unrelated over-budget cells.
 
 Decision:
 
@@ -290,4 +296,4 @@ Decision:
 - Rerun the Phase 5 summarizer after each meaningful batch of new metrics.
 - After `sp32768` smokes complete, submit three benchmark seeds for dense and
   qMLP. If dense or qMLP `sp32768` exceeds 16 MB, keep it labeled as a
-  user-directed diagnostic control.
+  user-directed diagnostic control and exclude it from compliant rankings.

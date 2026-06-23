@@ -82,7 +82,9 @@ Phase 3 is complete when:
 ## Failure and Fallback Rules
 
 - If a cell fails because data is missing, do not retry until the export verifies.
-- If a cell exceeds 16 MB, mark it over budget and do not send it to Phase 4.
+- If a cell exceeds 16 MB, mark it over budget and do not send it to compliant
+  Phase 4 rankings. User-directed diagnostics, currently `sp32768`, may still
+  be released to Phase 4 as diagnostic-only benchmark cells.
 - If qMLP fails but dense works for the same vocab, fix qMLP before benchmarks.
 - If queue pressure prevents full parallelism, submit the maximum schedulable
   subset and record which cells remain.
@@ -158,6 +160,9 @@ New facts:
 - Dependent smoke jobs were submitted immediately to avoid idle handoff time:
   dense `sp32768` smoke job `20486178` and qMLP `sp32768` smoke job `20486179`,
   both with `afterok:20486174` on the `sp32768` CaseOps export.
+- If `sp32768` smoke exceeds the 16 MB cap, it remains user-directed diagnostic
+  work and should still release three dense and three qMLP benchmark seeds,
+  excluded from compliant best-under-cap rankings.
 - The first two completed smoke cells are under the 16 MB cap and did not run
   TTT.
 - qMLP `sp2048` and dense `sp8192` were released to Phase 4 three-seed

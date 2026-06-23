@@ -30,8 +30,9 @@ status.
 - The Phase 4 launcher writes `submitted.tsv` in the same run root.
 - A valid compliant row has `complete_file=1`, `ttt_seen=0`, parsed BPB, and
   `total_submission_bytes <= 16000000`.
-- User-approved over-budget diagnostics, currently dense `sp16384`, stay in the
-  matrix but are excluded from best-under-cap decisions.
+- User-approved over-budget diagnostics, currently dense `sp16384` and
+  potentially `sp32768`, stay in the matrix but are excluded from
+  best-under-cap decisions.
 
 ## Implementation Steps
 
@@ -158,6 +159,9 @@ New facts:
 - A Phase 4 launcher dry-run after the `sp32768` update showed no missed
   benchmark-ready cells. `sp32768` dense/qMLP are still correctly skipped for
   lack of Phase 3 smoke metrics.
+- The Phase 4 launcher defaults `DIAGNOSTIC_VOCABS=32768`, so an over-budget
+  `sp32768` smoke can still release the requested three benchmark seeds per
+  model while remaining diagnostic-only in QA.
 
 Decision:
 
