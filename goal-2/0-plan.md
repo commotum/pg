@@ -551,9 +551,8 @@ Exit criteria:
   quantization, compression, and metrics parsing.
 - qMLP `sp2048` has completed all three Phase 4 seeds with mean quantized BPB
   `3.25738655`.
-- qMLP `sp1024` has completed two of three Phase 4 seeds: seed `42` at
-  `3.35503787` quantized BPB and seed `1` at `3.36968348`. Seed `0` is still
-  missing metrics, so this is not a complete cell yet.
+- qMLP `sp1024` has completed all three Phase 4 seeds with mean quantized BPB
+  `3.36463320`.
 - Dense `sp8192` has completed all three Phase 4 seeds with mean quantized BPB
   `3.66039918`.
 - qMLP `sp8192` completed all three Phase 4 seeds with mean quantized BPB
@@ -565,9 +564,9 @@ Exit criteria:
   current best completed qMLP cell.
 - Dense `sp16384` is intentionally included as an over-budget diagnostic, not a
   compliant best-under-cap candidate.
-- Dense `sp4096` is still gated on Phase 3 smoke job `20485825`; the latest
-  Phase 4 launcher dry-run correctly skipped it because no smoke metrics exist
-  yet.
+- Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
+  submission bytes and released three Phase 4 benchmark jobs: `20486127`,
+  `20486128`, and `20486129`.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 

@@ -112,7 +112,7 @@ Submitted smoke jobs:
 | `1024` | qMLP | `20485708` | completed |
 | `2048` | dense | `20485698` | completed |
 | `2048` | qMLP | `20485699` | completed |
-| `4096` | dense | `20485825` | running |
+| `4096` | dense | `20485825` | completed |
 | `4096` | qMLP | `20485826` | completed |
 | `8192` | dense | `20485700` | completed |
 | `8192` | qMLP | `20485701` | completed |
@@ -127,6 +127,7 @@ Completed smoke metrics:
 | `1024` | qMLP | `20485708` | `4.55731441` | `6507663` | `6771` | `cn-r-5` | `0` |
 | `2048` | qMLP | `20485699` | `4.34588020` | `6777950` | `6805` | `cn-r-5` | `0` |
 | `2048` | dense | `20485698` | `4.34837669` | `14277213` | `7062` | `cn-r-2` | `0` |
+| `4096` | dense | `20485825` | `4.22441882` | `14818388` | `7291` | `cn-r-4` | `0` |
 | `4096` | qMLP | `20485826` | `4.22163187` | `7324881` | `7036` | `cn-r-5` | `0` |
 | `8192` | dense | `20485700` | `4.17584110` | `15912062` | `7756` | `cn-r-5` | `0` |
 | `8192` | qMLP | `20485701` | `4.17319096` | `8421755` | `7497` | `cn-r-1` | `0` |
@@ -168,12 +169,10 @@ New facts:
   submitted.
 - qMLP `sp4096` smoke job `20485826` completed under the 16 MB cap and was
   released to Phase 4.
-- Dense `sp4096` smoke job `20485825` is still running and has not produced
-  `metrics.env` as of the latest poll. The Phase 4 dry-run correctly skips the
-  dense `sp4096` benchmark cell until this smoke gate passes.
+- Dense `sp4096` smoke job `20485825` completed under the 16 MB cap at
+  `14818388` total submission bytes and was released to Phase 4.
 
 Decision:
 
-- Monitor remaining Phase 3 job `20485825`.
-- Release dense `sp4096` to Phase 4 as soon as its smoke job passes under the
-  16 MB cap.
+- Phase 3 smoke gates for the target matrix have all resolved. Continue in
+  Phase 4/5 by monitoring benchmark completions and summarizer output.

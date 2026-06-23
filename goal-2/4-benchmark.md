@@ -122,6 +122,9 @@ Released benchmark cells:
 | `4096` | qMLP | `42` | `20486109` | smoke `20485826`, `7324881` bytes |
 | `4096` | qMLP | `0` | `20486110` | smoke `20485826`, `7324881` bytes |
 | `4096` | qMLP | `1` | `20486111` | smoke `20485826`, `7324881` bytes |
+| `4096` | dense | `42` | `20486127` | smoke `20485825`, `14818388` bytes |
+| `4096` | dense | `0` | `20486128` | smoke `20485825`, `14818388` bytes |
+| `4096` | dense | `1` | `20486129` | smoke `20485825`, `14818388` bytes |
 | `8192` | dense | `42` | `20485757` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `0` | `20485758` | smoke `20485700`, `15912062` bytes |
 | `8192` | dense | `1` | `20485759` | smoke `20485700`, `15912062` bytes |
@@ -145,6 +148,7 @@ Completed benchmark metrics:
 | Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
 | `1024` | qMLP | `42` | `20485820` | `3.35503787` | `3.35051733` | `66` | `6539552` | `26077` | `cn-r-2` | `0` |
+| `1024` | qMLP | `0` | `20485821` | `3.36917824` | `3.36393715` | `66` | `6537052` | `26077` | `cn-r-4` | `0` |
 | `1024` | qMLP | `1` | `20485822` | `3.36968348` | `3.36458550` | `66` | `6536757` | `26077` | `cn-r-5` | `0` |
 | `2048` | qMLP | `42` | `20485754` | `3.27018661` | `3.26684355` | `66` | `6812458` | `26212` | `cn-r-5` | `0` |
 | `2048` | qMLP | `0` | `20485755` | `3.27763883` | `3.27243947` | `66` | `6814438` | `26212` | `cn-r-2` | `0` |
@@ -165,6 +169,7 @@ Completed cell summaries:
 
 | Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
 | --- | --- | --- | ---: | ---: | ---: | --- |
+| `1024` | qMLP | `42,0,1` | `3.36463320` | `3.35967999` | `66` | complete under-cap qMLP cell |
 | `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
 | `8192` | dense | `42,0,1` | `3.66039918` | `3.65026259` | `64` | complete under-cap dense baseline cell |
 | `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
@@ -218,18 +223,14 @@ New facts:
   qMLP `sp2048` beats it by `0.95995357` BPB.
 - qMLP `sp4096` smoke passed under the 16 MB cap and released three Phase 4
   benchmark jobs: `20486109`, `20486110`, and `20486111`.
-- Dense `sp4096` should be released independently when its smoke passes and
-  stays under the 16 MB cap.
-- qMLP `sp1024` seeds `42` and `1` completed under the 16 MB cap. Seed `0`
-  remains incomplete as of the latest poll, so the qMLP `sp1024` cell is not
-  yet a three-seed result.
-- The latest dry-run of the Phase 4 launcher confirms no additional compliant
-  cells are currently eligible for submission: dense `sp4096` is skipped because
-  smoke job `20485825` has no metrics yet, and all other smoke-passing cells
-  have already been released.
+- qMLP `sp1024` seeds `42`, `0`, and `1` completed under the 16 MB cap with
+  mean quantized BPB `3.36463320`.
+- Dense `sp4096` smoke job `20485825` completed under the 16 MB cap at
+  `14818388` total submission bytes and released three Phase 4 benchmark jobs:
+  `20486127`, `20486128`, and `20486129`.
 
 Decision:
 
-- Continue monitoring Phase 3 smokes.
-- Rerun the Phase 4 launcher with `SUBMIT=1` whenever additional smoke cells
-  pass; the ledger should skip cells already submitted.
+- Continue monitoring Phase 4 jobs until all submitted cells have either
+  completed, failed, or been explicitly excluded.
+- Rerun the Phase 5 summarizer after each meaningful batch of new metrics.
