@@ -43,7 +43,7 @@ Checked on `submit-a.ib.coehpc` at `2026-06-23T00:18-00:23 PDT`.
 | --- | --- | --- | ---: | ---: | ---: | --- |
 | `1024` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp1024` | present | 80 | 2 | 2 | ready |
 | `2048` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp2048` | present | 80 | 2 | 2 | ready |
-| `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | present | not ready | not ready | not ready | building |
+| `4096` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096` | present | 80 | 2 | 2 | ready |
 | `8192` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched` | present | 80 | 1 | 1 | ready |
 | `16384` | `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384` | present | 80 | 1 | 1 | ready |
 
@@ -87,7 +87,7 @@ Run root:
 | --- | ---: | --- | ---: | ---: | --- |
 | `1024` | `20485659` | `pg-g2-cops1024` | 32 | 96G | running on `cn-r-4` |
 | `2048` | `20485660` | `pg-g2-cops2048` | 32 | 96G | running on `cn-r-5` |
-| `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | running on `cn-d11` |
+| `4096` | `20485661` | `pg-g2-cops4096` | 32 | 96G | completed in `01:14:16` |
 
 An attempted smaller replacement for `sp4096`, job `20485667`, was cancelled
 after `00:00:14` once the original 32-CPU job had started. Read-only inspection
@@ -107,7 +107,7 @@ This phase is complete when every target vocab has:
 
 ## Result
 
-Status: in progress
+Status: complete
 
 Evidence:
 
@@ -117,10 +117,10 @@ Evidence:
   `00:42:30`; direct counts found 80 train shards, two validation shards, two
   validation-byte sidecars, and one tokenizer model. It has been released to
   Phase 3 smokes.
-- `sp4096` export job `20485661` is still running. The tokenizer model is
-  visible, but the harness data path is not yet ready. Do not run `sp4096` A40
-  cells until it reaches 80 train shards, has validation bytes, and reaches
-  terminal `COMPLETED`.
+- `sp4096` export job `20485661` completed with exit code `0:0` after
+  `01:14:16`; direct counts found 80 train shards, two validation shards, two
+  validation-byte sidecars, and one tokenizer model. It has been released to
+  Phase 3 smokes.
 
 Artifacts:
 
@@ -129,6 +129,4 @@ Artifacts:
 
 Decision:
 
-- Continue monitoring job `20485661` for `sp4096`.
-- Add `sp4096` dense/qMLP Phase 3 smoke cells only after the export verifies
-  cleanly.
+- Phase 1 data dependencies are complete for the five target CaseOps vocabs.

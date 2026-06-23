@@ -112,6 +112,8 @@ Submitted smoke jobs:
 | `1024` | qMLP | `20485708` | completed |
 | `2048` | dense | `20485698` | completed |
 | `2048` | qMLP | `20485699` | completed |
+| `4096` | dense | `20485825` | pending |
+| `4096` | qMLP | `20485826` | pending |
 | `8192` | dense | `20485700` | completed |
 | `8192` | qMLP | `20485701` | completed |
 | `16384` | dense | `20485702` | completed, over budget |
@@ -133,7 +135,7 @@ Skipped cells:
 
 | Vocab | Reason |
 | --- | --- |
-| `4096` | export job `20485661` still running; tokenizer is visible, but the harness data path had no train shards visible at the latest check |
+| none | all target vocab exports have reached Phase 3 or later |
 
 Artifacts:
 
@@ -160,10 +162,13 @@ New facts:
   over-budget diagnostic.
 - Some vocab exports are still building. They remain ineligible until the
   matching CaseOps data path has enough train shards plus validation bytes.
+- `sp4096` export job `20485661` completed, verified 80 train shards plus
+  validation bytes, and dense/qMLP smoke jobs `20485825` and `20485826` were
+  submitted.
 
 Decision:
 
 - Monitor jobs `20485698`, `20485699`, `20485700`, `20485701`, `20485702`,
   `20485703`, `20485707`, and `20485708`.
-- Submit `sp4096` dense/qMLP smoke cells after export job `20485661` completes
-  and shard counts verify.
+- Release dense `sp1024` and both `sp4096` variants to Phase 4 as soon as their
+  individual smoke jobs pass under the 16 MB cap.
