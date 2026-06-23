@@ -276,6 +276,10 @@ New facts:
 - Dense/qMLP `sp32768` smoke jobs are queued behind the export dependency as
   jobs `20486178` and `20486179`; do not submit `sp32768` benchmarks until
   those smokes produce metrics.
+- A fresh Phase 4 launcher dry-run confirmed that all smoke-passing cells already
+  have submitted benchmark seeds in the ledger, dense `sp16384` remains skipped
+  by default as over budget, and `sp32768` dense/qMLP are skipped because Phase
+  3 smoke metrics do not exist yet.
 
 Decision:
 

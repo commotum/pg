@@ -596,6 +596,10 @@ Exit criteria:
 - qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap with current
   two-seed mean quantized BPB `3.11814144`; seed `1` is still running/missing
   metrics.
+- A Phase 4 launcher dry-run confirmed there are no missed benchmark-ready
+  cells: all smoke-passing cells are already in the submission ledger,
+  default-compliant dense `sp16384` remains skipped as over budget, and
+  `sp32768` dense/qMLP remain gated on Phase 3 smoke metrics.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 

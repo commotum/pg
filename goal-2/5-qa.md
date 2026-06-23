@@ -155,6 +155,9 @@ New facts:
   export and Phase 3 smoke gates exist.
 - The `sp32768` export job is `20486174`; dependent smoke jobs are dense
   `20486178` and qMLP `20486179`.
+- A Phase 4 launcher dry-run after the `sp32768` update showed no missed
+  benchmark-ready cells. `sp32768` dense/qMLP are still correctly skipped for
+  lack of Phase 3 smoke metrics.
 
 Decision:
 
