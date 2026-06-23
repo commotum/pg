@@ -38,7 +38,9 @@ parsing.
 - CaseOps `sp1024`, `sp2048`, and `sp4096` exist remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp<VOCAB>/`.
 - CaseOps `sp8192` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/`.
 - CaseOps `sp16384` exists remotely under `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384/`.
-- All five target CaseOps vocabs are ready for the A40 smoke/benchmark matrix.
+- The original five target CaseOps vocabs are ready for the A40 smoke/benchmark
+  matrix. User direction added `sp32768`; that vocab still needs a CaseOps
+  export before it can use this harness.
 - The local 04-23 record `train_gpt.py` has SDPA fallback and qMLP support.
 
 ## Implementation Steps
