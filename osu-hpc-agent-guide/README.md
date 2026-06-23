@@ -5,6 +5,7 @@ This package is a practical operating guide for humans and coding agents using t
 ## Contents
 
 - `OSU_HPC_AGENT_GUIDE.md` — comprehensive architecture, access, Slurm, storage, software, policy, GPU, troubleshooting, and agent-operation reference.
+- `ssh-setup.md` — local `osu` and gateway-side `hpc` SSH shortcut workflow.
 - `AGENTS.md` — concise Codex instructions suitable for a repository root or `~/.codex/AGENTS.md`.
 - `LIVE_INVENTORY_CHECKLIST.md` — commands and interpretation notes for reconciling the public documentation with the live cluster.
 - `data/public-baseline.json` — machine-readable public-document baseline for agent tooling; never treat it as live state.
