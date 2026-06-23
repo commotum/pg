@@ -27,6 +27,30 @@ For each phase in `goal-2/0-plan.md`:
 
 Do not continue old `goal-1` phases unless the user explicitly asks.
 
+## Non-Sequential Work
+
+Treat phase order as a dependency graph, not a blocking queue. Do not wait idly
+for one phase or one vocab/model cell when independent useful work is available.
+
+Allowed non-sequential work:
+
+- verify completed CaseOps exports while other exports are still running;
+- run package/path smokes for ready vocab/model cells;
+- run A40 benchmarks for cells whose data and smoke gates have passed;
+- submit dependent Slurm jobs with `afterok` when the dependency is clear;
+- patch harness/parser/docs while compute jobs run;
+- parse completed runs and update matrix summaries before all cells finish.
+
+Do not bypass cell-level gates. Each `(model_variant, vocab_size, seed)` cell
+still needs:
+
+```text
+verified CaseOps data -> package/path smoke -> benchmark -> parsed metrics
+```
+
+When working out of numeric phase order, record why in the active phase file and
+update the plan if the dependency graph changes.
+
 ## Phase Files
 
 Each phase plan must be named:
@@ -166,4 +190,3 @@ Decision:
 
 - ...
 ```
-

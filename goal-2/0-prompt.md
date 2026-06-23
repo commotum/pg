@@ -19,6 +19,8 @@ Important constraints:
 - Do not request H100/H200, multi-GPU, long jobs, destructive changes, or broad sweeps without explicit approval.
 - Parallelize independent jobs when safe, especially seed batches, package smokes, and vocab probes.
 - Preserve dependency order: data export -> package/path smoke -> benchmark.
+- Do not wait idly for strict phase order when independent useful work is available. It is acceptable to work non-sequentially across phases and matrix cells when dependencies are satisfied.
+- If a data export is still running, do other ready work: verify completed exports, patch harnesses, run package smokes for ready vocab/model cells, submit Slurm jobs with `afterok` dependencies, parse completed runs, or update docs.
 
 Lean A40 default:
 
@@ -34,7 +36,7 @@ single GPU
 primary score=post-quant no-TTT BPB
 ```
 
-Use the common record-track CaseOps `sp8192` vocab as the dense baseline point. Then test qMLP at:
+Use the common record-track CaseOps `sp8192` vocab as the first sanity point, not as the only dense baseline. The benchmark target is a paired dense/qMLP matrix across:
 
 ```text
 1024
@@ -43,6 +45,23 @@ Use the common record-track CaseOps `sp8192` vocab as the dense baseline point. 
 8192
 16384
 ```
+
+For every verified CaseOps vocab size, run both core models:
+
+```text
+dense A40-friendly CaseOps
+qMLP A40-friendly CaseOps
+```
+
+For every valid `(model_variant, vocab_size)` pair, collect three benchmark seeds:
+
+```text
+42
+0
+1
+```
+
+Run these as independent one-A40 jobs in parallel where Slurm/account limits allow. If all cells cannot run at once, run the maximum schedulable subset and document the fallback. Use job arrays or a manifest-driven launcher with a concurrency cap when that is cleaner than hand-submitting many commands.
 
 CaseOps policy:
 
@@ -57,6 +76,8 @@ For each phase:
 2. Implement the phase.
 3. Update `goal-2/0-plan.md`, `goal-2/0-loop.md` if needed, the current phase file, and any earlier phase files whose assumptions changed.
 4. Decide whether to continue, revise, repeat narrowly, block, abandon, or escalate.
+
+Phase order is a dependency graph, not a blocking queue. If Phase 1 data prep for one vocab is pending but Phase 3/4 work is ready for another vocab, proceed with the ready cells and record the dependency status in the relevant phase files. Do not bypass required gates for a cell: that cell still needs verified data, package/path smoke, then benchmark.
 
 Record for every benchmark:
 
@@ -76,4 +97,3 @@ Record for every benchmark:
 - failure mode if any.
 
 Avoid token-wasting loops. If a phase depends on fat work such as full TTT, FA3/Hopper kernels, 8xH100 scaling, or broad full-wallclock tuning, revise the phase into a smaller lean A40 test or ask for explicit approval.
-
