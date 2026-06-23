@@ -554,6 +554,9 @@ Exit criteria:
 - User direction added `sp32768` to the goal for both dense and qMLP formats
   with three seeds each. `sp32768` has no existing CaseOps export yet, so Phase
   1 is reopened for that vocab before Phase 3 smoke and Phase 4 benchmark jobs.
+- Submitted `sp32768` CaseOps export job `20486174` with 32 CPUs and 96 GB
+  memory. Dense and qMLP `sp32768` smoke jobs `20486178` and `20486179` are
+  queued with `afterok:20486174`.
 - Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
   Slurm cap. Total elapsed includes validation, EMA, serialization,
   quantization, compression, and metrics parsing.

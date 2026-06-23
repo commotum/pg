@@ -252,9 +252,15 @@ New facts:
 - User direction added `sp32768` to the goal for both dense and qMLP formats
   with three seeds each. These cells must enter Phase 4 only after the
   `sp32768` CaseOps export verifies and dense/qMLP Phase 3 smokes complete.
+- Dense/qMLP `sp32768` smoke jobs are queued behind the export dependency as
+  jobs `20486178` and `20486179`; do not submit `sp32768` benchmarks until
+  those smokes produce metrics.
 
 Decision:
 
 - Continue monitoring Phase 4 jobs until all submitted cells have either
   completed, failed, or been explicitly excluded.
 - Rerun the Phase 5 summarizer after each meaningful batch of new metrics.
+- After `sp32768` smokes complete, submit three benchmark seeds for dense and
+  qMLP. If dense or qMLP `sp32768` exceeds 16 MB, keep it labeled as a
+  user-directed diagnostic control.

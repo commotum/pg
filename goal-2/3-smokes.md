@@ -118,6 +118,8 @@ Submitted smoke jobs:
 | `8192` | qMLP | `20485701` | completed |
 | `16384` | dense | `20485702` | completed, over budget |
 | `16384` | qMLP | `20485703` | completed |
+| `32768` | dense | `20486178` | pending dependency on export `20486174` |
+| `32768` | qMLP | `20486179` | pending dependency on export `20486174` |
 
 Completed smoke metrics:
 
@@ -153,6 +155,9 @@ New facts:
   `2048`, `4096`, `8192`, and `16384`.
 - User direction added `sp32768` to the goal for dense and qMLP. It should be
   smoke-tested for both model variants after its CaseOps export verifies.
+- Dependent smoke jobs were submitted immediately to avoid idle handoff time:
+  dense `sp32768` smoke job `20486178` and qMLP `sp32768` smoke job `20486179`,
+  both with `afterok:20486174` on the `sp32768` CaseOps export.
 - The first two completed smoke cells are under the 16 MB cap and did not run
   TTT.
 - qMLP `sp2048` and dense `sp8192` were released to Phase 4 three-seed
@@ -178,4 +183,5 @@ Decision:
 
 - Phase 3 smoke gates for the original five target vocabs have resolved.
 - Continue monitoring Phase 4/5 for those jobs while Phase 1 prepares
-  `sp32768`; then submit dense and qMLP `sp32768` smokes.
+  `sp32768`; the dense and qMLP `sp32768` smokes are already queued behind the
+  export dependency.

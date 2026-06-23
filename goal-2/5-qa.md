@@ -143,6 +143,8 @@ New facts:
 - User direction added `sp32768` dense and qMLP cells with three seeds each.
   QA must keep those cells out of the benchmark matrix until their CaseOps
   export and Phase 3 smoke gates exist.
+- The `sp32768` export job is `20486174`; dependent smoke jobs are dense
+  `20486178` and qMLP `20486179`.
 
 Decision:
 
