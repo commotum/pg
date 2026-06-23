@@ -126,12 +126,18 @@ New facts:
   by `1.01200596` BPB.
 - Dense `sp2048` seed `0` completed; paired qMLP `sp2048` seed `0` is better
   by `0.95995357` BPB.
+- Dense `sp2048` seed `1` completed; dense `sp2048` is now a complete
+  three-seed cell with mean quantized BPB `4.26447164`, and qMLP `sp2048`
+  beats the matched dense mean by `1.00708509` BPB.
 - qMLP `sp1024` is now a complete three-seed cell with mean quantized BPB
   `3.36463320`, standard deviation `0.00831364`, and all runs under the 16 MB
   cap.
 - Dense `sp4096` smoke job `20485825` produced under-cap metrics at `14818388`
   total submission bytes. Its three Phase 4 benchmark jobs are now submitted as
   `20486127`, `20486128`, and `20486129`.
+- Dense diagnostic `sp16384` seed `42` completed with quantized BPB
+  `3.60139160`, but it is over budget at `18133059` total submission bytes.
+  The summarizer correctly marks it as `over_budget`, not `complete`.
 
 Decision:
 

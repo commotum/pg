@@ -155,6 +155,7 @@ Completed benchmark metrics:
 | `2048` | qMLP | `1` | `20485756` | `3.22433420` | `3.21899798` | `66` | `6815170` | `26212` | `cn-r-5` | `0` |
 | `2048` | dense | `42` | `20485814` | `4.28219257` | `4.26377910` | `66` | `14317100` | `26537` | `cn-r-5` | `0` |
 | `2048` | dense | `0` | `20485815` | `4.23759240` | `4.22273113` | `65` | `14316662` | `26537` | `cn-r-5` | `0` |
+| `2048` | dense | `1` | `20485816` | `4.27362994` | `4.25696812` | `66` | `14317323` | `26537` | `cn-r-1` | `0` |
 | `8192` | dense | `42` | `20485757` | `3.63584015` | `3.62495393` | `64` | `15948267` | `29258` | `cn-r-5` | `0` |
 | `8192` | dense | `0` | `20485758` | `3.68862843` | `3.67814286` | `64` | `15946672` | `29258` | `cn-r-1` | `0` |
 | `8192` | dense | `1` | `20485759` | `3.65672897` | `3.64769098` | `64` | `15946703` | `29258` | `cn-r-5` | `0` |
@@ -164,6 +165,7 @@ Completed benchmark metrics:
 | `16384` | qMLP | `42` | `20485788` | `2.99116918` | `2.99016518` | `62` | `10654489` | `32564` | `cn-r-1` | `0` |
 | `16384` | qMLP | `0` | `20485789` | `2.99607641` | `2.99378620` | `62` | `10654853` | `32564` | `cn-r-2` | `0` |
 | `16384` | qMLP | `1` | `20485790` | `3.00104931` | `2.99901433` | `62` | `10655635` | `32564` | `cn-r-5` | `0` |
+| `16384` | dense | `42` | `20485837` | `3.60139160` | `3.59443636` | `61` | `18133059` | `32891` | `cn-r-5` | `0` |
 
 Completed cell summaries:
 
@@ -171,6 +173,7 @@ Completed cell summaries:
 | --- | --- | --- | ---: | ---: | ---: | --- |
 | `1024` | qMLP | `42,0,1` | `3.36463320` | `3.35967999` | `66` | complete under-cap qMLP cell |
 | `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
+| `2048` | dense | `42,0,1` | `4.26447164` | `4.24782612` | `65.67` | complete under-cap dense control; qMLP wins matched mean by `1.00708509` BPB |
 | `8192` | dense | `42,0,1` | `3.66039918` | `3.65026259` | `64` | complete under-cap dense baseline cell |
 | `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
 | `16384` | qMLP | `42,0,1` | `2.99609830` | `2.99432190` | `62` | current best qMLP cell |
@@ -181,9 +184,16 @@ Current paired deltas:
 | --- | ---: | ---: | ---: | ---: |
 | `2048` | `42` | `4.28219257` | `3.27018661` | `-1.01200596` |
 | `2048` | `0` | `4.23759240` | `3.27763883` | `-0.95995357` |
+| `2048` | `1` | `4.27362994` | `3.22433420` | `-1.04929574` |
 | `8192` | `42` | `3.63584015` | `3.02871907` | `-0.60712108` |
 | `8192` | `0` | `3.68862843` | `3.01040323` | `-0.67822520` |
 | `8192` | `1` | `3.65672897` | `3.01325051` | `-0.64347846` |
+
+Diagnostic over-budget paired deltas:
+
+| Vocab | Seed | Dense Quant BPB | qMLP Quant BPB | qMLP - Dense | Note |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `16384` | `42` | `3.60139160` | `2.99116918` | `-0.61022242` | dense package is over cap at `18133059` bytes |
 
 Artifacts:
 
@@ -221,6 +231,9 @@ New facts:
   qMLP `sp2048` beats it by `1.01200596` BPB.
 - Dense `sp2048` seed `0` completed under the 16 MB cap. On the paired seed,
   qMLP `sp2048` beats it by `0.95995357` BPB.
+- Dense `sp2048` seed `1` completed under the 16 MB cap. Dense `sp2048` is now
+  a complete three-seed cell with mean quantized BPB `4.26447164`; qMLP
+  `sp2048` wins the matched mean by `1.00708509` BPB.
 - qMLP `sp4096` smoke passed under the 16 MB cap and released three Phase 4
   benchmark jobs: `20486109`, `20486110`, and `20486111`.
 - qMLP `sp1024` seeds `42`, `0`, and `1` completed under the 16 MB cap with
@@ -228,6 +241,9 @@ New facts:
 - Dense `sp4096` smoke job `20485825` completed under the 16 MB cap at
   `14818388` total submission bytes and released three Phase 4 benchmark jobs:
   `20486127`, `20486128`, and `20486129`.
+- Dense diagnostic `sp16384` seed `42` completed over budget with quantized BPB
+  `3.60139160` and total submission size `18133059` bytes. It is useful as an
+  over-budget control only and remains excluded from compliant rankings.
 
 Decision:
 

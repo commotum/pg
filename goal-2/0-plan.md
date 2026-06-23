@@ -551,6 +551,8 @@ Exit criteria:
   quantization, compression, and metrics parsing.
 - qMLP `sp2048` has completed all three Phase 4 seeds with mean quantized BPB
   `3.25738655`.
+- Dense `sp2048` has completed all three Phase 4 seeds with mean quantized BPB
+  `4.26447164`; qMLP `sp2048` wins the matched mean by `1.00708509` BPB.
 - qMLP `sp1024` has completed all three Phase 4 seeds with mean quantized BPB
   `3.36463320`.
 - Dense `sp8192` has completed all three Phase 4 seeds with mean quantized BPB
@@ -564,6 +566,9 @@ Exit criteria:
   current best completed qMLP cell.
 - Dense `sp16384` is intentionally included as an over-budget diagnostic, not a
   compliant best-under-cap candidate.
+- Dense diagnostic `sp16384` seed `42` completed with quantized BPB
+  `3.60139160` and total submission size `18133059` bytes. It remains an
+  over-budget control only.
 - Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
   submission bytes and released three Phase 4 benchmark jobs: `20486127`,
   `20486128`, and `20486129`.
