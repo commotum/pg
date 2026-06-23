@@ -124,6 +124,8 @@ New facts:
   `2.99609830` and all runs under the 16 MB cap.
 - Dense `sp2048` seed `42` completed; paired qMLP `sp2048` seed `42` is better
   by `1.01200596` BPB.
+- Dense `sp2048` seed `0` completed; paired qMLP `sp2048` seed `0` is better
+  by `0.95995357` BPB.
 
 Decision:
 
