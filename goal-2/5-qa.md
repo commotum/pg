@@ -120,6 +120,10 @@ New facts:
   comparison: qMLP `sp8192` mean quantized BPB is `3.01745760`, dense `sp8192`
   mean quantized BPB is `3.66039918`, and qMLP wins the matched three-seed mean
   by `0.64294158` BPB.
+- qMLP `sp16384` now has all three seeds complete, with mean quantized BPB
+  `2.99609830` and all runs under the 16 MB cap.
+- Dense `sp2048` seed `42` completed; paired qMLP `sp2048` seed `42` is better
+  by `1.01200596` BPB.
 
 Decision:
 

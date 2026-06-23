@@ -557,6 +557,9 @@ Exit criteria:
   `3.01745760`; dense `sp8192` completed all three seeds with mean quantized
   BPB `3.66039918`. qMLP wins the matched three-seed mean by `0.64294158` BPB
   while staying well under the 16 MB cap.
+- qMLP `sp16384` completed all three Phase 4 seeds with mean quantized BPB
+  `2.99609830` and total submission size around `10.65 MB`, making it the
+  current best completed qMLP cell.
 - Dense `sp16384` is intentionally included as an over-budget diagnostic, not a
   compliant best-under-cap candidate.
 - Phase 5 summarizer artifacts are generated under
