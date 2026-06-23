@@ -94,6 +94,9 @@ Released benchmark cells:
 
 | Vocab | Model | Seed | Job ID | Smoke Gate |
 | --- | --- | ---: | ---: | --- |
+| `1024` | dense | `42` | `20485866` | smoke `20485707`, `14009458` bytes |
+| `1024` | dense | `0` | `20485867` | smoke `20485707`, `14009458` bytes |
+| `1024` | dense | `1` | `20485868` | smoke `20485707`, `14009458` bytes |
 | `1024` | qMLP | `42` | `20485820` | smoke `20485708`, `6507663` bytes |
 | `1024` | qMLP | `0` | `20485821` | smoke `20485708`, `6507663` bytes |
 | `1024` | qMLP | `1` | `20485822` | smoke `20485708`, `6507663` bytes |
@@ -121,6 +124,12 @@ Diagnostic over-budget cells:
 | `16384` | dense | `0` | `20485838` | smoke `20485702`, `18106381` bytes, over budget |
 | `16384` | dense | `1` | `20485839` | smoke `20485702`, `18106381` bytes, over budget |
 
+Completed benchmark metrics:
+
+| Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `2048` | qMLP | `42` | `20485754` | `3.27018661` | `3.26684355` | `66` | `6812458` | `26212` | `cn-r-5` | `0` |
+
 Artifacts:
 
 - Launcher: `goal-2/4-submit-benchmark-matrix.sh`
@@ -138,13 +147,16 @@ New facts:
   benchmark jobs are queued.
 - At the fourth release, qMLP `sp1024` had passed smoke; its three-seed
   benchmark jobs are queued.
+- At the fifth compliant release, dense `sp1024` had passed smoke; its
+  three-seed benchmark jobs are queued.
 - Dense `sp16384` passed smoke functionally, but the total submission size was
   `18106381` bytes, so it is excluded from compliant Phase 4 benchmarks.
 - Per user direction, dense `sp16384` was later released as an over-budget
   diagnostic control to compare against qMLP `sp16384`. It remains excluded from
   compliant best-under-16MB rankings.
-- Dense `sp1024` and both `sp4096` variants should be released independently
-  when their smokes pass and stay under the 16 MB cap.
+- qMLP `sp2048` seed `42` completed as the first Phase 4 benchmark result.
+- Both `sp4096` variants should be released independently when their smokes pass
+  and stay under the 16 MB cap.
 
 Decision:
 
