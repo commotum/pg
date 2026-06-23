@@ -132,6 +132,7 @@ Completed benchmark metrics:
 | `2048` | qMLP | `0` | `20485755` | `3.27763883` | `3.27243947` | `66` | `6814438` | `26212` | `cn-r-2` | `0` |
 | `2048` | qMLP | `1` | `20485756` | `3.22433420` | `3.21899798` | `66` | `6815170` | `26212` | `cn-r-5` | `0` |
 | `8192` | dense | `42` | `20485757` | `3.63584015` | `3.62495393` | `64` | `15948267` | `29258` | `cn-r-5` | `0` |
+| `8192` | dense | `1` | `20485759` | `3.65672897` | `3.64769098` | `64` | `15946703` | `29258` | `cn-r-5` | `0` |
 
 Completed cell summaries:
 
@@ -165,7 +166,7 @@ New facts:
   compliant best-under-16MB rankings.
 - qMLP `sp2048` seeds `42`, `0`, and `1` completed. This is the first complete
   three-seed Phase 4 cell.
-- Dense `sp8192` seed `42` completed under the 16 MB cap.
+- Dense `sp8192` seeds `42` and `1` completed under the 16 MB cap.
 - Both `sp4096` variants should be released independently when their smokes pass
   and stay under the 16 MB cap.
 

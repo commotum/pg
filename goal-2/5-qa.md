@@ -94,15 +94,28 @@ Evidence:
 
 - Phase file created.
 - Matrix summarizer added at `goal-2/5-summarize-matrix.py`.
+- Local syntax check passed with `python3 -m py_compile`.
+- A no-data local smoke run wrote `/tmp/goal2-summary-test/matrix-summary.md`.
+- The script was synced to HPC and ran successfully with the submit-node
+  default `python3`.
+- Current generated HPC summary:
+  `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/matrix-summary.md`
 
 Artifacts:
 
 - `goal-2/5-summarize-matrix.py`
+- `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/matrix-runs.tsv`
+- `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/matrix-summary.tsv`
+- `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/paired-deltas.tsv`
+- `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/matrix-summary.md`
 
 New facts:
 
 - The first complete Phase 4 cell is qMLP `sp2048`, with seeds `42`, `0`, and
   `1` complete.
+- Dense `sp8192` has two completed seeds so far: `42` and `1`.
+- The first summarizer run had no paired dense-vs-qMLP deltas yet because no
+  vocab has both variants completed for matching seeds.
 
 Decision:
 
