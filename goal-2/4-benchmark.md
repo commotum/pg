@@ -103,7 +103,7 @@ Evidence:
   continued through eval, serialization, GPTQ, and compression.
 - Per user direction, Phase 4 jobs are released for each individual smoke-passing setup as soon as it passes; the plan does not wait for all Phase 3 smokes to complete.
 
-Released benchmark cells:
+Released benchmark and diagnostic cells:
 
 | Vocab | Model | Seed | Job ID | Smoke Gate |
 | --- | --- | ---: | ---: | --- |
@@ -131,17 +131,12 @@ Released benchmark cells:
 | `8192` | qMLP | `42` | `20485785` | smoke `20485701`, `8421755` bytes |
 | `8192` | qMLP | `0` | `20485786` | smoke `20485701`, `8421755` bytes |
 | `8192` | qMLP | `1` | `20485787` | smoke `20485701`, `8421755` bytes |
-| `16384` | qMLP | `42` | `20485788` | smoke `20485703`, `10615703` bytes |
-| `16384` | qMLP | `0` | `20485789` | smoke `20485703`, `10615703` bytes |
-| `16384` | qMLP | `1` | `20485790` | smoke `20485703`, `10615703` bytes |
-
-Diagnostic over-budget cells:
-
-| Vocab | Model | Seed | Job ID | Smoke Gate |
-| --- | --- | ---: | ---: | --- |
 | `16384` | dense | `42` | `20485837` | smoke `20485702`, `18106381` bytes, over budget |
 | `16384` | dense | `0` | `20485838` | smoke `20485702`, `18106381` bytes, over budget |
 | `16384` | dense | `1` | `20485839` | smoke `20485702`, `18106381` bytes, over budget |
+| `16384` | qMLP | `42` | `20485788` | smoke `20485703`, `10615703` bytes |
+| `16384` | qMLP | `0` | `20485789` | smoke `20485703`, `10615703` bytes |
+| `16384` | qMLP | `1` | `20485790` | smoke `20485703`, `10615703` bytes |
 
 Completed benchmark metrics:
 
