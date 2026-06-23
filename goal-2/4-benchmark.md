@@ -90,7 +90,7 @@ Phase 4 is complete when:
 
 ## Result
 
-Status: pending
+Status: complete
 
 Evidence:
 
@@ -148,6 +148,15 @@ Released benchmark and diagnostic cells:
 | `32768` | qMLP | `0` | `20486318` | smoke `20486179`, `15004432` bytes |
 | `32768` | qMLP | `1` | `20486319` | smoke `20486179`, `15004432` bytes |
 
+`sp32768` cleanup reruns after the original `01:15:00` jobs timed out after
+final diagnostics:
+
+| Vocab | Model | Seed | Job ID | Reason |
+| --- | --- | ---: | ---: | --- |
+| `32768` | dense | `42` | `20487148` | clean 3-hour rerun for timed-out job `20486314` |
+| `32768` | qMLP | `42` | `20487146` | clean 3-hour rerun for timed-out job `20486317` |
+| `32768` | qMLP | `0` | `20487147` | clean 3-hour rerun for timed-out job `20486318` |
+
 Completed benchmark metrics:
 
 | Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
@@ -182,16 +191,21 @@ Completed benchmark metrics:
 | `16384` | qMLP | `42` | `20485788` | `2.99116918` | `2.99016518` | `62` | `10654489` | `32564` | `cn-r-1` | `0` |
 | `16384` | qMLP | `0` | `20485789` | `2.99607641` | `2.99378620` | `62` | `10654853` | `32564` | `cn-r-2` | `0` |
 | `16384` | qMLP | `1` | `20485790` | `3.00104931` | `2.99901433` | `62` | `10655635` | `32564` | `cn-r-5` | `0` |
+| `32768` | dense | `42` | `20487148` | `3.58922764` | `3.58457940` | `57` | `22498076` | `40157` | `cn-r-2` | `0` |
 | `32768` | dense | `0` | `20486315` | `3.55337067` | `3.54725758` | `57` | `22491882` | `40157` | `cn-r-5` | `0` |
 | `32768` | dense | `1` | `20486316` | `3.54736056` | `3.54276834` | `57` | `22499431` | `40157` | `cn-r-5` | `0` |
+| `32768` | qMLP | `42` | `20487146` | `3.04764432` | `3.04559460` | `57` | `15021645` | `39831` | `cn-r-1` | `0` |
+| `32768` | qMLP | `0` | `20487147` | `3.03884955` | `3.03672118` | `57` | `15022871` | `39831` | `cn-r-1` | `0` |
 | `32768` | qMLP | `1` | `20486319` | `3.01680995` | `3.01534417` | `57` | `15023513` | `39831` | `cn-r-5` | `0` |
 
-Timeout-recovered benchmark metrics:
+Superseded timeout-recovered benchmark metrics:
 
 These rows timed out at the Slurm `01:15:00` limit after printing final
 prequant/quantized diagnostics in `train.log` but before the harness wrote
 `COMPLETE.txt`. The parser recovered `metrics.env` from logs and preserves
-`complete_file=0`, so these rows are diagnostic evidence, not clean completions.
+`complete_file=0`. They are retained as historical diagnostics only; the
+`sp32768` summaries below now use the clean 3-hour reruns for dense seed `42`
+and qMLP seeds `42` and `0`.
 
 | Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
@@ -213,16 +227,15 @@ Completed cell summaries:
 | `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
 | `16384` | dense | `42,0,1` | `3.57978517` | `3.57264240` | `61.67` | complete over-budget diagnostic; all three runs exceed 16 MB |
 | `16384` | qMLP | `42,0,1` | `2.99609830` | `2.99432190` | `62` | current best qMLP cell |
-| `32768` | dense | `0,1` | `3.55036562` | `3.54501296` | `57` | clean completed over-budget diagnostic seeds; seed `42` timed out after final log metrics |
-| `32768` | qMLP | `1` | `3.01680995` | `3.01534417` | `57` | clean completed under-cap qMLP seed; seeds `42` and `0` timed out after final log metrics |
+| `32768` | dense | `42,0,1` | `3.56331962` | `3.55820177` | `57` | complete over-budget diagnostic; seed `42` uses clean 3-hour rerun `20487148` |
+| `32768` | qMLP | `42,0,1` | `3.03410127` | `3.03255332` | `57` | complete under-cap frontier diagnostic; seeds `42` and `0` use clean 3-hour reruns `20487146` and `20487147`; worse than qMLP `sp16384` |
 
-Partial cell summaries:
+Superseded timeout-recovered cell summaries:
 
-No submitted Phase 4 cells are waiting on metrics. The only non-clean rows are
-`sp32768` jobs `20486314`, `20486317`, and `20486318`, which timed out after
-printing final diagnostics and were recovered from `train.log`.
-
-Timeout-recovered diagnostic cell summaries:
+No submitted Phase 4 cells are waiting on metrics. The original non-clean
+`sp32768` jobs `20486314`, `20486317`, and `20486318` were replaced by clean
+3-hour reruns and are no longer used for current means. The historical
+timeout-recovered means were:
 
 | Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
 | --- | --- | --- | ---: | ---: | ---: | --- |
@@ -245,7 +258,6 @@ Current paired deltas:
 | `8192` | `42` | `3.63584015` | `3.02871907` | `-0.60712108` |
 | `8192` | `0` | `3.68862843` | `3.01040323` | `-0.67822520` |
 | `8192` | `1` | `3.65672897` | `3.01325051` | `-0.64347846` |
-| `32768` | `1` | `3.54736056` | `3.01680995` | `-0.53055061` |
 
 Diagnostic over-budget paired deltas:
 
@@ -254,8 +266,8 @@ Diagnostic over-budget paired deltas:
 | `16384` | `42` | `3.60139160` | `2.99116918` | `-0.61022242` | dense package is over cap at `18133059` bytes |
 | `16384` | `0` | `3.56315533` | `2.99607641` | `-0.56707892` | dense package is over cap at `18134380` bytes |
 | `16384` | `1` | `3.57480857` | `3.00104931` | `-0.57375926` | dense package is over cap at `18132809` bytes |
-| `32768` | `42` | `3.59665155` | `3.01188054` | `-0.58477101` | both rows recovered from timeout logs; dense is over cap |
-| `32768` | `0` | `3.55337067` | `3.03050732` | `-0.52286335` | qMLP row recovered from timeout log; dense is over cap |
+| `32768` | `42` | `3.58922764` | `3.04764432` | `-0.54158332` | clean 3-hour reruns; dense is over cap |
+| `32768` | `0` | `3.55337067` | `3.03884955` | `-0.51452112` | qMLP uses clean 3-hour rerun; dense is over cap |
 | `32768` | `1` | `3.54736056` | `3.01680995` | `-0.53055061` | clean completed pair; dense is over cap |
 
 Artifacts:
@@ -332,22 +344,22 @@ New facts:
 - Added `goal-2/4-release-32768.sbatch`, a lightweight Slurm handoff job that
   runs `VOCABS=32768 SUBMIT=1 bash goal-2/4-submit-benchmark-matrix.sh`.
 - Dense `sp32768` benchmark seeds `0` and `1` completed cleanly but are
-  over-budget diagnostics at `22491882` and `22499431` bytes. Dense seed `42`
-  timed out after final diagnostics; recovered quantized BPB is `3.59665155`,
-  also over budget at `22497018` bytes.
+  over-budget diagnostics at `22491882` and `22499431` bytes. The original
+  dense seed `42` job timed out after final diagnostics, then clean 3-hour rerun
+  `20487148` completed with quantized BPB `3.58922764` and total submission
+  size `22498076` bytes.
 - qMLP `sp32768` seed `1` completed cleanly under the 16 MB cap at `15023513`
-  bytes with quantized BPB `3.01680995`. qMLP seeds `42` and `0` timed out
-  after final diagnostics; recovered quantized BPB values are `3.01188054` and
-  `3.03050732`, both still under the 16 MB cap.
-- Across timeout-recovered final log metrics, qMLP `sp32768` has mean quantized
-  BPB `3.01973260`, worse than qMLP `sp16384` mean `2.99609830`. This suggests
-  the useful qMLP vocab frontier is near `sp16384`, not `sp32768`, under this
-  lean A40 setup.
+  bytes with quantized BPB `3.01680995`. The original qMLP seeds `42` and `0`
+  timed out after final diagnostics, then clean 3-hour reruns `20487146` and
+  `20487147` completed with quantized BPB values `3.04764432` and `3.03884955`.
+- Across clean completed rows, qMLP `sp32768` has mean quantized BPB
+  `3.03410127`, worse than qMLP `sp16384` mean `2.99609830`. This suggests the
+  useful qMLP vocab frontier is near `sp16384`, not `sp32768`, under this lean
+  A40 setup.
 
 Decision:
 
 - Treat `sp32768` as diagnostic evidence, not the new best candidate: dense is
   over budget, and qMLP is under budget but worse than `sp16384`.
 - Rerun the Phase 5 summarizer after each meaningful batch of new metrics.
-- Keep `sp16384` qMLP as the current best completed under-cap qMLP candidate
-  unless a later rerun changes the clean-completion evidence.
+- Keep `sp16384` qMLP as the current best completed under-cap qMLP candidate.
