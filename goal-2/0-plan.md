@@ -552,20 +552,10 @@ Exit criteria:
 - The original five target CaseOps exports exist and have reached Phase 3 or
   later.
 - User direction added `sp32768` to the goal for both dense and qMLP formats
-  with three seeds each. `sp32768` has no existing CaseOps export yet, so Phase
-  1 is reopened for that vocab before Phase 3 smoke and Phase 4 benchmark jobs.
-- Submitted `sp32768` CaseOps export job `20486174` with 32 CPUs and 96 GB
-  memory. Dense and qMLP `sp32768` smoke jobs `20486178` and `20486179` are
-  queued with `afterok:20486174`.
-- `sp32768` export job `20486174` is running on `cn-d11`. Tokenizer training
-  has completed and `caseops-data.log` now shows `loaded sp: vocab=32768`, so
-  the job is in data export/sharding. Current read-only counts are
-  `tok=yes vocab=yes train=38 val=0 val_bytes=0`; smokes remain correctly
-  dependency-pending until the export completes and verifies.
-- Slurm inspection found export job `20486174` running with `TimeLimit=04:00:00`
-  after `00:54:34` elapsed. Smoke jobs `20486178` and `20486179` still depend
-  on `afterok:20486174`, and release handoff job `20486237` still depends on
-  `afterok:20486178:20486179`.
+  with three seeds each. `sp32768` CaseOps export job `20486174` completed with
+  `train=80 val=1 val_bytes=1`; dense smoke `20486178` and qMLP smoke
+  `20486179` completed; release handoff job `20486237` submitted all six
+  requested benchmark jobs.
 - Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
   Slurm cap. Total elapsed includes validation, EMA, serialization,
   quantization, compression, and metrics parsing.
@@ -606,18 +596,24 @@ Exit criteria:
   mean by `0.82815866` BPB.
 - qMLP `sp4096` completed all three Phase 4 seeds with mean quantized BPB
   `3.11496067`.
-- A Phase 4 launcher dry-run confirmed there are no missed benchmark-ready
-  cells: all smoke-passing cells are already in the submission ledger,
-  default-compliant dense `sp16384` remains skipped as over budget, and
-  `sp32768` dense/qMLP remain gated on Phase 3 smoke metrics.
+- Dense `sp32768` benchmark seeds `0` and `1` completed cleanly but are
+  over-budget diagnostics with mean quantized BPB `3.55036562`. Dense seed `42`
+  timed out after final diagnostics; recovered quantized BPB is `3.59665155`.
 - `goal-2/4-submit-benchmark-matrix.sh` now defaults
   `DIAGNOSTIC_VOCABS=32768`, so user-requested `sp32768` benchmark seeds can be
   released as diagnostic-only runs if their smokes exceed the 16 MB cap, without
   globally allowing unrelated over-budget cells.
-- Submitted lightweight release handoff job `20486237` with dependency
-  `afterok:20486178:20486179`; it runs the Phase 4 launcher for `VOCABS=32768`
-  after both `sp32768` smokes succeed, preventing idle handoff time without
-  bypassing the smoke gate.
+- qMLP `sp32768` seed `1` completed cleanly under the 16 MB cap with quantized
+  BPB `3.01680995`. qMLP seeds `42` and `0` timed out after final diagnostics;
+  recovered quantized BPB values are `3.01188054` and `3.03050732`.
+- Across all timeout-recovered final log metrics, qMLP `sp32768` mean
+  quantized BPB is `3.01973260`, worse than qMLP `sp16384` mean `2.99609830`.
+- Best clean under-cap dense candidate is dense `sp8192` with mean quantized BPB
+  `3.66039918`. Best clean under-cap qMLP candidate is qMLP `sp16384` with
+  mean quantized BPB `2.99609830`.
+- A40 evidence does not justify spending H100/H200 automatically. If the user
+  wants a confirmation run later, qMLP `sp16384` is the only Goal 2 candidate
+  worth carrying forward, and the command should be reviewed before launch.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 

@@ -141,6 +141,12 @@ Released benchmark and diagnostic cells:
 | `16384` | qMLP | `42` | `20485788` | smoke `20485703`, `10615703` bytes |
 | `16384` | qMLP | `0` | `20485789` | smoke `20485703`, `10615703` bytes |
 | `16384` | qMLP | `1` | `20485790` | smoke `20485703`, `10615703` bytes |
+| `32768` | dense | `42` | `20486314` | smoke `20486178`, `22495002` bytes, over budget diagnostic |
+| `32768` | dense | `0` | `20486315` | smoke `20486178`, `22495002` bytes, over budget diagnostic |
+| `32768` | dense | `1` | `20486316` | smoke `20486178`, `22495002` bytes, over budget diagnostic |
+| `32768` | qMLP | `42` | `20486317` | smoke `20486179`, `15004432` bytes |
+| `32768` | qMLP | `0` | `20486318` | smoke `20486179`, `15004432` bytes |
+| `32768` | qMLP | `1` | `20486319` | smoke `20486179`, `15004432` bytes |
 
 Completed benchmark metrics:
 
@@ -176,6 +182,22 @@ Completed benchmark metrics:
 | `16384` | qMLP | `42` | `20485788` | `2.99116918` | `2.99016518` | `62` | `10654489` | `32564` | `cn-r-1` | `0` |
 | `16384` | qMLP | `0` | `20485789` | `2.99607641` | `2.99378620` | `62` | `10654853` | `32564` | `cn-r-2` | `0` |
 | `16384` | qMLP | `1` | `20485790` | `3.00104931` | `2.99901433` | `62` | `10655635` | `32564` | `cn-r-5` | `0` |
+| `32768` | dense | `0` | `20486315` | `3.55337067` | `3.54725758` | `57` | `22491882` | `40157` | `cn-r-5` | `0` |
+| `32768` | dense | `1` | `20486316` | `3.54736056` | `3.54276834` | `57` | `22499431` | `40157` | `cn-r-5` | `0` |
+| `32768` | qMLP | `1` | `20486319` | `3.01680995` | `3.01534417` | `57` | `15023513` | `39831` | `cn-r-5` | `0` |
+
+Timeout-recovered benchmark metrics:
+
+These rows timed out at the Slurm `01:15:00` limit after printing final
+prequant/quantized diagnostics in `train.log` but before the harness wrote
+`COMPLETE.txt`. The parser recovered `metrics.env` from logs and preserves
+`complete_file=0`, so these rows are diagnostic evidence, not clean completions.
+
+| Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| `32768` | dense | `42` | `20486314` | `3.59665155` | `3.59219598` | `57` | `22497018` | `40157` | `cn-r-6` | `0` |
+| `32768` | qMLP | `42` | `20486317` | `3.01188054` | `3.01073204` | `57` | `15019739` | `39831` | `cn-r-2` | `0` |
+| `32768` | qMLP | `0` | `20486318` | `3.03050732` | `3.03016336` | `57` | `15020734` | `39831` | `cn-r-4` | `0` |
 
 Completed cell summaries:
 
@@ -191,12 +213,21 @@ Completed cell summaries:
 | `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
 | `16384` | dense | `42,0,1` | `3.57978517` | `3.57264240` | `61.67` | complete over-budget diagnostic; all three runs exceed 16 MB |
 | `16384` | qMLP | `42,0,1` | `2.99609830` | `2.99432190` | `62` | current best qMLP cell |
+| `32768` | dense | `0,1` | `3.55036562` | `3.54501296` | `57` | clean completed over-budget diagnostic seeds; seed `42` timed out after final log metrics |
+| `32768` | qMLP | `1` | `3.01680995` | `3.01534417` | `57` | clean completed under-cap qMLP seed; seeds `42` and `0` timed out after final log metrics |
 
 Partial cell summaries:
 
-No submitted smoke-passing Phase 4 cells currently have partial metrics. The
-only not-yet-benchmarkable cells are `sp32768` dense/qMLP, which remain gated
-on export completion and Phase 3 smoke metrics.
+No submitted Phase 4 cells are waiting on metrics. The only non-clean rows are
+`sp32768` jobs `20486314`, `20486317`, and `20486318`, which timed out after
+printing final diagnostics and were recovered from `train.log`.
+
+Timeout-recovered diagnostic cell summaries:
+
+| Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `32768` | dense | `42,0,1` | `3.56579426` | `3.56074063` | `57` | all three final log metrics; all three runs exceed 16 MB |
+| `32768` | qMLP | `42,0,1` | `3.01973260` | `3.01874652` | `57` | all three final log metrics; all three runs stay under 16 MB |
 
 Current paired deltas:
 
@@ -214,6 +245,7 @@ Current paired deltas:
 | `8192` | `42` | `3.63584015` | `3.02871907` | `-0.60712108` |
 | `8192` | `0` | `3.68862843` | `3.01040323` | `-0.67822520` |
 | `8192` | `1` | `3.65672897` | `3.01325051` | `-0.64347846` |
+| `32768` | `1` | `3.54736056` | `3.01680995` | `-0.53055061` |
 
 Diagnostic over-budget paired deltas:
 
@@ -222,6 +254,9 @@ Diagnostic over-budget paired deltas:
 | `16384` | `42` | `3.60139160` | `2.99116918` | `-0.61022242` | dense package is over cap at `18133059` bytes |
 | `16384` | `0` | `3.56315533` | `2.99607641` | `-0.56707892` | dense package is over cap at `18134380` bytes |
 | `16384` | `1` | `3.57480857` | `3.00104931` | `-0.57375926` | dense package is over cap at `18132809` bytes |
+| `32768` | `42` | `3.59665155` | `3.01188054` | `-0.58477101` | both rows recovered from timeout logs; dense is over cap |
+| `32768` | `0` | `3.55337067` | `3.03050732` | `-0.52286335` | qMLP row recovered from timeout log; dense is over cap |
+| `32768` | `1` | `3.54736056` | `3.01680995` | `-0.53055061` | clean completed pair; dense is over cap |
 
 Artifacts:
 
@@ -288,32 +323,31 @@ New facts:
   has all three diagnostic seeds complete with mean quantized BPB `3.57978517`;
   all three runs remain excluded from compliant rankings.
 - User direction added `sp32768` to the goal for both dense and qMLP formats
-  with three seeds each. These cells must enter Phase 4 only after the
-  `sp32768` CaseOps export verifies and dense/qMLP Phase 3 smokes complete.
-- Dense/qMLP `sp32768` smoke jobs are queued behind the export dependency as
-  jobs `20486178` and `20486179`; do not submit `sp32768` benchmarks until
-  those smokes produce metrics.
-- A fresh Phase 4 launcher dry-run confirmed that all smoke-passing cells already
-  have submitted benchmark seeds in the ledger, dense `sp16384` remains skipped
-  by default as over budget, and `sp32768` dense/qMLP are skipped because Phase
-  3 smoke metrics do not exist yet.
+  with three seeds each. The `sp32768` export and dense/qMLP smokes completed,
+  and release handoff job `20486237` submitted all six requested benchmark jobs:
+  `20486314`, `20486315`, `20486316`, `20486317`, `20486318`, and `20486319`.
 - The launcher now treats `sp32768` as the only default diagnostic vocab. If an
   `sp32768` smoke is over budget, its benchmark seeds can still be released
   without globally allowing unrelated over-budget cells.
 - Added `goal-2/4-release-32768.sbatch`, a lightweight Slurm handoff job that
   runs `VOCABS=32768 SUBMIT=1 bash goal-2/4-submit-benchmark-matrix.sh`.
-- Submitted release handoff job `20486237` with dependency
-  `afterok:20486178:20486179`, so `sp32768` benchmarks are released only if
-  both dense and qMLP smokes complete successfully.
-- Slurm inspection confirmed handoff job `20486237` still has
-  `Dependency=afterok:20486178(unfulfilled),afterok:20486179(unfulfilled)`,
-  so no manual benchmark release is needed while both smokes are dependency-held.
+- Dense `sp32768` benchmark seeds `0` and `1` completed cleanly but are
+  over-budget diagnostics at `22491882` and `22499431` bytes. Dense seed `42`
+  timed out after final diagnostics; recovered quantized BPB is `3.59665155`,
+  also over budget at `22497018` bytes.
+- qMLP `sp32768` seed `1` completed cleanly under the 16 MB cap at `15023513`
+  bytes with quantized BPB `3.01680995`. qMLP seeds `42` and `0` timed out
+  after final diagnostics; recovered quantized BPB values are `3.01188054` and
+  `3.03050732`, both still under the 16 MB cap.
+- Across timeout-recovered final log metrics, qMLP `sp32768` has mean quantized
+  BPB `3.01973260`, worse than qMLP `sp16384` mean `2.99609830`. This suggests
+  the useful qMLP vocab frontier is near `sp16384`, not `sp32768`, under this
+  lean A40 setup.
 
 Decision:
 
-- Continue monitoring Phase 4 jobs until all submitted cells have either
-  completed, failed, or been explicitly excluded.
+- Treat `sp32768` as diagnostic evidence, not the new best candidate: dense is
+  over budget, and qMLP is under budget but worse than `sp16384`.
 - Rerun the Phase 5 summarizer after each meaningful batch of new metrics.
-- After `sp32768` smokes complete, submit three benchmark seeds for dense and
-  qMLP. If dense or qMLP `sp32768` exceeds 16 MB, keep it labeled as a
-  user-directed diagnostic control and exclude it from compliant rankings.
+- Keep `sp16384` qMLP as the current best completed under-cap qMLP candidate
+  unless a later rerun changes the clean-completion evidence.

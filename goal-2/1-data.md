@@ -155,6 +155,7 @@ Artifacts:
   - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp1024`
   - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp2048`
   - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp4096`
+  - `/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp32768`
 
 Decision:
 

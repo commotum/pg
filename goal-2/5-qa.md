@@ -154,18 +154,26 @@ New facts:
   Dense `sp16384` is now a complete three-seed diagnostic cell with mean
   quantized BPB `3.57978517`; all three runs are marked over budget.
 - User direction added `sp32768` dense and qMLP cells with three seeds each.
-  QA must keep those cells out of the benchmark matrix until their CaseOps
-  export and Phase 3 smoke gates exist.
-- The `sp32768` export job is `20486174`; dependent smoke jobs are dense
-  `20486178` and qMLP `20486179`.
-- A Phase 4 launcher dry-run after the `sp32768` update showed no missed
-  benchmark-ready cells. `sp32768` dense/qMLP are still correctly skipped for
-  lack of Phase 3 smoke metrics.
-- The Phase 4 launcher defaults `DIAGNOSTIC_VOCABS=32768`, so an over-budget
-  `sp32768` smoke can still release the requested three benchmark seeds per
-  model while remaining diagnostic-only in QA.
+  The `sp32768` export, dense/qMLP smokes, and release handoff completed.
+- Dense `sp32768` smoke is over budget, and all dense `sp32768` benchmark
+  evidence is diagnostic only. Dense seeds `0` and `1` completed cleanly; seed
+  `42` timed out after final diagnostics and was recovered from `train.log`.
+- qMLP `sp32768` seed `1` completed cleanly under the cap. qMLP seeds `42` and
+  `0` timed out after final diagnostics and were recovered from `train.log`.
+  Recovered qMLP `sp32768` mean quantized BPB is `3.01973260`, worse than
+  qMLP `sp16384` mean `2.99609830`.
+- The summarizer now marks timeout-recovered rows as `incomplete` because
+  `complete_file=0`, while still preserving their BPB and package-size fields
+  for diagnostic review.
+- Best clean under-cap dense candidate is dense `sp8192` with mean quantized BPB
+  `3.66039918`. Best clean under-cap qMLP candidate is qMLP `sp16384` with
+  mean quantized BPB `2.99609830`.
 
 Decision:
 
-- Run the summarizer on HPC after syncing and after each meaningful batch of new
-  Phase 4 metrics.
+- Treat qMLP `sp16384` as the current best under-cap qMLP candidate unless a
+  later clean rerun changes the evidence. Treat `sp32768` as diagnostic rather
+  than a new contender.
+- Do not launch H100/H200 work from Goal 2 automatically. If the user chooses
+  to confirm later, qMLP `sp16384` is the only current Goal 2 carry-forward
+  candidate and should have its exact command reviewed first.

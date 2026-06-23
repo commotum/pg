@@ -120,8 +120,8 @@ Submitted smoke jobs:
 | `8192` | qMLP | `20485701` | completed |
 | `16384` | dense | `20485702` | completed, over budget |
 | `16384` | qMLP | `20485703` | completed |
-| `32768` | dense | `20486178` | pending dependency on export `20486174` |
-| `32768` | qMLP | `20486179` | pending dependency on export `20486174` |
+| `32768` | dense | `20486178` | completed, over budget |
+| `32768` | qMLP | `20486179` | completed |
 
 Completed smoke metrics:
 
@@ -137,12 +137,12 @@ Completed smoke metrics:
 | `8192` | qMLP | `20485701` | `4.17319096` | `8421755` | `7497` | `cn-r-1` | `0` |
 | `16384` | dense | `20485702` | `4.20013989` | `18106381` | `8683` | `cn-r-5` | `0` |
 | `16384` | qMLP | `20485703` | `4.19746524` | `10615703` | `8423` | `cn-r-5` | `0` |
+| `32768` | dense | `20486178` | `4.31113808` | `22495002` | `10539` | `cn-r-4` | `0` |
+| `32768` | qMLP | `20486179` | `4.30830170` | `15004432` | `10281` | `cn-r-6` | `0` |
 
 Skipped cells:
 
-| Vocab | Reason |
-| --- | --- |
-| `32768` | CaseOps export is running; tokenizer/vocab exist, but train/validation shards are not ready yet |
+No Phase 3 smoke cells are currently skipped.
 
 Artifacts:
 
@@ -155,22 +155,12 @@ New facts:
   launched cells.
 - The original smoke matrix covers the first five target vocabs: `1024`,
   `2048`, `4096`, `8192`, and `16384`.
-- User direction added `sp32768` to the goal for dense and qMLP. It should be
-  smoke-tested for both model variants after its CaseOps export verifies. The
-  tokenizer and vocab now exist, but shard counts are still `train=38 val=0
-  val_bytes=0`.
-- Dependent smoke jobs were submitted immediately to avoid idle handoff time:
-  dense `sp32768` smoke job `20486178` and qMLP `sp32768` smoke job `20486179`,
-  both with `afterok:20486174` on the `sp32768` CaseOps export.
-- Slurm inspection confirmed both smoke jobs still have
-  `Dependency=afterok:20486174(unfulfilled)`, so they remain correctly held
-  until the export exits successfully.
-- Dependent Phase 4 release handoff job `20486237` is queued behind both
-  `sp32768` smokes with `afterok:20486178:20486179`; it will release the six
-  `sp32768` benchmark seeds only after both smokes succeed.
-- If `sp32768` smoke exceeds the 16 MB cap, it remains user-directed diagnostic
-  work and should still release three dense and three qMLP benchmark seeds,
-  excluded from compliant best-under-cap rankings.
+- `sp32768` CaseOps export job `20486174` completed successfully, then dense
+  smoke job `20486178` and qMLP smoke job `20486179` completed successfully.
+- Dense `sp32768` smoke is over budget at `22495002` total submission bytes.
+  qMLP `sp32768` smoke is under the 16 MB cap at `15004432` bytes.
+- Dependent Phase 4 release handoff job `20486237` completed and released the
+  requested six `sp32768` benchmark jobs.
 - The first two completed smoke cells are under the 16 MB cap and did not run
   TTT.
 - qMLP `sp2048` and dense `sp8192` were released to Phase 4 three-seed
@@ -194,7 +184,6 @@ New facts:
 
 Decision:
 
-- Phase 3 smoke gates for the original five target vocabs have resolved.
-- Continue monitoring Phase 4/5 for those jobs while Phase 1 prepares
-  `sp32768`; the dense and qMLP `sp32768` smokes are already queued behind the
-  export dependency.
+- Phase 3 smoke gates for all six target vocabs have resolved.
+- Dense `sp32768` is over budget and remains diagnostic-only; qMLP `sp32768`
+  passed smoke under the 16 MB cap.
