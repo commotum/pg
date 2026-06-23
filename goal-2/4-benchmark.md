@@ -167,6 +167,7 @@ Completed benchmark metrics:
 | `16384` | qMLP | `1` | `20485790` | `3.00104931` | `2.99901433` | `62` | `10655635` | `32564` | `cn-r-5` | `0` |
 | `16384` | dense | `42` | `20485837` | `3.60139160` | `3.59443636` | `61` | `18133059` | `32891` | `cn-r-5` | `0` |
 | `16384` | dense | `0` | `20485838` | `3.56315533` | `3.55324698` | `62` | `18134380` | `32891` | `cn-r-5` | `0` |
+| `16384` | dense | `1` | `20485839` | `3.57480857` | `3.57024485` | `62` | `18132809` | `32891` | `cn-r-2` | `0` |
 
 Completed cell summaries:
 
@@ -177,6 +178,7 @@ Completed cell summaries:
 | `2048` | dense | `42,0,1` | `4.26447164` | `4.24782612` | `65.67` | complete under-cap dense control; qMLP wins matched mean by `1.00708509` BPB |
 | `8192` | dense | `42,0,1` | `3.66039918` | `3.65026259` | `64` | complete under-cap dense baseline cell |
 | `8192` | qMLP | `42,0,1` | `3.01745760` | `3.01546700` | `64` | complete under-cap qMLP cell |
+| `16384` | dense | `42,0,1` | `3.57978517` | `3.57264240` | `61.67` | complete over-budget diagnostic; all three runs exceed 16 MB |
 | `16384` | qMLP | `42,0,1` | `2.99609830` | `2.99432190` | `62` | current best qMLP cell |
 
 Current paired deltas:
@@ -196,6 +198,7 @@ Diagnostic over-budget paired deltas:
 | --- | ---: | ---: | ---: | ---: | --- |
 | `16384` | `42` | `3.60139160` | `2.99116918` | `-0.61022242` | dense package is over cap at `18133059` bytes |
 | `16384` | `0` | `3.56315533` | `2.99607641` | `-0.56707892` | dense package is over cap at `18134380` bytes |
+| `16384` | `1` | `3.57480857` | `3.00104931` | `-0.57375926` | dense package is over cap at `18132809` bytes |
 
 Artifacts:
 
@@ -249,6 +252,10 @@ New facts:
 - Dense diagnostic `sp16384` seed `0` completed over budget with quantized BPB
   `3.56315533` and total submission size `18134380` bytes. It remains excluded
   from compliant rankings.
+- Dense diagnostic `sp16384` seed `1` completed over budget with quantized BPB
+  `3.57480857` and total submission size `18132809` bytes. Dense `sp16384` now
+  has all three diagnostic seeds complete with mean quantized BPB `3.57978517`;
+  all three runs remain excluded from compliant rankings.
 - User direction added `sp32768` to the goal for both dense and qMLP formats
   with three seeds each. These cells must enter Phase 4 only after the
   `sp32768` CaseOps export verifies and dense/qMLP Phase 3 smokes complete.

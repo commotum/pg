@@ -140,6 +140,10 @@ New facts:
   The summarizer correctly marks it as `over_budget`, not `complete`.
 - Dense diagnostic `sp16384` seed `0` completed with quantized BPB
   `3.56315533`, but it is over budget at `18134380` total submission bytes.
+- Dense diagnostic `sp16384` seed `1` completed with quantized BPB
+  `3.57480857`, but it is over budget at `18132809` total submission bytes.
+  Dense `sp16384` is now a complete three-seed diagnostic cell with mean
+  quantized BPB `3.57978517`; all three runs are marked over budget.
 - User direction added `sp32768` dense and qMLP cells with three seeds each.
   QA must keep those cells out of the benchmark matrix until their CaseOps
   export and Phase 3 smoke gates exist.

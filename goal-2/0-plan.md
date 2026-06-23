@@ -583,6 +583,10 @@ Exit criteria:
 - Dense diagnostic `sp16384` seed `0` completed with quantized BPB
   `3.56315533` and total submission size `18134380` bytes. It remains an
   over-budget control only.
+- Dense diagnostic `sp16384` seed `1` completed with quantized BPB
+  `3.57480857` and total submission size `18132809` bytes. Dense `sp16384` is
+  now complete as a three-seed over-budget diagnostic with mean quantized BPB
+  `3.57978517`; it remains excluded from compliant best-under-cap rankings.
 - Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
   submission bytes and released three Phase 4 benchmark jobs: `20486127`,
   `20486128`, and `20486129`.
