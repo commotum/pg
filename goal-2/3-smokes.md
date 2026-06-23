@@ -144,10 +144,10 @@ Artifacts:
 
 New facts:
 
-- The Phase 3 launcher can be rerun with `VOCABS=4096 SUBMIT=1` after `sp4096`
-  verifies, without resubmitting already launched vocab cells.
-- The current ready matrix covers four of five target vocabs: `1024`, `2048`,
-  `8192`, and `16384`.
+- The Phase 3 launcher can be rerun incrementally without resubmitting already
+  launched cells.
+- The current smoke matrix covers all five target vocabs: `1024`, `2048`,
+  `4096`, `8192`, and `16384`.
 - The first two completed smoke cells are under the 16 MB cap and did not run
   TTT.
 - qMLP `sp2048` and dense `sp8192` were released to Phase 4 three-seed
@@ -160,15 +160,12 @@ New facts:
 - Dense `sp16384` passed functionally but exceeded the 16 MB cap at `18106381`
   bytes, so it is excluded from Phase 4 unless the user explicitly wants an
   over-budget diagnostic.
-- Some vocab exports are still building. They remain ineligible until the
-  matching CaseOps data path has enough train shards plus validation bytes.
 - `sp4096` export job `20485661` completed, verified 80 train shards plus
   validation bytes, and dense/qMLP smoke jobs `20485825` and `20485826` were
   submitted.
 
 Decision:
 
-- Monitor jobs `20485698`, `20485699`, `20485700`, `20485701`, `20485702`,
-  `20485703`, `20485707`, and `20485708`.
+- Monitor remaining Phase 3 jobs `20485707`, `20485825`, and `20485826`.
 - Release dense `sp1024` and both `sp4096` variants to Phase 4 as soon as their
   individual smoke jobs pass under the 16 MB cap.
