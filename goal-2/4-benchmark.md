@@ -129,6 +129,14 @@ Completed benchmark metrics:
 | Vocab | Model | Seed | Job ID | Quant BPB | Prequant BPB | Train Steps | Total Bytes | Peak MiB | Host | TTT |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
 | `2048` | qMLP | `42` | `20485754` | `3.27018661` | `3.26684355` | `66` | `6812458` | `26212` | `cn-r-5` | `0` |
+| `2048` | qMLP | `0` | `20485755` | `3.27763883` | `3.27243947` | `66` | `6814438` | `26212` | `cn-r-2` | `0` |
+| `2048` | qMLP | `1` | `20485756` | `3.22433420` | `3.21899798` | `66` | `6815170` | `26212` | `cn-r-5` | `0` |
+
+Completed cell summaries:
+
+| Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
 
 Artifacts:
 
@@ -154,7 +162,8 @@ New facts:
 - Per user direction, dense `sp16384` was later released as an over-budget
   diagnostic control to compare against qMLP `sp16384`. It remains excluded from
   compliant best-under-16MB rankings.
-- qMLP `sp2048` seed `42` completed as the first Phase 4 benchmark result.
+- qMLP `sp2048` seeds `42`, `0`, and `1` completed. This is the first complete
+  three-seed Phase 4 cell.
 - Both `sp4096` variants should be released independently when their smokes pass
   and stay under the 16 MB cap.
 
