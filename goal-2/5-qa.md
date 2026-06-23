@@ -139,9 +139,11 @@ New facts:
 - Dense `sp4096` smoke job `20485825` produced under-cap metrics at `14818388`
   total submission bytes. Its three Phase 4 benchmark jobs are now submitted as
   `20486127`, `20486128`, and `20486129`.
-- qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap. The current
-  two-seed mean quantized BPB is `3.11814144`; seed `1` is still missing
-  metrics.
+- qMLP `sp4096` seeds `42`, `0`, and `1` completed under the 16 MB cap with
+  mean quantized BPB `3.11496067`.
+- Dense `sp4096` seeds `42`, `0`, and `1` completed under the 16 MB cap with
+  mean quantized BPB `3.94311933`; qMLP `sp4096` wins the matched three-seed
+  mean by `0.82815866` BPB.
 - Dense diagnostic `sp16384` seed `42` completed with quantized BPB
   `3.60139160`, but it is over budget at `18133059` total submission bytes.
   The summarizer correctly marks it as `over_budget`, not `complete`.

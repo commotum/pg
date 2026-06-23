@@ -557,10 +557,15 @@ Exit criteria:
 - Submitted `sp32768` CaseOps export job `20486174` with 32 CPUs and 96 GB
   memory. Dense and qMLP `sp32768` smoke jobs `20486178` and `20486179` are
   queued with `afterok:20486174`.
-- `sp32768` export job `20486174` is running on `cn-d11` and is currently in
-  tokenizer training. Its Slurm stdout/stderr are empty because the batch script
-  redirects stage output to the job directory; direct inspection found an active
-  `tokenizer.log` and no `caseops-data.log` yet.
+- `sp32768` export job `20486174` is running on `cn-d11`. Tokenizer training
+  has completed and `caseops-data.log` now shows `loaded sp: vocab=32768`, so
+  the job is in data export/sharding. Current read-only counts are
+  `tok=yes vocab=yes train=38 val=0 val_bytes=0`; smokes remain correctly
+  dependency-pending until the export completes and verifies.
+- Slurm inspection found export job `20486174` running with `TimeLimit=04:00:00`
+  after `00:54:34` elapsed. Smoke jobs `20486178` and `20486179` still depend
+  on `afterok:20486174`, and release handoff job `20486237` still depends on
+  `afterok:20486178:20486179`.
 - Phase 4 jobs use a 600-second training-loop cap, not a 600-second end-to-end
   Slurm cap. Total elapsed includes validation, EMA, serialization,
   quantization, compression, and metrics parsing.
@@ -596,9 +601,11 @@ Exit criteria:
 - Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
   submission bytes and released three Phase 4 benchmark jobs: `20486127`,
   `20486128`, and `20486129`.
-- qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap with current
-  two-seed mean quantized BPB `3.11814144`; seed `1` is still running/missing
-  metrics.
+- Dense `sp4096` completed all three Phase 4 seeds under the 16 MB cap with
+  mean quantized BPB `3.94311933`; qMLP `sp4096` wins the matched three-seed
+  mean by `0.82815866` BPB.
+- qMLP `sp4096` completed all three Phase 4 seeds with mean quantized BPB
+  `3.11496067`.
 - A Phase 4 launcher dry-run confirmed there are no missed benchmark-ready
   cells: all smoke-passing cells are already in the submission ledger,
   default-compliant dense `sp16384` remains skipped as over budget, and
@@ -607,6 +614,10 @@ Exit criteria:
   `DIAGNOSTIC_VOCABS=32768`, so user-requested `sp32768` benchmark seeds can be
   released as diagnostic-only runs if their smokes exceed the 16 MB cap, without
   globally allowing unrelated over-budget cells.
+- Submitted lightweight release handoff job `20486237` with dependency
+  `afterok:20486178:20486179`; it runs the Phase 4 launcher for `VOCABS=32768`
+  after both `sp32768` smokes succeed, preventing idle handoff time without
+  bypassing the smoke gate.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 

@@ -142,7 +142,7 @@ Skipped cells:
 
 | Vocab | Reason |
 | --- | --- |
-| `32768` | CaseOps export does not exist yet; added by user after original smoke matrix |
+| `32768` | CaseOps export is running; tokenizer/vocab exist, but train/validation shards are not ready yet |
 
 Artifacts:
 
@@ -156,10 +156,18 @@ New facts:
 - The original smoke matrix covers the first five target vocabs: `1024`,
   `2048`, `4096`, `8192`, and `16384`.
 - User direction added `sp32768` to the goal for dense and qMLP. It should be
-  smoke-tested for both model variants after its CaseOps export verifies.
+  smoke-tested for both model variants after its CaseOps export verifies. The
+  tokenizer and vocab now exist, but shard counts are still `train=38 val=0
+  val_bytes=0`.
 - Dependent smoke jobs were submitted immediately to avoid idle handoff time:
   dense `sp32768` smoke job `20486178` and qMLP `sp32768` smoke job `20486179`,
   both with `afterok:20486174` on the `sp32768` CaseOps export.
+- Slurm inspection confirmed both smoke jobs still have
+  `Dependency=afterok:20486174(unfulfilled)`, so they remain correctly held
+  until the export exits successfully.
+- Dependent Phase 4 release handoff job `20486237` is queued behind both
+  `sp32768` smokes with `afterok:20486178:20486179`; it will release the six
+  `sp32768` benchmark seeds only after both smokes succeed.
 - If `sp32768` smoke exceeds the 16 MB cap, it remains user-directed diagnostic
   work and should still release three dense and three qMLP benchmark seeds,
   excluded from compliant best-under-cap rankings.
