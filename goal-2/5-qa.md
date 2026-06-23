@@ -132,9 +132,15 @@ New facts:
 - qMLP `sp1024` is now a complete three-seed cell with mean quantized BPB
   `3.36463320`, standard deviation `0.00831364`, and all runs under the 16 MB
   cap.
+- Dense `sp1024` seeds `42` and `0` completed under the 16 MB cap. The current
+  two-seed mean quantized BPB is `4.63894633`; seed `1` is still missing
+  metrics.
 - Dense `sp4096` smoke job `20485825` produced under-cap metrics at `14818388`
   total submission bytes. Its three Phase 4 benchmark jobs are now submitted as
   `20486127`, `20486128`, and `20486129`.
+- qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap. The current
+  two-seed mean quantized BPB is `3.11814144`; seed `1` is still missing
+  metrics.
 - Dense diagnostic `sp16384` seed `42` completed with quantized BPB
   `3.60139160`, but it is over budget at `18133059` total submission bytes.
   The summarizer correctly marks it as `over_budget`, not `complete`.

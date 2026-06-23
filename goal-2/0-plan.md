@@ -566,6 +566,9 @@ Exit criteria:
   `4.26447164`; qMLP `sp2048` wins the matched mean by `1.00708509` BPB.
 - qMLP `sp1024` has completed all three Phase 4 seeds with mean quantized BPB
   `3.36463320`.
+- Dense `sp1024` seeds `42` and `0` completed under the 16 MB cap with current
+  two-seed mean quantized BPB `4.63894633`; seed `1` is still running/missing
+  metrics.
 - Dense `sp8192` has completed all three Phase 4 seeds with mean quantized BPB
   `3.66039918`.
 - qMLP `sp8192` completed all three Phase 4 seeds with mean quantized BPB
@@ -590,6 +593,9 @@ Exit criteria:
 - Dense `sp4096` passed smoke under the 16 MB cap at `14818388` total
   submission bytes and released three Phase 4 benchmark jobs: `20486127`,
   `20486128`, and `20486129`.
+- qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap with current
+  two-seed mean quantized BPB `3.11814144`; seed `1` is still running/missing
+  metrics.
 - Phase 5 summarizer artifacts are generated under
   `/nfs/hpc/share/peterj29/pg/runs/goal2-phase4-benchmarks/matrix-summary/`.
 
