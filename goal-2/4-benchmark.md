@@ -144,6 +144,7 @@ Completed benchmark metrics:
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
 | `1024` | dense | `42` | `20485866` | `4.62377075` | `4.59578191` | `66` | `14037902` | `26402` | `cn-r-4` | `0` |
 | `1024` | dense | `0` | `20485867` | `4.65412191` | `4.62872343` | `66` | `14041173` | `26402` | `cn-r-4` | `0` |
+| `1024` | dense | `1` | `20485868` | `4.58583266` | `4.56014747` | `66` | `14040047` | `26402` | `cn-r-1` | `0` |
 | `1024` | qMLP | `42` | `20485820` | `3.35503787` | `3.35051733` | `66` | `6539552` | `26077` | `cn-r-2` | `0` |
 | `1024` | qMLP | `0` | `20485821` | `3.36917824` | `3.36393715` | `66` | `6537052` | `26077` | `cn-r-4` | `0` |
 | `1024` | qMLP | `1` | `20485822` | `3.36968348` | `3.36458550` | `66` | `6536757` | `26077` | `cn-r-5` | `0` |
@@ -172,6 +173,7 @@ Completed cell summaries:
 
 | Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
 | --- | --- | --- | ---: | ---: | ---: | --- |
+| `1024` | dense | `42,0,1` | `4.62124177` | `4.59488427` | `66` | complete under-cap dense control; qMLP wins matched mean by `1.25660857` BPB |
 | `1024` | qMLP | `42,0,1` | `3.36463320` | `3.35967999` | `66` | complete under-cap qMLP cell |
 | `2048` | dense | `42,0,1` | `4.26447164` | `4.24782612` | `65.67` | complete under-cap dense control; qMLP wins matched mean by `1.00708509` BPB |
 | `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
@@ -184,7 +186,6 @@ Partial cell summaries:
 
 | Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
 | --- | --- | --- | ---: | ---: | ---: | --- |
-| `1024` | dense | `42,0` | `4.63894633` | `4.61225267` | `66` | seed `1` still running/missing metrics |
 | `4096` | qMLP | `42,0` | `3.11814144` | `3.11528397` | `65` | seed `1` still running/missing metrics |
 
 Current paired deltas:
@@ -193,6 +194,7 @@ Current paired deltas:
 | --- | ---: | ---: | ---: | ---: |
 | `1024` | `42` | `4.62377075` | `3.35503787` | `-1.26873288` |
 | `1024` | `0` | `4.65412191` | `3.36917824` | `-1.28494367` |
+| `1024` | `1` | `4.58583266` | `3.36968348` | `-1.21614918` |
 | `2048` | `42` | `4.28219257` | `3.27018661` | `-1.01200596` |
 | `2048` | `0` | `4.23759240` | `3.27763883` | `-0.95995357` |
 | `2048` | `1` | `4.27362994` | `3.22433420` | `-1.04929574` |
@@ -251,9 +253,9 @@ New facts:
   benchmark jobs: `20486109`, `20486110`, and `20486111`.
 - qMLP `sp1024` seeds `42`, `0`, and `1` completed under the 16 MB cap with
   mean quantized BPB `3.36463320`.
-- Dense `sp1024` seeds `42` and `0` completed under the 16 MB cap. The partial
-  two-seed mean quantized BPB is `4.63894633`; seed `1` is still pending
-  metrics.
+- Dense `sp1024` seeds `42`, `0`, and `1` completed under the 16 MB cap with
+  mean quantized BPB `4.62124177`; qMLP `sp1024` wins the matched mean by
+  `1.25660857` BPB.
 - qMLP `sp4096` seeds `42` and `0` completed under the 16 MB cap. The partial
   two-seed mean quantized BPB is `3.11814144`; seed `1` is still pending
   metrics.

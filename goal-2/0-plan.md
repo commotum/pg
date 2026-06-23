@@ -566,9 +566,8 @@ Exit criteria:
   `4.26447164`; qMLP `sp2048` wins the matched mean by `1.00708509` BPB.
 - qMLP `sp1024` has completed all three Phase 4 seeds with mean quantized BPB
   `3.36463320`.
-- Dense `sp1024` seeds `42` and `0` completed under the 16 MB cap with current
-  two-seed mean quantized BPB `4.63894633`; seed `1` is still running/missing
-  metrics.
+- Dense `sp1024` completed all three Phase 4 seeds with mean quantized BPB
+  `4.62124177`; qMLP `sp1024` wins the matched mean by `1.25660857` BPB.
 - Dense `sp8192` has completed all three Phase 4 seeds with mean quantized BPB
   `3.66039918`.
 - qMLP `sp8192` completed all three Phase 4 seeds with mean quantized BPB
