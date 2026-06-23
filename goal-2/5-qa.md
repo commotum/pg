@@ -114,8 +114,11 @@ New facts:
 - The first complete Phase 4 cell is qMLP `sp2048`, with seeds `42`, `0`, and
   `1` complete.
 - Dense `sp8192` has two completed seeds so far: `42` and `1`.
-- The first summarizer run had no paired dense-vs-qMLP deltas yet because no
-  vocab has both variants completed for matching seeds.
+- Dense `sp8192` now has all three seeds complete.
+- qMLP `sp8192` has two completed seeds so far: `42` and `0`.
+- The refreshed summarizer produced the first paired dense-vs-qMLP deltas:
+  qMLP `sp8192` beat dense `sp8192` by `0.60712108` BPB on seed `42` and
+  `0.67822520` BPB on seed `0`.
 
 Decision:
 

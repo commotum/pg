@@ -145,13 +145,24 @@ Completed benchmark metrics:
 | `2048` | qMLP | `0` | `20485755` | `3.27763883` | `3.27243947` | `66` | `6814438` | `26212` | `cn-r-2` | `0` |
 | `2048` | qMLP | `1` | `20485756` | `3.22433420` | `3.21899798` | `66` | `6815170` | `26212` | `cn-r-5` | `0` |
 | `8192` | dense | `42` | `20485757` | `3.63584015` | `3.62495393` | `64` | `15948267` | `29258` | `cn-r-5` | `0` |
+| `8192` | dense | `0` | `20485758` | `3.68862843` | `3.67814286` | `64` | `15946672` | `29258` | `cn-r-1` | `0` |
 | `8192` | dense | `1` | `20485759` | `3.65672897` | `3.64769098` | `64` | `15946703` | `29258` | `cn-r-5` | `0` |
+| `8192` | qMLP | `42` | `20485785` | `3.02871907` | `3.02677027` | `64` | `8464901` | `28931` | `cn-r-2` | `0` |
+| `8192` | qMLP | `0` | `20485786` | `3.01040323` | `3.00791804` | `64` | `8464608` | `28931` | `cn-r-5` | `0` |
 
 Completed cell summaries:
 
 | Vocab | Model | Seeds | Mean Quant BPB | Mean Prequant BPB | Mean Steps | Notes |
 | --- | --- | --- | ---: | ---: | ---: | --- |
 | `2048` | qMLP | `42,0,1` | `3.25738655` | `3.25276033` | `66` | first complete Phase 4 cell |
+| `8192` | dense | `42,0,1` | `3.66039918` | `3.65026259` | `64` | complete under-cap dense baseline cell |
+
+Current paired deltas:
+
+| Vocab | Seed | Dense Quant BPB | qMLP Quant BPB | qMLP - Dense |
+| --- | ---: | ---: | ---: | ---: |
+| `8192` | `42` | `3.63584015` | `3.02871907` | `-0.60712108` |
+| `8192` | `0` | `3.68862843` | `3.01040323` | `-0.67822520` |
 
 Artifacts:
 
@@ -179,7 +190,10 @@ New facts:
   compliant best-under-16MB rankings.
 - qMLP `sp2048` seeds `42`, `0`, and `1` completed. This is the first complete
   three-seed Phase 4 cell.
-- Dense `sp8192` seeds `42` and `1` completed under the 16 MB cap.
+- Dense `sp8192` seeds `42`, `0`, and `1` completed under the 16 MB cap. This
+  is the first complete dense Phase 4 cell.
+- qMLP `sp8192` seeds `42` and `0` completed under the 16 MB cap. Both paired
+  completed seeds beat dense `sp8192` by more than `0.60` BPB.
 - Both `sp4096` variants should be released independently when their smokes pass
   and stay under the 16 MB cap.
 
