@@ -65,9 +65,14 @@ def check_common(common: str) -> None:
     require_literal(common, "GOAL3_SP8192_DATA=", "sp8192 data path")
     require_literal(common, "GOAL3_SP16384_DATA=", "sp16384 data path")
     require_literal(common, "goal3_write_final_status()", "final-status helper")
+    require_literal(common, "goal3_prepare_runtime_storage()", "runtime scratch/cache helper")
     require_literal(common, "goal3_prepare_local_workspace()", "scratch staging helper")
     require_literal(common, "goal3_ensure_runtime_requirements()", "runtime requirements helper")
     require_literal(common, "goal3_record_source_snapshot()", "source snapshot helper")
+    require_literal(common, "TORCHINDUCTOR_CACHE_DIR", "torch compile cache routed to scratch")
+    require_literal(common, "TRITON_CACHE_DIR", "triton cache routed to scratch")
+    require_literal(common, "PIP_CACHE_DIR", "pip cache routed to scratch")
+    require_literal(common, "TMPDIR", "runtime temp routed to scratch")
 
     require(
         common,
@@ -94,6 +99,7 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
     require_literal(text, "#SBATCH --constraint=h100&vram80g", f"{name} uses H100 80GB constraint")
     require_literal(text, "#SBATCH --gres=gpu:8", f"{name} requests 8 GPUs")
     require_literal(text, "goal3_init_run_dir", f"{name} initializes run dir")
+    require_literal(text, "goal3_prepare_runtime_storage", f"{name} prepares scratch runtime cache")
     require_literal(text, "goal3_record_source_snapshot", f"{name} records source snapshot")
     require_literal(text, "trap cleanup EXIT TERM INT", f"{name} has final-status trap")
     if name == "campaign-runner":

@@ -155,6 +155,7 @@ Expected files:
 - `context.txt`;
 - `gpu.txt`;
 - `python.txt`;
+- `runtime-storage.txt`;
 - `runtime-setup/imports-before.json`;
 - `runtime-setup/imports-after.json`;
 - `runtime-setup/fa3-install.txt`, if runtime FA3 install ran;
@@ -194,6 +195,11 @@ manifests, and qMLP post-TTT BPB mean/std when all qMLP seeds complete.
 On early failure, the campaign runner also writes a campaign-aware
 `final-status.json` that includes whatever partial env-smoke, smoke-gate,
 baseline-parity, candidate, artifact, and source-snapshot evidence exists.
+Runtime temporary files and compile/cache directories are routed to node-local
+scratch under `/scratch/$USER/$SLURM_JOB_ID/goal3` before Python or FA3 setup
+runs. The effective `TMPDIR`, `PIP_CACHE_DIR`, `TORCHINDUCTOR_CACHE_DIR`,
+`TRITON_CACHE_DIR`, and `CUDA_CACHE_PATH` values are recorded in
+`runtime-storage.txt`.
 
 ## Repair Agent
 
@@ -261,6 +267,8 @@ Runtime checks completed:
   extending the static audit for that invariant.
 - Remote submit-node static checks passed on 2026-06-23 at 18:23 Pacific after
   syncing the same qMLP+TTT smoke/default update through the OSU gateway.
+- Local static checks passed after adding runtime scratch/cache routing on
+  2026-06-23 at 19:26 Pacific.
 
 ## Scratch Staging
 

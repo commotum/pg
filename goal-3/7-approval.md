@@ -55,6 +55,35 @@ Run directory:
 /nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-$SLURM_JOB_ID
 ```
 
+Storage state from the live submit-node check on 2026-06-23 at 19:24 Pacific:
+
+```text
+/nfs/hpc/share/peterj29 available: 1.4T
+goal-3-runs current size: 996K
+caseops-sp8192-patched export size: 1.6G
+caseops-sp16384 export size: 1.6G
+```
+
+The campaign stages about 3.2 GB of data plus source files to
+`/scratch/$USER/$SLURM_JOB_ID/goal3`. It also routes runtime temporary files and
+compile/cache directories to that scratch tree:
+
+```text
+GOAL3_CACHE_ROOT=/scratch/$USER/$SLURM_JOB_ID/goal3/cache
+GOAL3_TMP_ROOT=/scratch/$USER/$SLURM_JOB_ID/goal3/tmp
+TORCHINDUCTOR_CACHE_DIR=$GOAL3_CACHE_ROOT/torchinductor
+TRITON_CACHE_DIR=$GOAL3_CACHE_ROOT/triton
+CUDA_CACHE_PATH=$GOAL3_CACHE_ROOT/cuda
+PIP_CACHE_DIR=$GOAL3_CACHE_ROOT/pip
+TMPDIR=$GOAL3_TMP_ROOT
+```
+
+Shared output should be small relative to the 1.4 TB available: each candidate
+writes logs, JSON summaries, `final_model.pt`, and `final_model.int6.ptz`.
+The submission artifact is capped at 16 MB; the full unquantized model files are
+larger, but the full campaign is still expected to be in the low-GB range, not
+hundreds of GB.
+
 ## Campaign Sequence
 
 The campaign runner does this in order:
@@ -172,6 +201,7 @@ Expected run files include:
 context.txt
 gpu.txt
 python.txt
+runtime-storage.txt
 runtime-setup/imports-before.json
 runtime-setup/imports-after.json
 runtime-setup/fa3-install.txt, if runtime install ran
@@ -288,6 +318,10 @@ request is the maximum visible 8xH100 request rather than an arbitrary cap.
 - Three qMLP full seeds may not all fit if setup, baseline, TTT, quantization,
   or compression is slower than expected. The logs and final status should make
   partial progress interpretable.
+- `/nfs/hpc/share` is shared storage, not a reservation. The latest live check
+  showed ample space, and the runner routes runtime caches/temp files to
+  node-local scratch, but the campaign still depends on the node's actual
+  scratch availability at runtime.
 
 ## Verification Steps
 

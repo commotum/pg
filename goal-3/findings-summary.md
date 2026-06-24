@@ -200,6 +200,12 @@ full record stack runs on the intended H100 class.
     standalone short-smoke fallback defaults, and extended the static audit to
     catch regressions. Local static checks and remote submit-node static checks
     passed after this update on 2026-06-23 at about 18:23 Pacific.
+47. Live storage check on 2026-06-23 at 19:24 Pacific showed `1.4T` available
+    on `/nfs/hpc/share/peterj29`, with `goal-3-runs` at `996K` and the two
+    required CaseOps exports at about `3.2G` total. Added runtime storage
+    routing so `TMPDIR`, `PIP_CACHE_DIR`, `TORCHINDUCTOR_CACHE_DIR`,
+    `TRITON_CACHE_DIR`, and `CUDA_CACHE_PATH` point under
+    `/scratch/$USER/$SLURM_JOB_ID/goal3` during H100 jobs.
 
 ## Not Yet Known
 
@@ -217,6 +223,10 @@ full record stack runs on the intended H100 class.
 - Whether scratch staging overhead is small enough relative to the six-hour
   campaign allocation. The datasets are small enough to stage in principle, but
   the real copy time should be visible in `scratch-stage.txt` and job logs.
+- Whether the actual allocated H100 node's local scratch has enough free space
+  and normal performance at runtime. The required staged inputs are only about
+  3.2 GB plus source and caches, but node-local scratch availability is checked
+  only once the job starts.
 - Whether four full candidate runs, including TTT/quantization/compression, fit
   comfortably inside the six-hour campaign request.
 

@@ -1,6 +1,6 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 18:26 America/Los_Angeles
+Last updated: 2026-06-23 19:26 America/Los_Angeles
 
 ## Current Phase
 
@@ -23,7 +23,13 @@ text-level guardrail check for qMLP integration and H100 runner invariants.
 CPU Slurm prep jobs have completed for the shared Python environment and
 user-local `lrzip`. The campaign request has been padded to six hours with a
 120-minute full-candidate timeout so arbitrary tight wallclock caps do not cause
-false failures. Local and remote static checks pass, and the exact six-hour
+false failures. Live storage has enough headroom for the campaign: the latest
+check showed `1.4T` available on `/nfs/hpc/share/peterj29`, while the two
+required CaseOps data exports are about `3.2G` total and existing Goal 3 run
+outputs are under `1M`. The runner now also routes runtime temporary files and
+PyTorch/Triton/PIP/CUDA caches to `/scratch/$USER/$SLURM_JOB_ID/goal3` so cache
+pressure should not land in `$HOME` or shared cache paths by default. Local and
+remote static checks pass, and the exact six-hour
 `srun --test-only` dry-run fits on `dgxh-3` with a predicted start of
 2026-06-27T20:29:30. An eight-hour dry-run is rejected by
 `MaxGRESRunMinsPerUser`, so six hours is the visible 8xH100 QOS ceiling rather
@@ -201,6 +207,15 @@ time: 2026-06-23T18:26:36-07:00
 user: peterj29
 association: coehpc|eecs|peterj29|||normal
 current queue: no jobs listed for peterj29
+```
+
+Live storage check from 2026-06-23 19:24:
+
+```text
+/nfs/hpc/share/peterj29: 1.5T total, 165G used, 1.4T available
+/nfs/hpc/share/peterj29/pg/goal-3-runs: 996K
+/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched: 1.6G
+/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp16384: 1.6G
 ```
 
 Storage:
@@ -400,6 +415,11 @@ Additional prep now complete:
 - `goal-3/scripts/run_candidate.sh` launches `torchrun` through `srun` by
   default inside Slurm allocations and records the effective launcher in each
   candidate `env.txt`.
+- `goal-3/scripts/common.sh` now prepares runtime storage before Python or FA3
+  setup: `TMPDIR`, `PIP_CACHE_DIR`, `TORCHINDUCTOR_CACHE_DIR`,
+  `TRITON_CACHE_DIR`, and `CUDA_CACHE_PATH` are routed to
+  `/scratch/$USER/$SLURM_JOB_ID/goal3`, and `runtime-storage.txt` records the
+  effective paths.
 - `goal-3/h100-record-runner.sbatch` now bounds the default one-hour candidate
   timeouts to `8m + 8m + 36m`; `goal-3/h100-short-smoke.sbatch` now defaults
   to `10m` per smoke candidate inside its 45-minute allocation.

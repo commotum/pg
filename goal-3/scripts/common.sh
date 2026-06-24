@@ -36,6 +36,47 @@ goal3_init_run_dir() {
     export GOAL3_RUN_DIR
 }
 
+goal3_prepare_runtime_storage() {
+    local local_root=${GOAL3_LOCAL_ROOT:-/scratch/$USER/${SLURM_JOB_ID:-manual}/goal3}
+    local cache_root=${GOAL3_CACHE_ROOT:-$local_root/cache}
+    local tmp_root=${GOAL3_TMP_ROOT:-$local_root/tmp}
+    local manifest=${GOAL3_RUN_DIR:-$PWD}/runtime-storage.txt
+
+    mkdir -p \
+        "$cache_root/xdg" \
+        "$cache_root/torchinductor" \
+        "$cache_root/triton" \
+        "$cache_root/cuda" \
+        "$cache_root/pip" \
+        "$tmp_root" \
+        "$(dirname "$manifest")"
+
+    export GOAL3_LOCAL_ROOT=$local_root
+    export GOAL3_CACHE_ROOT=$cache_root
+    export GOAL3_TMP_ROOT=$tmp_root
+    export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$cache_root/xdg}
+    export TORCHINDUCTOR_CACHE_DIR=${TORCHINDUCTOR_CACHE_DIR:-$cache_root/torchinductor}
+    export TRITON_CACHE_DIR=${TRITON_CACHE_DIR:-$cache_root/triton}
+    export CUDA_CACHE_PATH=${CUDA_CACHE_PATH:-$cache_root/cuda}
+    export PIP_CACHE_DIR=${PIP_CACHE_DIR:-$cache_root/pip}
+    export TMPDIR=${TMPDIR:-$tmp_root}
+    export TEMP=${TEMP:-$TMPDIR}
+    export TMP=${TMP:-$TMPDIR}
+
+    {
+        echo "timestamp=$(goal3_timestamp)"
+        echo "GOAL3_LOCAL_ROOT=$GOAL3_LOCAL_ROOT"
+        echo "GOAL3_CACHE_ROOT=$GOAL3_CACHE_ROOT"
+        echo "GOAL3_TMP_ROOT=$GOAL3_TMP_ROOT"
+        echo "XDG_CACHE_HOME=$XDG_CACHE_HOME"
+        echo "TORCHINDUCTOR_CACHE_DIR=$TORCHINDUCTOR_CACHE_DIR"
+        echo "TRITON_CACHE_DIR=$TRITON_CACHE_DIR"
+        echo "CUDA_CACHE_PATH=$CUDA_CACHE_PATH"
+        echo "PIP_CACHE_DIR=$PIP_CACHE_DIR"
+        echo "TMPDIR=$TMPDIR"
+    } >"$manifest"
+}
+
 goal3_activate_env() {
     if [[ ! -d "$GOAL3_ENV_DIR" ]]; then
         echo "missing GOAL3_ENV_DIR=$GOAL3_ENV_DIR" >&2
@@ -57,6 +98,13 @@ goal3_record_context() {
         echo "stage_dir=$GOAL3_STAGE_DIR"
         echo "run_dir=$GOAL3_RUN_DIR"
         echo "env_dir=$GOAL3_ENV_DIR"
+        echo "local_root=${GOAL3_LOCAL_ROOT-}"
+        echo "cache_root=${GOAL3_CACHE_ROOT-}"
+        echo "tmp_root=${GOAL3_TMP_ROOT-}"
+        echo "torchinductor_cache=${TORCHINDUCTOR_CACHE_DIR-}"
+        echo "triton_cache=${TRITON_CACHE_DIR-}"
+        echo "cuda_cache=${CUDA_CACHE_PATH-}"
+        echo "pip_cache=${PIP_CACHE_DIR-}"
         echo "artifact_limit=$GOAL3_ARTIFACT_LIMIT"
         echo "git_commit=$(git -C "$GOAL3_REPO_ROOT" rev-parse HEAD 2>/dev/null || true)"
         echo "git_status_start"

@@ -39,6 +39,7 @@ cleanup() {
 }
 trap cleanup EXIT TERM INT
 
+goal3_prepare_runtime_storage
 goal3_activate_env
 goal3_record_context "$GOAL3_RUN_DIR"
 goal3_record_source_snapshot "$GOAL3_RUN_DIR"
