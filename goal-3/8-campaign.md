@@ -11,7 +11,8 @@ Primary script:
 goal-3/h100-campaign-runner.sbatch
 ```
 
-No H100/H200 job has been submitted yet.
+The H100 campaign has been submitted as Slurm job `20487886` after explicit
+user approval.
 
 ## Required Order
 
@@ -99,6 +100,7 @@ Required files:
 - `context.txt`;
 - `gpu.txt`;
 - `python.txt`;
+- `runtime-storage.txt`;
 - `runtime-setup/imports-before.json`;
 - `runtime-setup/imports-after.json`;
 - `runtime-setup/fa3-install.txt`, if runtime FA3 install ran;
@@ -143,17 +145,24 @@ manifest.
 
 ## Current State
 
-Pending:
+Queued:
 
-- user approval;
-- Slurm submission.
+- Slurm job `20487886`, script `goal-3/h100-campaign-runner.sbatch`;
+- latest checked state `PD`, reason `(Priority)`;
+- requested resources: `dgxh`, `h100&vram80g`, `gpu:8`, `nodes=1`,
+  `ntasks=1`, `cpus-per-task=64`, `mem=500G`, `time=06:00:00`;
+- run directory:
+  `/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20487886`.
 
 Complete:
 
+- user approval received;
+- Slurm submission complete;
 - local static checks passed after campaign edits;
 - `goal-3/` synced to the remote HPC checkout;
 - remote submit-node static checks passed;
-- exact six-hour `srun --test-only` refresh passed with predicted start
-  `2026-06-27T20:29:30` on `dgxh-3`;
+- exact six-hour `srun --test-only` refresh immediately before submission
+  passed as dry-run job `20487885`, with predicted start
+  `2026-06-28T08:29:30` on `dgxh-3`;
 - eight-hour comparison dry-run was rejected by `MaxGRESRunMinsPerUser`, so
   six hours is the visible 8xH100 QOS ceiling.

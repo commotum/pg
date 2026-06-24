@@ -1,40 +1,38 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 19:26 America/Los_Angeles
+Last updated: 2026-06-23 20:36 America/Los_Angeles
 
 ## Current Phase
 
-Phase 7: Human review and H100 request gate.
+Phase 8: H100 execution window, queued.
 
-Status: Phase 3 qMLP source port is statically complete, and the H100 campaign
-runner is scripted and locally checked. The approval target is now
-`goal-3/h100-campaign-runner.sbatch`, not the old standalone 15-minute env
-smoke. The campaign runner records dirty diffs, validates/builds runtime
-requirements, stages Goal 3 source/data inputs to node-local scratch, runs a
-short distributed smoke gate for `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
+Status: The user approved the exact six-hour `goal-3/h100-campaign-runner.sbatch`
+request and the campaign was submitted as Slurm job `20487886`. A fresh
+`srun --test-only` immediately before submission returned dry-run job
+`20487885`, predicting start at `2026-06-28T08:29:30` on `dgxh-3` for the exact
+`dgxh`, `h100&vram80g`, `gpu:8`, `cpus-per-task=64`, `mem=500G`,
+`time=06:00:00` request. Latest checked `squeue` state for `20487886` was `PD`
+with reason `(Priority)`.
+
+The queued campaign records dirty diffs, validates/builds runtime requirements,
+stages Goal 3 source/data inputs to node-local scratch, runs a short distributed
+smoke gate for `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
 `qmlp_sp16384_smoke`, and `qmlp_sp16384_ttt_smoke`, runs a full dense `sp8192`
 baseline gate, and then runs qMLP `sp16384` for seeds `42`, `0`, and `1234` if
-the smoke gate and baseline hard validity checks pass. A stricter baseline
-parity target is recorded as a caveat rather than used as an over-tight campaign
-stop. It writes machine-readable
-`final-status.json` on normal completion or early failure when possible.
-`goal-3/scripts/static_goal3_audit.py` provides a repeatable local/remote
-text-level guardrail check for qMLP integration and H100 runner invariants.
-CPU Slurm prep jobs have completed for the shared Python environment and
-user-local `lrzip`. The campaign request has been padded to six hours with a
-120-minute full-candidate timeout so arbitrary tight wallclock caps do not cause
-false failures. Live storage has enough headroom for the campaign: the latest
-check showed `1.4T` available on `/nfs/hpc/share/peterj29`, while the two
-required CaseOps data exports are about `3.2G` total and existing Goal 3 run
-outputs are under `1M`. The runner now also routes runtime temporary files and
-PyTorch/Triton/PIP/CUDA caches to `/scratch/$USER/$SLURM_JOB_ID/goal3` so cache
-pressure should not land in `$HOME` or shared cache paths by default. Local and
-remote static checks pass, and the exact six-hour
-`srun --test-only` dry-run fits on `dgxh-3` with a predicted start of
-2026-06-27T20:29:30. An eight-hour dry-run is rejected by
-`MaxGRESRunMinsPerUser`, so six hours is the visible 8xH100 QOS ceiling rather
-than an arbitrary cap. No H100/H200 work has been submitted. The next step is
-for the user to approve or reject the exact campaign submission.
+the smoke gate and baseline hard validity checks pass. It writes
+machine-readable `final-status.json` on normal completion or early failure when
+possible.
+
+Live storage had enough headroom at the pre-submit check: `1.4T` available on
+`/nfs/hpc/share/peterj29`, with the two required CaseOps data exports about
+`3.2G` total. Runtime temporary files and PyTorch/Triton/PIP/CUDA caches are
+routed to `/scratch/$USER/$SLURM_JOB_ID/goal3`.
+
+Run directory once the job starts:
+
+```text
+/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20487886
+```
 
 ## Objective
 

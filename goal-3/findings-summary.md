@@ -206,6 +206,11 @@ full record stack runs on the intended H100 class.
     routing so `TMPDIR`, `PIP_CACHE_DIR`, `TORCHINDUCTOR_CACHE_DIR`,
     `TRITON_CACHE_DIR`, and `CUDA_CACHE_PATH` point under
     `/scratch/$USER/$SLURM_JOB_ID/goal3` during H100 jobs.
+48. The H100 campaign was submitted after explicit user approval. Fresh
+    dry-run job `20487885` predicted start at `2026-06-28T08:29:30` on
+    `dgxh-3`; real Slurm job `20487886` was submitted for
+    `goal-3/h100-campaign-runner.sbatch` and latest checked state was `PD`
+    with reason `(Priority)`.
 
 ## Not Yet Known
 
@@ -229,6 +234,7 @@ full record stack runs on the intended H100 class.
   only once the job starts.
 - Whether four full candidate runs, including TTT/quantization/compression, fit
   comfortably inside the six-hour campaign request.
+- The terminal state and outputs of submitted Slurm job `20487886`.
 
 ## Current Conclusion
 
