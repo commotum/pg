@@ -87,16 +87,21 @@ The preferred autonomous campaign sequence is:
      missing and runtime install is enabled;
    - verify CUDA/PyTorch, 8 H100 80GB GPUs, FA3, Triton, SentencePiece, Brotli,
      `lrzip`, and the two CaseOps tokenizers.
-2. Exact dense/base `sp8192` full baseline run, seed 42.
-3. Stop only if the baseline is not credible:
+2. Short distributed candidate smoke gate:
+   - dense/base `sp8192` smoke, seed 42;
+   - qMLP same-vocab `sp8192` smoke, seed 42;
+   - qMLP budget-reinvested `sp16384` smoke, seed 42;
+   - qMLP budget-reinvested `sp16384` TTT smoke, seed 42.
+3. Exact dense/base `sp8192` full baseline run, seed 42.
+4. Stop only if the baseline is not credible:
    - candidate exits nonzero;
    - artifact is not under 16 MB;
    - post-TTT BPB is worse than the configured hard ceiling;
    - training step count is below the configured hard floor.
    A stricter parity target is still recorded, but missing it should caveat the
    comparison rather than automatically waste the allocation.
-4. qMLP `sp16384` full contender, seeds `42`, `0`, and `1234`.
-5. Save all logs, full model artifacts, quantized submission artifacts,
+5. qMLP `sp16384` full contender, seeds `42`, `0`, and `1234`.
+6. Save all logs, full model artifacts, quantized submission artifacts,
    per-candidate status, hashes, summaries, and final campaign summary.
 
 Do not spend scarce H100 time on open-ended debugging, broad sweeps, or
@@ -325,6 +330,7 @@ The final runner must:
 - create a unique run directory using `$SLURM_JOB_ID`;
 - stage hot inputs to local scratch if practical;
 - run hardware/env smoke first;
+- run distributed short candidate smokes before full baseline/qMLP attempts;
 - validate/build missing FA3 runtime pieces if possible before failing;
 - run full dense/base baseline before qMLP attempts;
 - execute qMLP `sp16384` for three predeclared seeds after the baseline hard
@@ -591,15 +597,20 @@ The campaign runner should execute:
    - FA3 import;
    - Triton/fused kernels;
    - `lrzip`.
-3. Full baseline parity:
+3. Short candidate smoke gate:
+   - dense/base `sp8192` smoke;
+   - qMLP same-vocab `sp8192` smoke;
+   - qMLP budget-reinvested `sp16384` smoke;
+   - qMLP budget-reinvested `sp16384` TTT smoke.
+4. Full baseline parity:
    - dense/base `sp8192`, seed 42;
    - validate under-16MB artifact, hard BPB ceiling, and hard step-count floor;
    - record strict parity target pass/fail separately for interpretation.
-4. Full qMLP campaign:
+5. Full qMLP campaign:
    - qMLP `sp16384`, seed 42;
    - qMLP `sp16384`, seed 0;
    - qMLP `sp16384`, seed 1234.
-5. Stage-out:
+6. Stage-out:
    - logs;
    - full model artifacts;
    - quantized submission artifacts;

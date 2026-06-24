@@ -81,9 +81,12 @@ def check_common(common: str) -> None:
     )
     require(
         common,
-        r"qmlp_sp16384\|qmlp_sp16384_smoke\).*?export VOCAB_SIZE=16384.*?export QUAT_MLP=1",
+        r"qmlp_sp16384\|qmlp_sp16384_smoke\|qmlp_sp16384_ttt_smoke\).*?export VOCAB_SIZE=16384.*?export QUAT_MLP=1",
         "qMLP sp16384 candidate maps to QUAT_MLP=1",
     )
+    require_literal(common, 'if [[ "$candidate" == *_ttt_smoke ]]; then', "TTT smoke candidate branch")
+    require_literal(common, "export TTT_ENABLED=1", "TTT smoke re-enables TTT")
+    require_literal(common, "export TTT_EVAL_BATCHES=${TTT_EVAL_BATCHES:-1}", "TTT smoke bounds eval batches")
 
 
 def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) -> None:
@@ -103,6 +106,12 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
     if name in {"short-smoke", "record-runner"}:
         require_literal(text, "goal3_prepare_local_workspace", f"{name} stages scratch workspace")
         require_literal(text, "run_candidate.sh", f"{name} delegates candidates")
+    if name == "short-smoke":
+        require_literal(
+            text,
+            'smoke_candidates=${GOAL3_SMOKE_CANDIDATES:-"dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke qmlp_sp16384_ttt_smoke"}',
+            "short-smoke defaults to dense/qMLP/qMLP+TTT smoke gates",
+        )
     if expect_candidate_order:
         require_literal(
             text,
@@ -115,7 +124,21 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
         require_literal(text, "#SBATCH --time=06:00:00", "campaign requests padded queue slot")
         require_literal(text, "write_campaign_final_status()", "campaign has rich final-status writer")
         require_literal(text, "goal3_ensure_runtime_requirements", "campaign validates/builds runtime requirements")
+        require_literal(
+            text,
+            'smoke_candidates=${GOAL3_SMOKE_CANDIDATES:-"dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke qmlp_sp16384_ttt_smoke"}',
+            "campaign defaults to dense/qMLP smoke gates",
+        )
+        require_literal(text, "smoke-gate.json", "campaign records smoke-gate result")
+        require_literal(text, "_load_error", "campaign gate reports malformed json")
+        require_literal(text, "missing summary.json", "campaign baseline gate reports missing summary")
+        require_literal(text, "attempted_smoke_candidates", "campaign tracks attempted smoke candidates")
+        require_literal(text, "not_attempted", "campaign records unattempted smokes after failure")
+        require_literal(text, "stopping smoke gate after first failed smoke", "campaign stops smoke gate on first failure")
+        require_literal(text, "GOAL3_SMOKE_TIMEOUT:-20m", "campaign has padded smoke timeout")
         require_literal(text, "baseline-parity.json", "campaign writes baseline parity record")
+        require_literal(text, "baseline_status=$?", "campaign captures baseline exit status before parity gate")
+        require_literal(text, "baseline candidate $baseline_candidate seed $baseline_seed failed", "campaign logs failed baseline candidate")
         require_literal(text, "GOAL3_BASELINE_PARITY_MAX_BPB", "campaign has baseline parity BPB target")
         require_literal(text, "GOAL3_BASELINE_HARD_MAX_BPB", "campaign has hard baseline BPB gate")
         require_literal(text, "GOAL3_BASELINE_HARD_MIN_STEPS", "campaign has hard baseline step gate")

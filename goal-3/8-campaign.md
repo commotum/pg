@@ -32,14 +32,22 @@ No H100/H200 job has been submitted yet.
 4. Run `goal-3/scripts/env_smoke.py` under `srun`.
 5. Stage Goal 3 source and CaseOps `sp8192`/`sp16384` data to node-local
    scratch.
-6. Run full dense/base `sp8192`, seed `42`.
-7. Write `baseline-parity.json`.
-8. Stop only if the baseline fails the hard validity gate. If it misses the
+6. Run short distributed candidate smokes:
+   - `dense_sp8192_smoke`, seed `42`;
+   - `qmlp_sp8192_smoke`, seed `42`;
+   - `qmlp_sp16384_smoke`, seed `42`;
+   - `qmlp_sp16384_ttt_smoke`, seed `42`.
+7. Write `smoke-gate.json` and stop if any smoke fails. If one smoke fails,
+   later smoke candidates are marked `not_attempted` instead of running.
+8. Run full dense/base `sp8192`, seed `42`.
+9. Write `baseline-parity.json`, including when the baseline candidate exits
+   nonzero.
+10. Stop only if the baseline fails the hard validity gate. If it misses the
    stricter parity target but remains credible, record the caveat and continue.
-9. Run full qMLP `sp16384`, seed `42`.
-10. Run full qMLP `sp16384`, seed `0`.
-11. Run full qMLP `sp16384`, seed `1234`.
-12. Write `final-status.json` with all run summaries and qMLP mean/std.
+11. Run full qMLP `sp16384`, seed `42`.
+12. Run full qMLP `sp16384`, seed `0`.
+13. Run full qMLP `sp16384`, seed `1234`.
+14. Write `final-status.json` with all run summaries and qMLP mean/std.
 
 ## Baseline Parity Gate
 
@@ -48,6 +56,9 @@ Defaults:
 ```text
 GOAL3_BASELINE_CANDIDATE=dense_sp8192
 GOAL3_BASELINE_SEED=42
+GOAL3_SMOKE_CANDIDATES="dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke qmlp_sp16384_ttt_smoke"
+GOAL3_SMOKE_SEED=42
+GOAL3_SMOKE_TIMEOUT=20m
 strict parity target:
   GOAL3_BASELINE_PARITY_MAX_BPB=1.065
   GOAL3_BASELINE_PARITY_MIN_STEPS=4500
@@ -100,6 +111,7 @@ Required files:
 - `scratch-stage.txt`;
 - `run-order.txt`;
 - `progress.txt`;
+- `smoke-gate.json`;
 - `baseline-parity.json`;
 - per-candidate `stdout.log`;
 - per-candidate `stderr.log`;
@@ -112,14 +124,16 @@ Required files:
 The `artifacts.json` manifests must include byte sizes and sha256 hashes for
 the full model/submission outputs preserved in the candidate directories.
 If the campaign exits early, `final-status.json` must still collect whatever
-partial evidence exists from env smoke, baseline parity, candidate summaries,
-candidate statuses, artifact manifests, and the source snapshot manifest.
+partial evidence exists from env smoke, smoke gate, baseline parity, candidate
+summaries, candidate statuses, artifact manifests, and the source snapshot
+manifest.
 
 ## Completion Requirements
 
 - H100 job reaches a terminal Slurm state.
 - Runtime setup result is recorded.
 - Environment smoke result is recorded.
+- Short dense/qMLP candidate smoke gate result is recorded.
 - Dense baseline parity result is recorded.
 - If the baseline hard validity gate passes, all three qMLP seeds are attempted
   in order.

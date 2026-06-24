@@ -92,6 +92,7 @@ The campaign runner default is:
 
 ```text
 runtime_setup_and_env_smoke
+dense_sp8192_smoke/qmlp_sp8192_smoke/qmlp_sp16384_smoke
 dense_sp8192 seed 42 baseline parity
 qmlp_sp16384 seed 42
 qmlp_sp16384 seed 0
@@ -110,6 +111,7 @@ hard stop gate:
   GOAL3_BASELINE_HARD_MIN_STEPS=4000
 
 GOAL3_FULL_TIMEOUT=120m
+GOAL3_SMOKE_TIMEOUT=20m
 ```
 
 The `GOAL3_FULL_TIMEOUT` is much larger than the 10-minute training budget
@@ -122,6 +124,9 @@ Reasoning:
 
 - runtime setup/env smoke catches missing FA3, CUDA, `lrzip`, and tokenizer
   issues inside the actual H100 allocation;
+- short dense/qMLP/qMLP+TTT candidate smokes catch distributed launch, qMLP
+  wiring, package accounting, tokenizer/vocab issues, and TTT LoRA hook issues
+  before the full baseline and qMLP runs;
 - full `dense_sp8192` seed 42 checks that the OSU setup reproduces the known
   record path closely enough to trust qMLP results;
 - qMLP `sp16384` seeds 42, 0, and 1234 are the actual record-attempt campaign.
@@ -162,6 +167,7 @@ Expected files:
 - `scratch-stage.txt`;
 - `run-order.txt`;
 - `progress.txt`;
+- `smoke-gate.json`;
 - `baseline-parity.json`;
 - `candidates/<candidate>/seed_<seed>/stdout.log`;
 - `candidates/<candidate>/seed_<seed>/stderr.log`;
@@ -183,11 +189,11 @@ early failure or signal if the normal summary path has not already written one.
 The short-smoke and record-runner normal summaries also include candidate order,
 seed, timeout settings, and the per-candidate `status.json` payloads.
 The campaign runner writes a normal `final-status.json` with
-`baseline_parity`, all candidate summaries/statuses/artifact manifests, and
-qMLP post-TTT BPB mean/std when all qMLP seeds complete.
+`smoke_gate`, `baseline_parity`, all candidate summaries/statuses/artifact
+manifests, and qMLP post-TTT BPB mean/std when all qMLP seeds complete.
 On early failure, the campaign runner also writes a campaign-aware
-`final-status.json` that includes whatever partial env-smoke, baseline-parity,
-candidate, artifact, and source-snapshot evidence exists.
+`final-status.json` that includes whatever partial env-smoke, smoke-gate,
+baseline-parity, candidate, artifact, and source-snapshot evidence exists.
 
 ## Repair Agent
 
@@ -250,6 +256,11 @@ Runtime checks completed:
   on 2026-06-23 at 16:38 Pacific after syncing through the OSU gateway.
 - Remote submit-node static checks passed again on 2026-06-23 after the campaign
   runner updates.
+- Local static checks passed on 2026-06-23 at 18:23 Pacific after adding the
+  `qmlp_sp16384_ttt_smoke` default to the standalone short-smoke fallback and
+  extending the static audit for that invariant.
+- Remote submit-node static checks passed on 2026-06-23 at 18:23 Pacific after
+  syncing the same qMLP+TTT smoke/default update through the OSU gateway.
 
 ## Scratch Staging
 
@@ -274,12 +285,13 @@ directory.
 
 - Campaign runner exists: complete.
 - Runner has explicit resource request: complete.
-- Runner has baseline hard validity gate, strict parity note, and bounded qMLP
-  seed order: complete.
+- Runner has short dense/qMLP/qMLP+TTT smoke gate, baseline hard validity gate,
+  strict parity note, and bounded qMLP seed order: complete.
 - Runner writes machine-readable final status: complete.
 - Repair agent exists and is disabled by default: complete.
-- H100 campaign dry-run is current: pending after the six-hour padding change.
+- H100 campaign dry-run is current: complete.
 - Static Goal 3 audit passes locally: complete.
+- Remote submit-node static checks pass after the latest sync: complete.
 - User approval for exact H100 request: pending.
 
 ## Next Phase

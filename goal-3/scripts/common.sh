@@ -341,7 +341,7 @@ goal3_select_candidate() {
             export QUAT_MLP=1
             export QUAT_MLP_IMPL=matrix
             ;;
-        qmlp_sp16384|qmlp_sp16384_smoke)
+        qmlp_sp16384|qmlp_sp16384_smoke|qmlp_sp16384_ttt_smoke)
             export VOCAB_SIZE=16384
             export DATA_PATH=$GOAL3_SP16384_DATA
             export TOKENIZER_PATH=$GOAL3_SP16384_TOKENIZER
@@ -355,6 +355,15 @@ goal3_select_candidate() {
     esac
     if [[ "$candidate" == *_smoke ]]; then
         goal3_smoke_env
+    fi
+    if [[ "$candidate" == *_ttt_smoke ]]; then
+        export TTT_ENABLED=1
+        export PHASED_TTT_NUM_PHASES=${PHASED_TTT_NUM_PHASES:-1}
+        export PHASED_TTT_PREFIX_DOCS=${PHASED_TTT_PREFIX_DOCS:-16}
+        export TTT_LORA_RANK=${TTT_LORA_RANK:-8}
+        export TTT_BATCH_SIZE=${TTT_BATCH_SIZE:-8}
+        export TTT_CHUNK_SIZE=${TTT_CHUNK_SIZE:-16}
+        export TTT_EVAL_BATCHES=${TTT_EVAL_BATCHES:-1}
     fi
     goal3_base_env
 }

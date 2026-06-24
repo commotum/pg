@@ -116,14 +116,17 @@ Inside the H100 allocation, the default runner should be deterministic:
 1. record hardware and environment;
 2. validate or build required runtime pieces, including FA3 when allowed;
 3. run H100/FA3/NCCL/tokenizer smoke checks;
-4. run the full dense/base `sp8192` baseline candidate;
-5. stop if the baseline fails the reviewed hard validity gates for exit code,
+4. run the short distributed candidate smoke gate for dense `sp8192`, qMLP
+   same-vocab `sp8192`, qMLP budget-reinvested `sp16384`, and qMLP `sp16384`
+   with a tiny TTT path enabled;
+5. run the full dense/base `sp8192` baseline candidate;
+6. stop if the baseline fails the reviewed hard validity gates for exit code,
    artifact size, BPB, or step count;
-6. record stricter parity-target pass/fail separately so a borderline baseline
+7. record stricter parity-target pass/fail separately so a borderline baseline
    caveats the comparison without automatically wasting the allocation;
-7. run the predeclared qMLP `sp16384` seeds;
-8. validate package size and parse metrics for every completed run;
-9. copy logs, full models, quantized artifacts, hashes, summaries, and final
+8. run the predeclared qMLP `sp16384` seeds;
+9. validate package size and parse metrics for every completed run;
+10. copy logs, full models, quantized artifacts, hashes, summaries, and final
    status to shared storage.
 
 If a step fails, the runner should stop unless a specific fallback was

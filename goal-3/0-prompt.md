@@ -105,12 +105,14 @@ The default autonomous campaign order is:
    documented wheel source if the import is missing and runtime install is
    enabled;
 2. H100/FA3/NCCL/tokenizer/`lrzip` environment smoke;
-3. exact dense/base `sp8192`, seed 42, full baseline run;
-4. stop only if the baseline fails the reviewed hard validity gates for exit
+3. short distributed smoke gate for dense `sp8192`, qMLP same-vocab `sp8192`,
+   qMLP budget-reinvested `sp16384`, and qMLP `sp16384` with tiny TTT enabled;
+4. exact dense/base `sp8192`, seed 42, full baseline run;
+5. stop only if the baseline fails the reviewed hard validity gates for exit
    code, package size, BPB, or step count; record strict parity target pass/fail
    separately as a comparison caveat;
-5. qMLP budget-reinvested `sp16384`, seeds 42, 0, and 1234, full runs;
-6. final artifact hashing, parser summaries, qMLP mean/std, and campaign
+6. qMLP budget-reinvested `sp16384`, seeds 42, 0, and 1234, full runs;
+7. final artifact hashing, parser summaries, qMLP mean/std, and campaign
    status.
 
 The required candidate configs are:
@@ -175,6 +177,7 @@ The final H100 campaign runner must:
 - activate the prepared environment and validate/build missing runtime pieces,
   including FA3 if allowed;
 - run hardware/env smoke before any training;
+- run the short distributed candidate smoke gate before full runs;
 - run a full dense/base `sp8192` baseline candidate before qMLP;
 - stop only if the baseline fails the reviewed hard validity gates for BPB,
   step count, exit code, or artifact size;

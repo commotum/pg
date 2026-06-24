@@ -54,7 +54,7 @@ goal3_prepare_local_workspace
 export GOAL3_SMOKE_TIMEOUT=${GOAL3_SMOKE_TIMEOUT:-10m}
 seed=${GOAL3_SEED:-42}
 
-smoke_candidates=${GOAL3_SMOKE_CANDIDATES:-"dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke"}
+smoke_candidates=${GOAL3_SMOKE_CANDIDATES:-"dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke qmlp_sp16384_ttt_smoke"}
 printf 'smoke_candidates=%s\nseed=%s\nsmoke_timeout=%s\n' \
     "$smoke_candidates" "$seed" "$GOAL3_SMOKE_TIMEOUT" >"$GOAL3_RUN_DIR/run-order.txt"
 

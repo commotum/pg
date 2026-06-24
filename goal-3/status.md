@@ -1,6 +1,6 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 17:58 America/Los_Angeles
+Last updated: 2026-06-23 18:26 America/Los_Angeles
 
 ## Current Phase
 
@@ -11,10 +11,12 @@ runner is scripted and locally checked. The approval target is now
 `goal-3/h100-campaign-runner.sbatch`, not the old standalone 15-minute env
 smoke. The campaign runner records dirty diffs, validates/builds runtime
 requirements, stages Goal 3 source/data inputs to node-local scratch, runs a
-full dense `sp8192` baseline gate, and then runs qMLP `sp16384` for
-seeds `42`, `0`, and `1234` if the baseline passes hard validity checks. A
-stricter baseline parity target is recorded as a caveat rather than used as an
-over-tight campaign stop. It writes machine-readable
+short distributed smoke gate for `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
+`qmlp_sp16384_smoke`, and `qmlp_sp16384_ttt_smoke`, runs a full dense `sp8192`
+baseline gate, and then runs qMLP `sp16384` for seeds `42`, `0`, and `1234` if
+the smoke gate and baseline hard validity checks pass. A stricter baseline
+parity target is recorded as a caveat rather than used as an over-tight campaign
+stop. It writes machine-readable
 `final-status.json` on normal completion or early failure when possible.
 `goal-3/scripts/static_goal3_audit.py` provides a repeatable local/remote
 text-level guardrail check for qMLP integration and H100 runner invariants.
@@ -88,7 +90,7 @@ Local workspace:
 ```text
 path: /Users/jake/Developer/pg
 branch: mac
-HEAD: 152e122788bc39eff1283abd1c1290309ecb42c6
+HEAD: 705af2e4003e6b66cd050d3f0e56adbaa5d5c287
 dirty: yes
 ```
 
@@ -98,26 +100,16 @@ Observed local dirty state:
 M goal-3/0-loop.md
 M goal-3/0-plan.md
 M goal-3/0-prompt.md
-M goal-3/4-smokes.md
-M goal-3/5-runtime.md
 M goal-3/6-runner.md
 M goal-3/7-approval.md
+M goal-3/8-campaign.md
 M goal-3/findings-summary.md
 M goal-3/h100-campaign-runner.sbatch
-M goal-3/h100-env-smoke.sbatch
-M goal-3/h100-record-runner.sbatch
-M goal-3/h100-repair-agent.sbatch
 M goal-3/h100-short-smoke.sbatch
-?? goal-3/logs/.gitkeep
-M goal-3/prepare-env.sbatch
-M goal-3/prepare-tools.sbatch
 M goal-3/scripts/common.sh
-M goal-3/scripts/run_candidate.sh
 M goal-3/scripts/static_goal3_audit.py
 M goal-3/status.md
 m parameter-golf
-?? goal-3/8-campaign.md
-?? goal-3/h100-campaign-runner.sbatch
 ```
 
 Submodules:
@@ -135,17 +127,19 @@ Remote project checkout exists at:
 /nfs/hpc/share/peterj29/pg/src/pg
 ```
 
-Remote checkout snapshot from 2026-06-23 14:53:
+Remote checkout snapshot from 2026-06-23 18:26:
 
 ```text
 branch: mac
 HEAD: e45bef8afd9c4129850aae14f4d0c1fd8543fbad
-dirty: yes
+goal-3 status: ?? goal-3/
 ```
 
-Important note: the remote checkout is stale relative to local Goal 3 work and
-still contains older `goal/`/`goal-2/` state. Sync or patch the remote checkout
-before any Goal 3 Slurm work.
+Important note: the remote Git `HEAD` is older than local, and `goal-3/` is
+untracked in the remote checkout. The Goal 3 runner preserves a
+`source-snapshot/goal-3/` plus `source-snapshot.sha256` inside each run
+directory so the actual scripts used by a campaign are captured even when Git
+`HEAD` alone is not enough to reconstruct the run.
 
 Remote Goal 3 sync from 2026-06-23 16:41:
 
@@ -165,12 +159,22 @@ remote static audit: static_goal3_audit: passed
 remote log dir check: goal-3/logs/.gitkeep present
 ```
 
+Remote Goal 3 sync from 2026-06-23 18:23:
+
+```text
+goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
+remote static checks: passed
+remote static audit: static_goal3_audit: passed
+remote log dir check: goal-3/logs/.gitkeep present
+```
+
 Remote static checks run in the latest sync:
 
 ```text
 bash -n goal-3/scripts/common.sh
 bash -n goal-3/scripts/run_candidate.sh
 bash -n goal-3/prepare-env.sbatch
+bash -n goal-3/prepare-tools.sbatch
 bash -n goal-3/h100-env-smoke.sbatch
 bash -n goal-3/h100-short-smoke.sbatch
 bash -n goal-3/h100-record-runner.sbatch
@@ -193,7 +197,7 @@ Read-only live check timestamp:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T17:55:24-07:00
+time: 2026-06-23T18:26:36-07:00
 user: peterj29
 association: coehpc|eecs|peterj29|||normal
 current queue: no jobs listed for peterj29
@@ -240,9 +244,10 @@ old goal-3/h100-record-runner.sbatch equivalent:
 required goal-3/h100-campaign-runner.sbatch equivalent:
   srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
   --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=06:00:00 true
-  Job 20487748 to start at 2026-06-27T20:29:30 using 64 processors on dgxh-3
+  Job 20487754 to start at 2026-06-27T20:29:30 using 64 processors on dgxh-3
 
-eight-hour comparison:
+rejected longer-padding check, run only to confirm whether more than six hours
+was schedulable and not submitted as a job:
   srun --test-only ... --time=08:00:00 true
   rejected with MaxGRESRunMinsPerUser / accounting-QOS policy
 ```
@@ -306,8 +311,9 @@ Ask the user to approve or reject this exact H100 request:
 script: goal-3/h100-campaign-runner.sbatch
 resources: dgxh, h100&vram80g, gpu:8, nodes=1, ntasks=1,
            cpus-per-task=64, mem=500G, time=06:00:00
-dry-run: Job 20487748 predicted start 2026-06-27T20:29:30 on dgxh-3
-sequence: runtime validation -> dense_sp8192 seed 42 baseline hard gate ->
+dry-run: Job 20487754 predicted start 2026-06-27T20:29:30 on dgxh-3
+sequence: runtime validation -> short dense/qMLP/TTT smoke gate ->
+          dense_sp8192 seed 42 baseline hard gate ->
           qmlp_sp16384 seeds 42, 0, 1234
 preserved source: source-snapshot/goal-3/ and source-snapshot.sha256
 ```
@@ -339,7 +345,8 @@ Static verification:
 python3 -m py_compile goal-3/stage/primary-qmlp/train_gpt.py: passed
 ```
 
-Runtime qMLP smoke is still pending.
+Runtime qMLP and qMLP+TTT smokes are still pending inside the approved H100
+campaign.
 
 ## Script Artifacts
 
@@ -361,7 +368,8 @@ goal-3/scripts/parse_train_log.py
 Default campaign runner order:
 
 ```text
-runtime validation -> dense_sp8192 seed 42 baseline hard gate ->
+runtime validation -> short dense/qMLP/TTT smoke gate ->
+dense_sp8192 seed 42 baseline hard gate ->
 qmlp_sp16384 seeds 42, 0, 1234
 ```
 
@@ -385,7 +393,8 @@ Additional prep now complete:
   train-loss step and the final wallclock stop step as `train_steps_final`.
 - `goal-3/scripts/static_goal3_audit.py` checks qMLP flag/component wiring,
   qMLP Hessian and compression key coverage, candidate-to-vocab mappings,
-  H100 80GB constraints, final-status traps, and bounded runner defaults.
+  H100 80GB constraints, final-status traps, qMLP+TTT smoke coverage, and
+  bounded runner defaults.
   It intentionally avoids newer Python-only syntax because the submit-node
   `python3` used for static checks is older than the local Mac Python.
 - `goal-3/scripts/run_candidate.sh` launches `torchrun` through `srun` by
@@ -395,9 +404,12 @@ Additional prep now complete:
   timeouts to `8m + 8m + 36m`; `goal-3/h100-short-smoke.sbatch` now defaults
   to `10m` per smoke candidate inside its 45-minute allocation.
 - `goal-3/h100-campaign-runner.sbatch` is now the primary H100 approval target,
-  with a six-hour request, runtime setup validation, a full dense baseline
-  hard validity gate plus strict parity note, and qMLP `sp16384` seeds `42`,
-  `0`, and `1234`.
+  with a six-hour request, runtime setup validation, short dense/qMLP/TTT
+  candidate smoke gate, a full dense baseline hard validity gate plus strict
+  parity note, and qMLP `sp16384` seeds `42`, `0`, and `1234`.
+- `goal-3/h100-short-smoke.sbatch` now uses the same four-smoke default as the
+  campaign runner: `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
+  `qmlp_sp16384_smoke`, and `qmlp_sp16384_ttt_smoke`.
 - Goal 3 runs now preserve `source-snapshot/goal-3/` and
   `source-snapshot.sha256` in each run directory, so untracked or dirty Goal 3
   files are captured even if Git `HEAD` alone is not reproducible.
@@ -407,8 +419,15 @@ Additional prep now complete:
   default, preventing accidental reuse of TTT `/tmp` counter paths across
   sequential campaign candidates.
 - `h100-campaign-runner.sbatch` now writes a campaign-aware `final-status.json`
-  on early exits, including any available env-smoke, baseline-parity, candidate
-  summary/status, artifact manifest, and source-snapshot evidence.
+  on early exits, including any available env-smoke, smoke-gate,
+  baseline-parity, candidate summary/status, artifact manifest, and
+  source-snapshot evidence.
+- Campaign smoke, baseline, and final summary gate writers now tolerate missing
+  or malformed candidate JSON by recording structured `_load_error` diagnostic
+  payloads instead of failing inside the gate writer.
+- Normal successful campaign `final-status.json` now includes the same context,
+  environment-smoke, smoke-gate, baseline, source-snapshot, and file pointer
+  fields expected from early-exit summaries.
 - Campaign allocation is now `06:00:00` and full-candidate timeout is now
   `120m`, because we do not want qMLP to fail due arbitrary padding constraints
   around quantization, compression, TTT compile warmup, or TTT eval.
@@ -416,6 +435,10 @@ Additional prep now complete:
   `steps>=4500` for interpretation, and hard stop gate `BPB<=1.075` and
   `steps>=4000` for campaign control. A borderline baseline should caveat the
   qMLP comparison, not automatically end the allocation.
+- Local static checks passed on 2026-06-23 at 18:23 Pacific after the
+  qMLP+TTT smoke/default update.
+- Remote submit-node static checks passed on 2026-06-23 at 18:23 Pacific after
+  syncing the same update through the OSU gateway.
 - Candidate `status.json` now records `timeout` and `timed_out` so a timeout
   kill is explicit in machine-readable summaries.
 - H100 env, short-smoke, record-runner, campaign-runner, and optional

@@ -82,12 +82,12 @@ full record stack runs on the intended H100 class.
     `dgxh-3` as the valid H100 80GB target class for
     `--constraint="h100&vram80g"`. `dgxh-1` remains unsuitable for the intended
     competition-class run because it is advertised as `h100-40g`.
-23. `srun --test-only` for the previous three-hour campaign request predicted
-    `dgxh-3` at `2026-06-27T20:29:30`, but that estimate is stale after
-    increasing the request to six hours:
+23. `srun --test-only` for the six-hour campaign request predicts `dgxh-3` at
+    `2026-06-27T20:29:30`:
     `srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
-    --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=06:00:00 true`
-    still needs a fresh dry-run.
+    --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=06:00:00 true`.
+    An eight-hour comparison dry-run is rejected by `MaxGRESRunMinsPerUser`,
+    matching the live `dgxh` QOS limit of `gres/gpu=2880` run-minutes.
 24. The H100 approval packet now exists at `goal-3/7-approval.md`. It requests
     approval for `goal-3/h100-campaign-runner.sbatch`, which runs runtime setup,
     dense baseline parity, and then qMLP `sp16384` seeds `42`, `0`, and `1234`.
@@ -137,10 +137,10 @@ full record stack runs on the intended H100 class.
     Python future import unsupported by the submit-node `python3`.
 34. Added `goal-3/h100-campaign-runner.sbatch` as the primary approval target.
     It requests one six-hour 8xH100 80GB allocation, validates/builds runtime
-    requirements including FA3 if needed, runs full dense `sp8192` seed-42 as
-    a baseline validity check, records strict parity separately, and then runs
-    qMLP `sp16384` for seeds `42`, `0`, and `1234` if the baseline hard gate
-    passes.
+    requirements including FA3 if needed, runs short dense/qMLP/qMLP+TTT
+    distributed smokes, runs full dense `sp8192` seed-42 as a baseline validity
+    check, records strict parity separately, and then runs qMLP `sp16384` for
+    seeds `42`, `0`, and `1234` if the smoke and baseline hard gates pass.
 35. `goal-3/scripts/run_candidate.sh` now writes `artifacts.json` with byte
     sizes and sha256 hashes for non-log candidate outputs, so model/submission
     artifacts can be traced after the campaign.
@@ -159,8 +159,9 @@ full record stack runs on the intended H100 class.
     counter paths.
 39. `goal-3/h100-campaign-runner.sbatch` now has a campaign-aware early-exit
     `final-status.json` writer. If the run stops before all qMLP seeds finish,
-    the final status still gathers available env-smoke, baseline-parity,
-    candidate summary/status, artifact manifest, and source-snapshot evidence.
+    the final status still gathers available env-smoke, smoke-gate,
+    baseline-parity, candidate summary/status, artifact manifest, and
+    source-snapshot evidence.
 40. Raised the campaign allocation to `06:00:00` and the full-candidate timeout
     to `120m` so the job is not constrained by arbitrary packaging/TTT/eval
     padding. The
@@ -174,6 +175,31 @@ full record stack runs on the intended H100 class.
     `BPB<=1.065` and `steps>=4500` for interpretation. The hard campaign stop
     gate is now `BPB<=1.075`, `steps>=4000`, exit code 0, and under-16MB
     artifact accounting.
+42. Added a campaign-internal short smoke gate before the full baseline:
+    `dense_sp8192_smoke`, `qmlp_sp8192_smoke`, `qmlp_sp16384_smoke`, and
+    `qmlp_sp16384_ttt_smoke`, all seed 42, with `GOAL3_SMOKE_TIMEOUT=20m`.
+    This satisfies the final-runner requirement to run distributed qMLP smoke
+    checks before full attempts and also exercises the qMLP plus TTT LoRA hook
+    path cheaply, without requiring a separate H100 queue wait. The gate stops
+    after the first failed smoke and marks later smoke candidates
+    `not_attempted` in `smoke-gate.json`.
+43. Changed the dense baseline gate so a nonzero baseline candidate still
+    reaches the parity-gate writer. The campaign now writes `baseline-parity.json`
+    with the baseline candidate `status.json` and exits through the reviewed
+    hard gate instead of dropping directly into cleanup with no parity record.
+44. Hardened campaign JSON loading in the smoke gate, baseline gate, and final
+    summary writer. Missing or malformed `summary.json`, `status.json`, or
+    `artifacts.json` now becomes structured diagnostic data rather than an
+    uncaught gate-writer exception.
+45. Made the normal successful campaign `final-status.json` as rich as the
+    early-exit final status: it now includes `env_smoke`, `smoke_gate`,
+    `baseline_parity`, candidate summaries/statuses/artifacts, qMLP mean/std,
+    and paths for context, GPU, Python, run-order, progress, scratch-stage, and
+    the source snapshot manifest.
+46. Added `qmlp_sp16384_ttt_smoke` to both the primary campaign runner and the
+    standalone short-smoke fallback defaults, and extended the static audit to
+    catch regressions. Local static checks and remote submit-node static checks
+    passed after this update on 2026-06-23 at about 18:23 Pacific.
 
 ## Not Yet Known
 
@@ -198,8 +224,9 @@ full record stack runs on the intended H100 class.
 
 Pre-approval prep for the autonomous six-hour H100 campaign is approval-ready:
 local static checks passed, `goal-3/` was synced to the remote HPC checkout,
-remote submit-node static checks passed, and the exact six-hour dry-run predicts
-`dgxh-3` at `2026-06-27T20:29:30`. An eight-hour comparison dry-run is rejected
-by `MaxGRESRunMinsPerUser`, confirming that six hours is the visible 8xH100
-QOS ceiling rather than an arbitrary cap. No H100/H200 submission should happen
-until the user approves that exact campaign request.
+remote submit-node static checks passed after the qMLP+TTT smoke/default update,
+and the exact six-hour dry-run predicts `dgxh-3` at `2026-06-27T20:29:30`. An
+eight-hour comparison dry-run is rejected by `MaxGRESRunMinsPerUser`,
+confirming that six hours is the visible 8xH100 QOS ceiling rather than an
+arbitrary cap. No H100/H200 submission should happen until the user approves
+that exact campaign request.

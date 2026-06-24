@@ -8,9 +8,9 @@ H100/H200 job has been submitted.
 The approval target has been revised. Do not ask for a separate 15-minute
 environment smoke followed by a later full runner. That creates multiple queue
 waits for one campaign. The next H100 request should be a single autonomous
-campaign allocation that validates the environment, checks dense baseline
-parity, and then runs the qMLP contender seeds if and only if the baseline gate
-passes.
+campaign allocation that validates the environment, runs short dense/qMLP
+candidate smokes, checks dense baseline validity, and then runs the qMLP
+contender seeds if and only if the hard baseline gate passes.
 
 ## Approval Target
 
@@ -68,14 +68,34 @@ The campaign runner does this in order:
 4. Runs `goal-3/scripts/env_smoke.py` under `srun`.
 5. Stages Goal 3 source plus `sp8192` and `sp16384` CaseOps data/tokenizers to
    `/scratch/$USER/$SLURM_JOB_ID/goal3` when scratch staging is enabled.
-6. Runs exact dense/base `sp8192`, seed 42, as a full baseline parity run.
-7. Writes `baseline-parity.json`; stops with exit code `70` only if the
-   baseline fails the hard validity gate. A borderline baseline records
-   `strict_parity_passed=false` but still allows the predeclared qMLP seeds to
-   run so the allocation is not wasted on an over-tight parity threshold.
-8. Runs qMLP `sp16384` full candidates for seeds `42`, `0`, and `1234`.
-9. Writes per-candidate logs, summaries, status files, artifact manifests, and a
-   final campaign summary with qMLP mean/std when all qMLP seeds complete.
+6. Runs short distributed candidate smokes:
+   - `dense_sp8192_smoke`, seed 42;
+   - `qmlp_sp8192_smoke`, seed 42;
+   - `qmlp_sp16384_smoke`, seed 42;
+   - `qmlp_sp16384_ttt_smoke`, seed 42.
+7. Writes `smoke-gate.json` and stops with exit code `60` if any smoke exits
+   nonzero or produces an over-budget artifact when artifact accounting is
+   available. If one smoke fails, later smoke candidates are marked
+   `not_attempted` rather than spending more allocation time.
+8. Runs exact dense/base `sp8192`, seed 42, as a full baseline parity run.
+9. Writes `baseline-parity.json` even when the baseline candidate exits
+   nonzero; stops with exit code `70` only if the baseline fails the hard
+   validity gate. A borderline baseline records `strict_parity_passed=false`
+   but still allows the predeclared qMLP seeds to run so the allocation is not
+   wasted on an over-tight parity threshold.
+10. Runs qMLP `sp16384` full candidates for seeds `42`, `0`, and `1234`.
+11. Writes per-candidate logs, summaries, status files, artifact manifests, and a
+   final campaign summary with env-smoke, smoke-gate, baseline-parity, qMLP
+   mean/std, candidate artifacts, and source-snapshot pointers when all qMLP
+   seeds complete.
+
+Default smoke gate:
+
+```text
+GOAL3_SMOKE_CANDIDATES="dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384_smoke qmlp_sp16384_ttt_smoke"
+GOAL3_SMOKE_SEED=42
+GOAL3_SMOKE_TIMEOUT=20m
+```
 
 Default baseline gates:
 
@@ -110,10 +130,14 @@ The reviewed campaign default is:
 
 | Order | Candidate | Seed | Purpose |
 |---:|---|---:|---|
-| 1 | `dense_sp8192` | 42 | prove OSU H100 setup can reproduce the known record path closely enough |
-| 2 | `qmlp_sp16384` | 42 | first qMLP contender after baseline hard validity passes |
-| 3 | `qmlp_sp16384` | 0 | qMLP seed replication |
-| 4 | `qmlp_sp16384` | 1234 | qMLP seed replication and direct record seed-set comparison |
+| 1 | `dense_sp8192_smoke` | 42 | check dense record-stack launch/package path cheaply |
+| 2 | `qmlp_sp8192_smoke` | 42 | check same-vocab qMLP wiring cheaply |
+| 3 | `qmlp_sp16384_smoke` | 42 | check carry-forward qMLP vocab/tokenizer path cheaply |
+| 4 | `qmlp_sp16384_ttt_smoke` | 42 | cheaply exercise qMLP plus TTT LoRA hook path |
+| 5 | `dense_sp8192` | 42 | prove OSU H100 setup can reproduce the known record path closely enough |
+| 6 | `qmlp_sp16384` | 42 | first qMLP contender after baseline hard validity passes |
+| 7 | `qmlp_sp16384` | 0 | qMLP seed replication |
+| 8 | `qmlp_sp16384` | 1234 | qMLP seed replication and direct record seed-set comparison |
 
 ## Stop Conditions
 
@@ -125,6 +149,8 @@ The runner must stop before qMLP full runs if:
 - `lrzip` is missing or cannot execute on the allocated node;
 - either CaseOps tokenizer fails to load with the expected vocab size;
 - scratch staging fails;
+- any short candidate smoke exits nonzero;
+- any short candidate smoke reports an over-budget artifact;
 - dense/base baseline exits nonzero;
 - dense/base baseline artifact accounting is missing or over 16 MB;
 - dense/base baseline post-TTT BPB is worse than the hard stop threshold
@@ -158,6 +184,7 @@ source-snapshot.sha256
 scratch-stage.txt
 run-order.txt
 progress.txt
+smoke-gate.json
 baseline-parity.json
 candidates/<candidate>/seed_<seed>/stdout.log
 candidates/<candidate>/seed_<seed>/stderr.log
@@ -174,8 +201,8 @@ hashes must remain in shared storage after stage-out.
 
 If the campaign exits early, `final-status.json` is still campaign-aware: it
 includes any available `env-smoke.json`, `baseline-parity.json`, per-candidate
-`summary.json`, `status.json`, `artifacts.json`, and source snapshot manifest
-paths that were written before failure.
+`summary.json`, `status.json`, `artifacts.json`, smoke-gate status, and source
+snapshot manifest paths that were written before failure.
 
 ## Live Slurm Check
 
@@ -183,7 +210,7 @@ Last recorded live check:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T17:55:24-07:00
+time: 2026-06-23T18:05:00-07:00
 user queue: empty
 association: coehpc|eecs|peterj29|||normal
 ```
@@ -220,13 +247,14 @@ srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
 Result:
 
 ```text
-srun: Job 20487748 to start at 2026-06-27T20:29:30 using 64 processors on
+srun: Job 20487754 to start at 2026-06-27T20:29:30 using 64 processors on
 nodes dgxh-3 in partition dgxh
 ```
 
 This is a scheduler fit check only. It did not submit H100 work.
 
-Longer-padding check:
+Rejected longer-padding check, run only to confirm whether more than six hours
+was schedulable and not submitted as a job:
 
 ```bash
 srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
@@ -288,7 +316,8 @@ Remote submit-node static checks must pass after syncing `goal-3/` to:
 - Approval packet names the campaign runner, not the old env-smoke-only job:
   complete.
 - Exact six-hour dry-run estimate recorded: complete.
-- Remote static checks pass after the latest sync: complete.
+- Remote static checks pass after the latest qMLP+TTT smoke/default sync:
+  complete.
 - User explicitly approves `goal-3/h100-campaign-runner.sbatch`: pending.
 - H100 campaign job submitted and tracked in `goal-3/jobs.csv`: pending.
 
