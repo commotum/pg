@@ -3,7 +3,7 @@
 #SBATCH --partition=dgxh
 #SBATCH --constraint=h100&vram80g
 #SBATCH --gres=gpu:8
-#SBATCH --time=03:00:00
+#SBATCH --time=06:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
@@ -26,14 +26,90 @@ source "$script_dir/common.sh"
 
 goal3_init_run_dir
 
+write_campaign_final_status() {
+    local status=${1:-1}
+    local reason=${2:-unknown}
+    python - "$GOAL3_RUN_DIR" "$status" "$reason" "$(goal3_timestamp)" <<'PY'
+import json
+import statistics
+import sys
+from pathlib import Path
+
+run_dir = Path(sys.argv[1])
+exit_code = int(sys.argv[2])
+reason = sys.argv[3]
+timestamp = sys.argv[4]
+final_path = run_dir / "final-status.json"
+if final_path.exists():
+    raise SystemExit(0)
+
+
+def load_json(path):
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception as exc:
+        return {"_load_error": repr(exc), "_path": str(path)}
+
+
+def read_text(path):
+    if not path.exists():
+        return None
+    return path.read_text(errors="replace")
+
+
+runs = []
+candidates_dir = run_dir / "candidates"
+if candidates_dir.exists():
+    for seed_dir in sorted(candidates_dir.glob("*/seed_*")):
+        runs.append({
+            "candidate": seed_dir.parent.name,
+            "seed": seed_dir.name.removeprefix("seed_"),
+            "env": read_text(seed_dir / "env.txt"),
+            "summary": load_json(seed_dir / "summary.json"),
+            "status": load_json(seed_dir / "status.json"),
+            "artifacts": load_json(seed_dir / "artifacts.json"),
+        })
+
+qmlp_bpbs = [
+    run["summary"].get("quantized_ttt_val_bpb")
+    for run in runs
+    if run["candidate"].startswith("qmlp_") and isinstance(run["summary"], dict)
+]
+qmlp_bpbs = [x for x in qmlp_bpbs if x is not None]
+
+payload = {
+    "status": "passed" if exit_code == 0 else "failed",
+    "exit_code": exit_code,
+    "reason": reason,
+    "timestamp": timestamp,
+    "campaign": "baseline_parity_then_qmlp_3seed",
+    "env_smoke": load_json(run_dir / "env-smoke.json"),
+    "baseline_parity": load_json(run_dir / "baseline-parity.json"),
+    "runs": runs,
+    "qmlp_quantized_ttt_val_bpb_mean": statistics.mean(qmlp_bpbs) if qmlp_bpbs else None,
+    "qmlp_quantized_ttt_val_bpb_stdev": statistics.stdev(qmlp_bpbs) if len(qmlp_bpbs) > 1 else None,
+    "files": {
+        "context": str(run_dir / "context.txt") if (run_dir / "context.txt").exists() else None,
+        "gpu": str(run_dir / "gpu.txt") if (run_dir / "gpu.txt").exists() else None,
+        "python": str(run_dir / "python.txt") if (run_dir / "python.txt").exists() else None,
+        "run_order": str(run_dir / "run-order.txt") if (run_dir / "run-order.txt").exists() else None,
+        "progress": str(run_dir / "progress.txt") if (run_dir / "progress.txt").exists() else None,
+        "scratch_stage": str(run_dir / "scratch-stage.txt") if (run_dir / "scratch-stage.txt").exists() else None,
+        "source_snapshot_manifest": str(run_dir / "source-snapshot.sha256")
+        if (run_dir / "source-snapshot.sha256").exists()
+        else None,
+    },
+}
+final_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+PY
+}
+
 cleanup() {
     status=$?
     trap - EXIT TERM INT
-    if [[ "$status" -eq 0 ]]; then
-        goal3_write_final_status 0 passed || true
-    else
-        goal3_write_final_status "$status" early_exit || true
-    fi
+    write_campaign_final_status "$status" "$([[ "$status" -eq 0 ]] && echo passed || echo early_exit)" || true
     goal3_cleanup_local_workspace || true
     exit "$status"
 }
@@ -52,9 +128,11 @@ srun --ntasks=1 --cpus-per-task="$SLURM_CPUS_PER_TASK" \
 
 goal3_prepare_local_workspace
 
-export GOAL3_FULL_TIMEOUT=${GOAL3_FULL_TIMEOUT:-30m}
+export GOAL3_FULL_TIMEOUT=${GOAL3_FULL_TIMEOUT:-120m}
 export GOAL3_BASELINE_PARITY_MAX_BPB=${GOAL3_BASELINE_PARITY_MAX_BPB:-1.065}
+export GOAL3_BASELINE_HARD_MAX_BPB=${GOAL3_BASELINE_HARD_MAX_BPB:-1.075}
 export GOAL3_BASELINE_PARITY_MIN_STEPS=${GOAL3_BASELINE_PARITY_MIN_STEPS:-4500}
+export GOAL3_BASELINE_HARD_MIN_STEPS=${GOAL3_BASELINE_HARD_MIN_STEPS:-4000}
 
 baseline_candidate=${GOAL3_BASELINE_CANDIDATE:-dense_sp8192}
 baseline_seed=${GOAL3_BASELINE_SEED:-42}
@@ -69,7 +147,9 @@ qmlp_seeds=${GOAL3_QMLP_SEEDS:-"42 0 1234"}
     echo "qmlp_seeds=$qmlp_seeds"
     echo "full_timeout=$GOAL3_FULL_TIMEOUT"
     echo "baseline_parity_max_bpb=$GOAL3_BASELINE_PARITY_MAX_BPB"
+    echo "baseline_hard_max_bpb=$GOAL3_BASELINE_HARD_MAX_BPB"
     echo "baseline_parity_min_steps=$GOAL3_BASELINE_PARITY_MIN_STEPS"
+    echo "baseline_hard_min_steps=$GOAL3_BASELINE_HARD_MIN_STEPS"
 } >"$GOAL3_RUN_DIR/run-order.txt"
 
 echo "starting baseline parity $baseline_candidate seed $baseline_seed at $(goal3_timestamp)" \
@@ -79,7 +159,8 @@ echo "finished baseline parity $baseline_candidate seed $baseline_seed at $(goal
     | tee -a "$GOAL3_RUN_DIR/progress.txt"
 
 python - "$GOAL3_RUN_DIR" "$baseline_candidate" "$baseline_seed" \
-    "$GOAL3_BASELINE_PARITY_MAX_BPB" "$GOAL3_BASELINE_PARITY_MIN_STEPS" <<'PY'
+    "$GOAL3_BASELINE_PARITY_MAX_BPB" "$GOAL3_BASELINE_HARD_MAX_BPB" \
+    "$GOAL3_BASELINE_PARITY_MIN_STEPS" "$GOAL3_BASELINE_HARD_MIN_STEPS" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -87,34 +168,49 @@ from pathlib import Path
 run_dir = Path(sys.argv[1])
 candidate = sys.argv[2]
 seed = sys.argv[3]
-max_bpb = float(sys.argv[4])
-min_steps = int(sys.argv[5])
+target_max_bpb = float(sys.argv[4])
+hard_max_bpb = float(sys.argv[5])
+target_min_steps = int(sys.argv[6])
+hard_min_steps = int(sys.argv[7])
 base = run_dir / "candidates" / candidate / f"seed_{seed}"
 summary = json.loads((base / "summary.json").read_text())
 status = json.loads((base / "status.json").read_text())
-reasons = []
+hard_reasons = []
+warnings = []
 if status.get("exit_code") != 0:
-    reasons.append(f"exit_code={status.get('exit_code')}")
+    hard_reasons.append(f"exit_code={status.get('exit_code')}")
 if status.get("artifact_under_limit") is not True:
-    reasons.append("artifact not proven under limit")
+    hard_reasons.append("artifact not proven under limit")
 bpb = summary.get("quantized_ttt_val_bpb")
-if bpb is None or bpb > max_bpb:
-    reasons.append(f"quantized_ttt_val_bpb={bpb} > {max_bpb}")
+if bpb is None:
+    hard_reasons.append("quantized_ttt_val_bpb missing")
+elif bpb > hard_max_bpb:
+    hard_reasons.append(f"quantized_ttt_val_bpb={bpb} > hard_max_bpb={hard_max_bpb}")
+elif bpb > target_max_bpb:
+    warnings.append(f"quantized_ttt_val_bpb={bpb} > parity_target_bpb={target_max_bpb}")
 steps = summary.get("train_steps_final")
-if steps is None or steps < min_steps:
-    reasons.append(f"train_steps_final={steps} < {min_steps}")
+if steps is None:
+    hard_reasons.append("train_steps_final missing")
+elif steps < hard_min_steps:
+    hard_reasons.append(f"train_steps_final={steps} < hard_min_steps={hard_min_steps}")
+elif steps < target_min_steps:
+    warnings.append(f"train_steps_final={steps} < parity_target_min_steps={target_min_steps}")
 payload = {
     "candidate": candidate,
     "seed": seed,
-    "max_bpb": max_bpb,
-    "min_steps": min_steps,
+    "parity_target_max_bpb": target_max_bpb,
+    "hard_max_bpb": hard_max_bpb,
+    "parity_target_min_steps": target_min_steps,
+    "hard_min_steps": hard_min_steps,
     "summary": summary,
     "status": status,
-    "passed": not reasons,
-    "reasons": reasons,
+    "passed": not hard_reasons,
+    "strict_parity_passed": not hard_reasons and not warnings,
+    "hard_reasons": hard_reasons,
+    "warnings": warnings,
 }
 (run_dir / "baseline-parity.json").write_text(json.dumps(payload, indent=2) + "\n")
-if reasons:
+if hard_reasons:
     print(json.dumps(payload, indent=2))
     raise SystemExit(70)
 PY

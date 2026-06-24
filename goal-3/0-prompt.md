@@ -105,9 +105,10 @@ The default autonomous campaign order is:
    documented wheel source if the import is missing and runtime install is
    enabled;
 2. H100/FA3/NCCL/tokenizer/`lrzip` environment smoke;
-3. exact dense/base `sp8192`, seed 42, full baseline parity run;
-4. stop if baseline parity fails the reviewed exit-code, package-size, BPB, or
-   step-count gates;
+3. exact dense/base `sp8192`, seed 42, full baseline run;
+4. stop only if the baseline fails the reviewed hard validity gates for exit
+   code, package size, BPB, or step count; record strict parity target pass/fail
+   separately as a comparison caveat;
 5. qMLP budget-reinvested `sp16384`, seeds 42, 0, and 1234, full runs;
 6. final artifact hashing, parser summaries, qMLP mean/std, and campaign
    status.
@@ -174,10 +175,13 @@ The final H100 campaign runner must:
 - activate the prepared environment and validate/build missing runtime pieces,
   including FA3 if allowed;
 - run hardware/env smoke before any training;
-- run a full dense/base `sp8192` baseline parity candidate before qMLP;
-- stop if baseline parity fails the reviewed BPB, step-count, exit-code, or
-  artifact-size gates;
-- execute only predeclared qMLP `sp16384` seeds after parity passes;
+- run a full dense/base `sp8192` baseline candidate before qMLP;
+- stop only if the baseline fails the reviewed hard validity gates for BPB,
+  step count, exit code, or artifact size;
+- record stricter parity target pass/fail separately and continue through qMLP
+  when the baseline is caveated but hard-valid;
+- execute only predeclared qMLP `sp16384` seeds after the baseline hard validity
+  gate passes;
 - stop on invalid package size or compliance failure;
 - copy logs, full model artifacts, quantized submission artifacts, artifact
   manifests, hashes, parser summaries, and final status back to shared storage

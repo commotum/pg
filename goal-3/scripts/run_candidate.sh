@@ -27,7 +27,7 @@ if [[ "$candidate" == *_smoke ]]; then
     export TRAIN_LOG_EVERY=${GOAL3_SMOKE_TRAIN_LOG_EVERY:-1}
     candidate_timeout=${GOAL3_SMOKE_TIMEOUT:-15m}
 else
-    candidate_timeout=${GOAL3_FULL_TIMEOUT:-35m}
+    candidate_timeout=${GOAL3_FULL_TIMEOUT:-120m}
 fi
 
 export SEED=$seed

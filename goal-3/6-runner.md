@@ -79,7 +79,7 @@ nodes: 1
 ntasks: 1
 cpus-per-task: 64
 memory: 500G
-walltime: 03:00:00
+walltime: 06:00:00
 ```
 
 The 80GB constraint is intentional. Phase 0 live checks showed
@@ -101,15 +101,22 @@ qmlp_sp16384 seed 1234
 Default campaign gates:
 
 ```text
-GOAL3_BASELINE_PARITY_MAX_BPB=1.065
-GOAL3_BASELINE_PARITY_MIN_STEPS=4500
-GOAL3_FULL_TIMEOUT=30m
+strict parity target:
+  GOAL3_BASELINE_PARITY_MAX_BPB=1.065
+  GOAL3_BASELINE_PARITY_MIN_STEPS=4500
+
+hard stop gate:
+  GOAL3_BASELINE_HARD_MAX_BPB=1.075
+  GOAL3_BASELINE_HARD_MIN_STEPS=4000
+
+GOAL3_FULL_TIMEOUT=120m
 ```
 
-The `GOAL3_FULL_TIMEOUT` is larger than the 10-minute training budget because
-the full candidate includes quantization, TTT/eval, compression, parsing, and
-stage-out. The record script still uses `MAX_WALLCLOCK_SECONDS=600` for the
-training budget.
+The `GOAL3_FULL_TIMEOUT` is much larger than the 10-minute training budget
+because the full candidate includes quantization, TTT/eval, compression,
+parsing, and stage-out. It is a stuck-candidate backstop, not an expected
+runtime target. The record script still uses
+`MAX_WALLCLOCK_SECONDS=600` for the training budget.
 
 Reasoning:
 
@@ -178,6 +185,9 @@ seed, timeout settings, and the per-candidate `status.json` payloads.
 The campaign runner writes a normal `final-status.json` with
 `baseline_parity`, all candidate summaries/statuses/artifact manifests, and
 qMLP post-TTT BPB mean/std when all qMLP seeds complete.
+On early failure, the campaign runner also writes a campaign-aware
+`final-status.json` that includes whatever partial env-smoke, baseline-parity,
+candidate, artifact, and source-snapshot evidence exists.
 
 ## Repair Agent
 
@@ -230,10 +240,9 @@ Runtime checks completed:
 
 - `srun --test-only` was refreshed on 2026-06-23 at 16:39 Pacific for the old
   15-minute env smoke and one-hour record runner. Those dry-runs are now stale
-  for approval because the target changed to a three-hour campaign runner.
-- `srun --test-only` for the exact three-hour campaign request was refreshed on
-  2026-06-23 at 17:24 Pacific and predicted `dgxh-3` at
-  `2026-06-27T20:29:30`.
+  for approval because the target changed to the padded campaign runner.
+- `srun --test-only` for the exact six-hour campaign request must be refreshed
+  after the padding change.
 - Local `bash -n` checks were rerun on 2026-06-23 at 16:30 Pacific after the
   final-status trap and summary updates.
 - Local `static_goal3_audit.py` passed on 2026-06-23 at 16:35 Pacific.
@@ -265,17 +274,17 @@ directory.
 
 - Campaign runner exists: complete.
 - Runner has explicit resource request: complete.
-- Runner has baseline parity gate and bounded qMLP seed order: complete.
+- Runner has baseline hard validity gate, strict parity note, and bounded qMLP
+  seed order: complete.
 - Runner writes machine-readable final status: complete.
 - Repair agent exists and is disabled by default: complete.
-- H100 campaign dry-run is current: complete, predicted `dgxh-3` at
-  `2026-06-27T20:29:30`.
+- H100 campaign dry-run is current: pending after the six-hour padding change.
 - Static Goal 3 audit passes locally: complete.
 - User approval for exact H100 request: pending.
 
 ## Next Phase
 
 Phase 7 is the human approval gate. Before submitting H100 work, refresh live
-Slurm state, run `srun --test-only` with the exact three-hour campaign request,
+Slurm state, run `srun --test-only` with the exact six-hour campaign request,
 show the script path and candidate order to the user, and wait for explicit
 approval.

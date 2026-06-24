@@ -1,6 +1,6 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 17:38 America/Los_Angeles
+Last updated: 2026-06-23 17:58 America/Los_Angeles
 
 ## Current Phase
 
@@ -11,16 +11,22 @@ runner is scripted and locally checked. The approval target is now
 `goal-3/h100-campaign-runner.sbatch`, not the old standalone 15-minute env
 smoke. The campaign runner records dirty diffs, validates/builds runtime
 requirements, stages Goal 3 source/data inputs to node-local scratch, runs a
-full dense `sp8192` baseline parity gate, and then runs qMLP `sp16384` for
-seeds `42`, `0`, and `1234` if parity passes. It writes machine-readable
+full dense `sp8192` baseline gate, and then runs qMLP `sp16384` for
+seeds `42`, `0`, and `1234` if the baseline passes hard validity checks. A
+stricter baseline parity target is recorded as a caveat rather than used as an
+over-tight campaign stop. It writes machine-readable
 `final-status.json` on normal completion or early failure when possible.
 `goal-3/scripts/static_goal3_audit.py` provides a repeatable local/remote
 text-level guardrail check for qMLP integration and H100 runner invariants.
 CPU Slurm prep jobs have completed for the shared Python environment and
-user-local `lrzip`. The latest local and remote static checks pass, and the
-exact three-hour campaign dry-run predicts `dgxh-3` at
-`2026-06-27T20:29:30`. No H100/H200 work has been submitted. The next step is
-to ask the user to approve or reject the exact campaign submission.
+user-local `lrzip`. The campaign request has been padded to six hours with a
+120-minute full-candidate timeout so arbitrary tight wallclock caps do not cause
+false failures. Local and remote static checks pass, and the exact six-hour
+`srun --test-only` dry-run fits on `dgxh-3` with a predicted start of
+2026-06-27T20:29:30. An eight-hour dry-run is rejected by
+`MaxGRESRunMinsPerUser`, so six hours is the visible 8xH100 QOS ceiling rather
+than an arbitrary cap. No H100/H200 work has been submitted. The next step is
+for the user to approve or reject the exact campaign submission.
 
 ## Objective
 
@@ -150,7 +156,7 @@ remote git status for Goal 3: ?? goal-3/
 remote parameter-golf status: m parameter-golf
 ```
 
-Remote Goal 3 sync from 2026-06-23 17:38:
+Remote Goal 3 sync from 2026-06-23 17:41:
 
 ```text
 goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
@@ -187,7 +193,7 @@ Read-only live check timestamp:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T17:24:02-07:00
+time: 2026-06-23T17:55:24-07:00
 user: peterj29
 association: coehpc|eecs|peterj29|||normal
 current queue: no jobs listed for peterj29
@@ -233,8 +239,12 @@ old goal-3/h100-record-runner.sbatch equivalent:
 
 required goal-3/h100-campaign-runner.sbatch equivalent:
   srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
-  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=03:00:00 true
-  srun: Job 20487726 to start at 2026-06-27T20:29:30 a using 64 processors on nodes dgxh-3 in partition dgxh
+  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=06:00:00 true
+  Job 20487748 to start at 2026-06-27T20:29:30 using 64 processors on dgxh-3
+
+eight-hour comparison:
+  srun --test-only ... --time=08:00:00 true
+  rejected with MaxGRESRunMinsPerUser / accounting-QOS policy
 ```
 
 ## Current Decision
@@ -295,9 +305,9 @@ Ask the user to approve or reject this exact H100 request:
 ```text
 script: goal-3/h100-campaign-runner.sbatch
 resources: dgxh, h100&vram80g, gpu:8, nodes=1, ntasks=1,
-           cpus-per-task=64, mem=500G, time=03:00:00
-dry-run: dgxh-3 at 2026-06-27T20:29:30
-sequence: runtime validation -> dense_sp8192 seed 42 baseline parity ->
+           cpus-per-task=64, mem=500G, time=06:00:00
+dry-run: Job 20487748 predicted start 2026-06-27T20:29:30 on dgxh-3
+sequence: runtime validation -> dense_sp8192 seed 42 baseline hard gate ->
           qmlp_sp16384 seeds 42, 0, 1234
 preserved source: source-snapshot/goal-3/ and source-snapshot.sha256
 ```
@@ -351,12 +361,12 @@ goal-3/scripts/parse_train_log.py
 Default campaign runner order:
 
 ```text
-runtime validation -> dense_sp8192 seed 42 baseline parity ->
+runtime validation -> dense_sp8192 seed 42 baseline hard gate ->
 qmlp_sp16384 seeds 42, 0, 1234
 ```
 
 H100 approval status: campaign request prepared in `goal-3/7-approval.md`;
-not yet granted. The exact three-hour dry-run has been refreshed and recorded.
+not yet granted. The exact six-hour dry-run is recorded.
 
 Additional prep now complete:
 
@@ -385,8 +395,9 @@ Additional prep now complete:
   timeouts to `8m + 8m + 36m`; `goal-3/h100-short-smoke.sbatch` now defaults
   to `10m` per smoke candidate inside its 45-minute allocation.
 - `goal-3/h100-campaign-runner.sbatch` is now the primary H100 approval target,
-  with a three-hour request, runtime setup validation, a full dense baseline
-  parity gate, and qMLP `sp16384` seeds `42`, `0`, and `1234`.
+  with a six-hour request, runtime setup validation, a full dense baseline
+  hard validity gate plus strict parity note, and qMLP `sp16384` seeds `42`,
+  `0`, and `1234`.
 - Goal 3 runs now preserve `source-snapshot/goal-3/` and
   `source-snapshot.sha256` in each run directory, so untracked or dirty Goal 3
   files are captured even if Git `HEAD` alone is not reproducible.
@@ -395,6 +406,16 @@ Additional prep now complete:
 - `run_candidate.sh` now derives `RUN_ID` from `${candidate}_seed${seed}` by
   default, preventing accidental reuse of TTT `/tmp` counter paths across
   sequential campaign candidates.
+- `h100-campaign-runner.sbatch` now writes a campaign-aware `final-status.json`
+  on early exits, including any available env-smoke, baseline-parity, candidate
+  summary/status, artifact manifest, and source-snapshot evidence.
+- Campaign allocation is now `06:00:00` and full-candidate timeout is now
+  `120m`, because we do not want qMLP to fail due arbitrary padding constraints
+  around quantization, compression, TTT compile warmup, or TTT eval.
+- Baseline handling now has two tiers: strict parity target `BPB<=1.065` and
+  `steps>=4500` for interpretation, and hard stop gate `BPB<=1.075` and
+  `steps>=4000` for campaign control. A borderline baseline should caveat the
+  qMLP comparison, not automatically end the allocation.
 - Candidate `status.json` now records `timeout` and `timed_out` so a timeout
   kill is explicit in machine-readable summaries.
 - H100 env, short-smoke, record-runner, campaign-runner, and optional

@@ -82,10 +82,12 @@ full record stack runs on the intended H100 class.
     `dgxh-3` as the valid H100 80GB target class for
     `--constraint="h100&vram80g"`. `dgxh-1` remains unsuitable for the intended
     competition-class run because it is advertised as `h100-40g`.
-23. `srun --test-only` for the exact three-hour campaign request predicts
-    `dgxh-3` at `2026-06-27T20:29:30`:
+23. `srun --test-only` for the previous three-hour campaign request predicted
+    `dgxh-3` at `2026-06-27T20:29:30`, but that estimate is stale after
+    increasing the request to six hours:
     `srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
-    --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=03:00:00 true`.
+    --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=06:00:00 true`
+    still needs a fresh dry-run.
 24. The H100 approval packet now exists at `goal-3/7-approval.md`. It requests
     approval for `goal-3/h100-campaign-runner.sbatch`, which runs runtime setup,
     dense baseline parity, and then qMLP `sp16384` seeds `42`, `0`, and `1234`.
@@ -134,10 +136,11 @@ full record stack runs on the intended H100 class.
     defaults. It passed locally and on the remote submit node after removing a
     Python future import unsupported by the submit-node `python3`.
 34. Added `goal-3/h100-campaign-runner.sbatch` as the primary approval target.
-    It requests one three-hour 8xH100 80GB allocation, validates/builds runtime
-    requirements including FA3 if needed, gates on full dense `sp8192` seed-42
-    baseline parity, and then runs qMLP `sp16384` for seeds `42`, `0`, and
-    `1234`.
+    It requests one six-hour 8xH100 80GB allocation, validates/builds runtime
+    requirements including FA3 if needed, runs full dense `sp8192` seed-42 as
+    a baseline validity check, records strict parity separately, and then runs
+    qMLP `sp16384` for seeds `42`, `0`, and `1234` if the baseline hard gate
+    passes.
 35. `goal-3/scripts/run_candidate.sh` now writes `artifacts.json` with byte
     sizes and sha256 hashes for non-log candidate outputs, so model/submission
     artifacts can be traced after the campaign.
@@ -154,6 +157,23 @@ full record stack runs on the intended H100 class.
     an explicit escape hatch. This prevents a pre-existing exported `RUN_ID`
     from making sequential campaign candidates share log names or TTT `/tmp`
     counter paths.
+39. `goal-3/h100-campaign-runner.sbatch` now has a campaign-aware early-exit
+    `final-status.json` writer. If the run stops before all qMLP seeds finish,
+    the final status still gathers available env-smoke, baseline-parity,
+    candidate summary/status, artifact manifest, and source-snapshot evidence.
+40. Raised the campaign allocation to `06:00:00` and the full-candidate timeout
+    to `120m` so the job is not constrained by arbitrary packaging/TTT/eval
+    padding. The
+    2026-04-27 seed-42 record log spends about 600 seconds training, about
+    100 seconds per-group compression, about 50 seconds quantized eval, about
+    138 seconds TTT compile warmup, and about 509 seconds TTT eval. A
+    120-minute per-candidate cap is a stuck-candidate backstop, not an expected
+    runtime target.
+41. Split baseline handling into two tiers so the campaign does not fail on an
+    arbitrary tight comparison threshold. The strict parity target remains
+    `BPB<=1.065` and `steps>=4500` for interpretation. The hard campaign stop
+    gate is now `BPB<=1.075`, `steps>=4000`, exit code 0, and under-16MB
+    artifact accounting.
 
 ## Not Yet Known
 
@@ -168,17 +188,18 @@ full record stack runs on the intended H100 class.
   count materially versus the dense record.
 - Whether the `sp16384` tokenizer loads with vocab size 16384 in the eventual
   H100/Goal 3 Python environment.
-- Whether scratch staging overhead is small enough relative to the three-hour
+- Whether scratch staging overhead is small enough relative to the six-hour
   campaign allocation. The datasets are small enough to stage in principle, but
   the real copy time should be visible in `scratch-stage.txt` and job logs.
 - Whether four full candidate runs, including TTT/quantization/compression, fit
-  comfortably inside the three-hour campaign request.
+  comfortably inside the six-hour campaign request.
 
 ## Current Conclusion
 
-Pre-approval prep for the autonomous three-hour H100 campaign is complete:
+Pre-approval prep for the autonomous six-hour H100 campaign is approval-ready:
 local static checks passed, `goal-3/` was synced to the remote HPC checkout,
-remote submit-node static checks passed, and the exact three-hour dry-run
-predicts `dgxh-3` at `2026-06-27T20:29:30`. The next useful work is to ask for
-explicit approval to submit `goal-3/h100-campaign-runner.sbatch`. No H100/H200
-submission should happen until the user approves that exact campaign request.
+remote submit-node static checks passed, and the exact six-hour dry-run predicts
+`dgxh-3` at `2026-06-27T20:29:30`. An eight-hour comparison dry-run is rejected
+by `MaxGRESRunMinsPerUser`, confirming that six hours is the visible 8xH100
+QOS ceiling rather than an arbitrary cap. No H100/H200 submission should happen
+until the user approves that exact campaign request.

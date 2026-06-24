@@ -37,7 +37,7 @@ nodes: 1
 ntasks: 1
 cpus-per-task: 64
 memory: 500G
-walltime: 03:00:00
+walltime: 06:00:00
 stdout: goal-3/logs/%x-%j.out
 stderr: goal-3/logs/%x-%j.err
 ```
@@ -45,8 +45,8 @@ stderr: goal-3/logs/%x-%j.err
 Expected maximum scarce compute consumed:
 
 ```text
-180 wallclock minutes on one 8xH100 80GB node
-1440 H100-GPU-minutes
+360 wallclock minutes on one 8xH100 80GB node
+2880 H100-GPU-minutes
 ```
 
 Run directory:
@@ -69,17 +69,25 @@ The campaign runner does this in order:
 5. Stages Goal 3 source plus `sp8192` and `sp16384` CaseOps data/tokenizers to
    `/scratch/$USER/$SLURM_JOB_ID/goal3` when scratch staging is enabled.
 6. Runs exact dense/base `sp8192`, seed 42, as a full baseline parity run.
-7. Writes `baseline-parity.json` and stops with exit code `70` if the baseline
-   parity gate fails.
+7. Writes `baseline-parity.json`; stops with exit code `70` only if the
+   baseline fails the hard validity gate. A borderline baseline records
+   `strict_parity_passed=false` but still allows the predeclared qMLP seeds to
+   run so the allocation is not wasted on an over-tight parity threshold.
 8. Runs qMLP `sp16384` full candidates for seeds `42`, `0`, and `1234`.
 9. Writes per-candidate logs, summaries, status files, artifact manifests, and a
    final campaign summary with qMLP mean/std when all qMLP seeds complete.
 
-Default baseline gate:
+Default baseline gates:
 
 ```text
-GOAL3_BASELINE_PARITY_MAX_BPB=1.065
-GOAL3_BASELINE_PARITY_MIN_STEPS=4500
+strict parity target:
+  GOAL3_BASELINE_PARITY_MAX_BPB=1.065
+  GOAL3_BASELINE_PARITY_MIN_STEPS=4500
+
+hard stop gate:
+  GOAL3_BASELINE_HARD_MAX_BPB=1.075
+  GOAL3_BASELINE_HARD_MIN_STEPS=4000
+
 artifact_under_limit=true
 exit_code=0
 ```
@@ -87,12 +95,13 @@ exit_code=0
 Default full-run timeout:
 
 ```text
-GOAL3_FULL_TIMEOUT=30m
+GOAL3_FULL_TIMEOUT=120m
 ```
 
-That timeout is intentionally larger than the 10-minute training budget because
-the record stack still needs post-training quantization, TTT/eval, compression,
-and stage-out time. Training itself remains bounded by the record script's
+That timeout is intentionally much larger than the 10-minute training budget
+because the record stack still needs post-training quantization, TTT/eval,
+compression, and stage-out time. It is a backstop for a stuck candidate, not an
+expected runtime target. Training itself remains bounded by the record script's
 `MAX_WALLCLOCK_SECONDS=600` default.
 
 ## Required Candidate Runs
@@ -102,7 +111,7 @@ The reviewed campaign default is:
 | Order | Candidate | Seed | Purpose |
 |---:|---|---:|---|
 | 1 | `dense_sp8192` | 42 | prove OSU H100 setup can reproduce the known record path closely enough |
-| 2 | `qmlp_sp16384` | 42 | first qMLP contender after baseline parity passes |
+| 2 | `qmlp_sp16384` | 42 | first qMLP contender after baseline hard validity passes |
 | 3 | `qmlp_sp16384` | 0 | qMLP seed replication |
 | 4 | `qmlp_sp16384` | 1234 | qMLP seed replication and direct record seed-set comparison |
 
@@ -118,8 +127,10 @@ The runner must stop before qMLP full runs if:
 - scratch staging fails;
 - dense/base baseline exits nonzero;
 - dense/base baseline artifact accounting is missing or over 16 MB;
-- dense/base baseline post-TTT BPB is worse than `1.065`;
-- dense/base baseline final train step count is below `4500`.
+- dense/base baseline post-TTT BPB is worse than the hard stop threshold
+  `1.075`;
+- dense/base baseline final train step count is below the hard stop threshold
+  `4000`.
 
 The runner must stop during qMLP if:
 
@@ -161,13 +172,18 @@ The artifact manifest hashes every non-log file in each candidate directory.
 Full model artifacts, quantized submission artifacts, parser summaries, and
 hashes must remain in shared storage after stage-out.
 
+If the campaign exits early, `final-status.json` is still campaign-aware: it
+includes any available `env-smoke.json`, `baseline-parity.json`, per-candidate
+`summary.json`, `status.json`, `artifacts.json`, and source snapshot manifest
+paths that were written before failure.
+
 ## Live Slurm Check
 
 Last recorded live check:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T17:24:02-07:00
+time: 2026-06-23T17:55:24-07:00
 user queue: empty
 association: coehpc|eecs|peterj29|||normal
 ```
@@ -198,29 +214,49 @@ Exact campaign dry-run:
 ```bash
 srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
   --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G \
-  --time=03:00:00 true
+  --time=06:00:00 true
 ```
 
 Result:
 
 ```text
-srun: Job 20487726 to start at 2026-06-27T20:29:30 a using 64 processors on nodes dgxh-3 in partition dgxh
+srun: Job 20487748 to start at 2026-06-27T20:29:30 using 64 processors on
+nodes dgxh-3 in partition dgxh
 ```
 
 This is a scheduler fit check only. It did not submit H100 work.
 
+Longer-padding check:
+
+```bash
+srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
+  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G \
+  --time=08:00:00 true
+```
+
+Result:
+
+```text
+srun: error: MaxGRESRunMinsPerUser
+allocation failure: Job violates accounting/QOS policy
+```
+
+Interpretation: the live `dgxh` QOS exposes `gres/gpu=2880` run-minutes per
+user. For 8 GPUs, that is exactly `360` wallclock minutes, so the six-hour
+request is the maximum visible 8xH100 request rather than an arbitrary cap.
+
 ## Known Risks
 
-- The current scheduler prediction for the three-hour campaign is
-  `2026-06-27T20:29:30` on `dgxh-3`, but that can change before real
-  submission.
+- The current scheduler prediction is only a prediction. It can move before
+  submission as queue state changes.
 - FA3 was installed into the shared Python env, but the runner still includes a
   runtime install path because H100/runtime validation is the meaningful check.
 - The compute-built `lrzip` binary cannot run on the submit node because of an
   older submit-node glibc; the campaign validates it on the allocated node.
-- The dense baseline parity gate may fail because OSU software/hardware differs
-  from the record author's setup. In that case the qMLP seeds should not run
-  because the environment is not trusted.
+- The dense baseline may miss the strict parity target because OSU
+  software/hardware differs from the record author's setup. That is recorded as
+  a comparison caveat, but it no longer stops qMLP unless the hard validity gate
+  fails.
 - Three qMLP full seeds may not all fit if setup, baseline, TTT, quantization,
   or compression is slower than expected. The logs and final status should make
   partial progress interpretable.
@@ -251,13 +287,13 @@ Remote submit-node static checks must pass after syncing `goal-3/` to:
 - Campaign runner exists and passes local static checks: complete.
 - Approval packet names the campaign runner, not the old env-smoke-only job:
   complete.
-- Exact three-hour dry-run estimate recorded: complete.
+- Exact six-hour dry-run estimate recorded: complete.
 - Remote static checks pass after the latest sync: complete.
 - User explicitly approves `goal-3/h100-campaign-runner.sbatch`: pending.
 - H100 campaign job submitted and tracked in `goal-3/jobs.csv`: pending.
 
 ## Findings
 
-The approval target is now the autonomous three-hour campaign runner. The
+The approval target is now the autonomous six-hour campaign runner. The
 15-minute env smoke and one-hour record runner remain useful components and
 fallback scripts, but they are not the recommended next H100 submission.

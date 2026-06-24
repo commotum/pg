@@ -87,12 +87,14 @@ The preferred autonomous campaign sequence is:
      missing and runtime install is enabled;
    - verify CUDA/PyTorch, 8 H100 80GB GPUs, FA3, Triton, SentencePiece, Brotli,
      `lrzip`, and the two CaseOps tokenizers.
-2. Exact dense/base `sp8192` full baseline parity run, seed 42.
-3. Stop if baseline parity is not credible:
+2. Exact dense/base `sp8192` full baseline run, seed 42.
+3. Stop only if the baseline is not credible:
    - candidate exits nonzero;
    - artifact is not under 16 MB;
-   - post-TTT BPB is worse than the configured parity ceiling;
-   - training step count is below the configured floor.
+   - post-TTT BPB is worse than the configured hard ceiling;
+   - training step count is below the configured hard floor.
+   A stricter parity target is still recorded, but missing it should caveat the
+   comparison rather than automatically waste the allocation.
 4. qMLP `sp16384` full contender, seeds `42`, `0`, and `1234`.
 5. Save all logs, full model artifacts, quantized submission artifacts,
    per-candidate status, hashes, summaries, and final campaign summary.
@@ -141,7 +143,7 @@ The minimum autonomous H100 campaign must prepare these configs:
 | Priority | Config | Purpose |
 |---:|---|---|
 | 1 | exact dense/base `sp8192`, seed 42, full run | prove OSU H100 setup can reproduce the known record path closely enough |
-| 2 | qMLP `sp16384`, seed 42, full run | first contender result after baseline parity passes |
+| 2 | qMLP `sp16384`, seed 42, full run | first contender result after baseline hard validity passes |
 | 3 | qMLP `sp16384`, seed 0, full run | seed replication |
 | 4 | qMLP `sp16384`, seed 1234, full run | seed replication and direct comparison to record seed set |
 
@@ -227,13 +229,13 @@ Before requesting 8xH100, dry-run:
 ```bash
 srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
   --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G \
-  --time=03:00:00 true
+  --time=06:00:00 true
 ```
 
-The current campaign target is three hours because it must include environment
+The current campaign target is six hours because it must include environment
 validation, one full dense baseline parity run, and three full qMLP seed runs in
-one queue wait. The QOS may allow more time, but the reviewed request should be
-as small as is operationally useful for that complete campaign.
+one queue wait without failing from tight packaging/TTT/eval timeouts. This
+matches the observed `dgxh` QOS GPU-minute ceiling for one 8-GPU job.
 
 ## Required Artifacts To Prepare Before H100 Request
 
@@ -324,8 +326,9 @@ The final runner must:
 - stage hot inputs to local scratch if practical;
 - run hardware/env smoke first;
 - validate/build missing FA3 runtime pieces if possible before failing;
-- run full dense/base baseline parity before qMLP attempts;
-- execute qMLP `sp16384` for three predeclared seeds after parity passes;
+- run full dense/base baseline before qMLP attempts;
+- execute qMLP `sp16384` for three predeclared seeds after the baseline hard
+  validity gate passes;
 - stop on invalid package size or compliance failure;
 - preserve full model artifacts, quantized submission artifacts, logs,
   manifests, hashes, a Goal 3 source snapshot, parser output, and final
@@ -542,8 +545,8 @@ Completion requirements:
 
 - all required scripts exist and pass static checks;
 - static Goal 3 audit verifies qMLP wiring and H100 runner guardrails;
-- campaign runner has a baseline parity gate, three qMLP seeds, and no hidden
-  broad sweep;
+- campaign runner has a baseline hard validity gate, strict parity note, three
+  qMLP seeds, and no hidden broad sweep;
 - final runner writes final status even on failure;
 - repair agent is bounded, optional, and not the default execution path.
 
@@ -590,7 +593,8 @@ The campaign runner should execute:
    - `lrzip`.
 3. Full baseline parity:
    - dense/base `sp8192`, seed 42;
-   - validate under-16MB artifact, post-TTT BPB ceiling, and step-count floor.
+   - validate under-16MB artifact, hard BPB ceiling, and hard step-count floor;
+   - record strict parity target pass/fail separately for interpretation.
 4. Full qMLP campaign:
    - qMLP `sp16384`, seed 42;
    - qMLP `sp16384`, seed 0;

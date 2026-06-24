@@ -34,7 +34,8 @@ No H100/H200 job has been submitted yet.
    scratch.
 6. Run full dense/base `sp8192`, seed `42`.
 7. Write `baseline-parity.json`.
-8. Stop if baseline parity fails.
+8. Stop only if the baseline fails the hard validity gate. If it misses the
+   stricter parity target but remains credible, record the caveat and continue.
 9. Run full qMLP `sp16384`, seed `42`.
 10. Run full qMLP `sp16384`, seed `0`.
 11. Run full qMLP `sp16384`, seed `1234`.
@@ -47,14 +48,20 @@ Defaults:
 ```text
 GOAL3_BASELINE_CANDIDATE=dense_sp8192
 GOAL3_BASELINE_SEED=42
-GOAL3_BASELINE_PARITY_MAX_BPB=1.065
-GOAL3_BASELINE_PARITY_MIN_STEPS=4500
-GOAL3_FULL_TIMEOUT=30m
+strict parity target:
+  GOAL3_BASELINE_PARITY_MAX_BPB=1.065
+  GOAL3_BASELINE_PARITY_MIN_STEPS=4500
+
+hard stop gate:
+  GOAL3_BASELINE_HARD_MAX_BPB=1.075
+  GOAL3_BASELINE_HARD_MIN_STEPS=4000
+
+GOAL3_FULL_TIMEOUT=120m
 ```
 
-The qMLP seeds must not run if the dense baseline path is not credible. A bad
-baseline means the OSU H100 setup, package path, or runtime stack is not trusted
-for record claims.
+The qMLP seeds must not run if the dense baseline path is clearly invalid. A
+borderline baseline should not waste the allocation; it should continue with a
+recorded comparison caveat unless the hard gate fails.
 
 ## qMLP Candidate
 
@@ -104,6 +111,9 @@ Required files:
 
 The `artifacts.json` manifests must include byte sizes and sha256 hashes for
 the full model/submission outputs preserved in the candidate directories.
+If the campaign exits early, `final-status.json` must still collect whatever
+partial evidence exists from env smoke, baseline parity, candidate summaries,
+candidate statuses, artifact manifests, and the source snapshot manifest.
 
 ## Completion Requirements
 
@@ -111,7 +121,8 @@ the full model/submission outputs preserved in the candidate directories.
 - Runtime setup result is recorded.
 - Environment smoke result is recorded.
 - Dense baseline parity result is recorded.
-- If baseline parity passes, all three qMLP seeds are attempted in order.
+- If the baseline hard validity gate passes, all three qMLP seeds are attempted
+  in order.
 - Logs, summaries, artifacts, and hashes remain in shared storage.
 - `goal-3/jobs.csv`, `goal-3/status.md`, and `goal-3/findings-summary.md` are
   updated from the actual run results.
@@ -128,5 +139,7 @@ Complete:
 - local static checks passed after campaign edits;
 - `goal-3/` synced to the remote HPC checkout;
 - remote submit-node static checks passed;
-- exact three-hour `srun --test-only` predicts `dgxh-3` at
-  `2026-06-27T20:29:30`.
+- exact six-hour `srun --test-only` refresh passed with predicted start
+  `2026-06-27T20:29:30` on `dgxh-3`;
+- eight-hour comparison dry-run was rejected by `MaxGRESRunMinsPerUser`, so
+  six hours is the visible 8xH100 QOS ceiling.

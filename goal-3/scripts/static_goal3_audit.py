@@ -93,7 +93,10 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
     require_literal(text, "goal3_init_run_dir", f"{name} initializes run dir")
     require_literal(text, "goal3_record_source_snapshot", f"{name} records source snapshot")
     require_literal(text, "trap cleanup EXIT TERM INT", f"{name} has final-status trap")
-    require_literal(text, "goal3_write_final_status", f"{name} writes final status")
+    if name == "campaign-runner":
+        require_literal(text, "write_campaign_final_status", f"{name} writes rich final status")
+    else:
+        require_literal(text, "goal3_write_final_status", f"{name} writes final status")
     if name != "repair-agent":
         require_literal(text, "goal3_activate_env", f"{name} activates env")
         require_literal(text, "env_smoke.py", f"{name} runs env smoke")
@@ -109,12 +112,18 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
         require_literal(text, "GOAL3_SMOKE_TIMEOUT:-8m", f"{name} bounded smoke timeout")
         require_literal(text, "GOAL3_FULL_TIMEOUT:-36m", f"{name} bounded full timeout")
     if name == "campaign-runner":
-        require_literal(text, "#SBATCH --time=03:00:00", "campaign requests one longer queue slot")
+        require_literal(text, "#SBATCH --time=06:00:00", "campaign requests padded queue slot")
+        require_literal(text, "write_campaign_final_status()", "campaign has rich final-status writer")
         require_literal(text, "goal3_ensure_runtime_requirements", "campaign validates/builds runtime requirements")
-        require_literal(text, "baseline-parity.json", "campaign writes baseline parity gate")
-        require_literal(text, "GOAL3_BASELINE_PARITY_MAX_BPB", "campaign has baseline parity BPB gate")
+        require_literal(text, "baseline-parity.json", "campaign writes baseline parity record")
+        require_literal(text, "GOAL3_BASELINE_PARITY_MAX_BPB", "campaign has baseline parity BPB target")
+        require_literal(text, "GOAL3_BASELINE_HARD_MAX_BPB", "campaign has hard baseline BPB gate")
+        require_literal(text, "GOAL3_BASELINE_HARD_MIN_STEPS", "campaign has hard baseline step gate")
+        require_literal(text, "strict_parity_passed", "campaign records strict parity separately")
+        require_literal(text, "GOAL3_FULL_TIMEOUT:-120m", "campaign has padded full-candidate timeout")
         require_literal(text, 'qmlp_seeds=${GOAL3_QMLP_SEEDS:-"42 0 1234"}', "campaign defaults to three qMLP seeds")
         require_literal(text, "qmlp_quantized_ttt_val_bpb_mean", "campaign summarizes qMLP mean")
+        require_literal(text, "source_snapshot_manifest", "campaign final status points to source snapshot manifest")
 
 
 def check_run_candidate(text: str) -> None:
