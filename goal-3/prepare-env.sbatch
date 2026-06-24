@@ -25,6 +25,7 @@ source "$script_dir/common.sh"
 
 goal3_init_run_dir
 goal3_record_context "$GOAL3_RUN_DIR"
+goal3_record_source_snapshot "$GOAL3_RUN_DIR"
 
 tmp_env="$GOAL3_ENV_DIR.tmp.$SLURM_JOB_ID"
 cleanup_tmp_env() {

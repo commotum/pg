@@ -41,6 +41,7 @@ trap cleanup EXIT TERM INT
 
 goal3_activate_env
 goal3_record_context "$GOAL3_RUN_DIR"
+goal3_record_source_snapshot "$GOAL3_RUN_DIR"
 goal3_record_gpu_context "$GOAL3_RUN_DIR"
 goal3_record_python_context "$GOAL3_RUN_DIR"
 

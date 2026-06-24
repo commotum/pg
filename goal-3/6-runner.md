@@ -8,7 +8,13 @@ submitted.
 
 ## Scripted Artifacts
 
-Final runner:
+Primary campaign runner:
+
+```text
+goal-3/h100-campaign-runner.sbatch
+```
+
+Legacy/component record runner:
 
 ```text
 goal-3/h100-record-runner.sbatch
@@ -61,9 +67,9 @@ Environment smoke:
 goal-3/scripts/env_smoke.py
 ```
 
-## Default H100 Request
+## Default H100 Campaign Request
 
-The record runner currently requests:
+The campaign runner currently requests:
 
 ```text
 partition: dgxh
@@ -73,56 +79,56 @@ nodes: 1
 ntasks: 1
 cpus-per-task: 64
 memory: 500G
-walltime: 01:00:00
+walltime: 03:00:00
 ```
 
 The 80GB constraint is intentional. Phase 0 live checks showed
 `--constraint=h100` alone could target `dgxh-1` with `gpu:h100-40g:16`, which is
 not the intended competition-class node.
 
-## Default Candidate Order
+## Default Campaign Order
 
-The one-hour-oriented default is:
-
-```text
-dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
-```
-
-Default per-candidate timeouts in `goal-3/h100-record-runner.sbatch`:
+The campaign runner default is:
 
 ```text
-dense_sp8192_smoke: 8m
-qmlp_sp8192_smoke: 8m
-qmlp_sp16384: 36m
+runtime_setup_and_env_smoke
+dense_sp8192 seed 42 baseline parity
+qmlp_sp16384 seed 42
+qmlp_sp16384 seed 0
+qmlp_sp16384 seed 1234
 ```
 
-This leaves a default candidate-timeout ceiling of 52 minutes inside the
-one-hour allocation, preserving time for the env smoke, context capture, scratch
-staging, parser summaries, and final status writing. The values can be
-overridden only as part of a reviewed H100 request.
+Default campaign gates:
+
+```text
+GOAL3_BASELINE_PARITY_MAX_BPB=1.065
+GOAL3_BASELINE_PARITY_MIN_STEPS=4500
+GOAL3_FULL_TIMEOUT=30m
+```
+
+The `GOAL3_FULL_TIMEOUT` is larger than the 10-minute training budget because
+the full candidate includes quantization, TTT/eval, compression, parsing, and
+stage-out. The record script still uses `MAX_WALLCLOCK_SECONDS=600` for the
+training budget.
 
 Reasoning:
 
-- `dense_sp8192_smoke` checks the base stack, CaseOps `sp8192`, FA3, fused
-  kernels, GPTQ/package path, and parser.
-- `qmlp_sp8192_smoke` checks the same-vocab qMLP path inside the full record
-  stack.
-- `qmlp_sp16384` is the main record-attempt candidate carried forward from
-  Goal 2.
+- runtime setup/env smoke catches missing FA3, CUDA, `lrzip`, and tokenizer
+  issues inside the actual H100 allocation;
+- full `dense_sp8192` seed 42 checks that the OSU setup reproduces the known
+  record path closely enough to trust qMLP results;
+- qMLP `sp16384` seeds 42, 0, and 1234 are the actual record-attempt campaign.
 
-The order can be overridden at submission time with:
+The campaign can be overridden only as part of a reviewed H100 request:
 
 ```bash
-GOAL3_CANDIDATES="dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384" \
-sbatch goal-3/h100-record-runner.sbatch
+GOAL3_QMLP_SEEDS="42 0 1234" sbatch goal-3/h100-campaign-runner.sbatch
 ```
 
-Full `qmlp_sp8192` can be inserted only if the reviewed allocation has enough
-time or if the user chooses same-vocab measurement over the `sp16384` record
-attempt.
-
-The separate `goal-3/h100-short-smoke.sbatch` defaults to 10 minutes per smoke
-candidate inside its 45-minute allocation.
+The older `goal-3/h100-record-runner.sbatch` remains a one-hour component
+runner with smoke-oriented defaults. It is not the recommended approval target.
+The separate `goal-3/h100-short-smoke.sbatch` remains available for fallback
+diagnosis only after explicit review.
 
 ## Outputs
 
@@ -137,29 +143,41 @@ Expected files:
 - `context.txt`;
 - `gpu.txt`;
 - `python.txt`;
+- `runtime-setup/imports-before.json`;
+- `runtime-setup/imports-after.json`;
+- `runtime-setup/fa3-install.txt`, if runtime FA3 install ran;
 - `env-smoke.json`;
 - `git-status.txt`;
 - `git-diff.stat`;
 - `git-diff.patch`;
+- `source-snapshot/goal-3/`;
+- `source-snapshot.sha256`;
 - `scratch-stage.txt`;
 - `run-order.txt`;
 - `progress.txt`;
+- `baseline-parity.json`;
 - `candidates/<candidate>/seed_<seed>/stdout.log`;
 - `candidates/<candidate>/seed_<seed>/stderr.log`;
 - `candidates/<candidate>/seed_<seed>/env.txt`;
 - `candidates/<candidate>/seed_<seed>/summary.json`;
 - `candidates/<candidate>/seed_<seed>/status.json`;
+- `candidates/<candidate>/seed_<seed>/artifacts.json`;
 - `final-status.json`.
 
 Each candidate `env.txt` records the effective launcher as either `direct` or
 the quoted `srun ...` command.
 Each candidate `status.json` records `exit_code`, `timeout`, and `timed_out` so
 a bounded timeout is visible without reading the whole stderr log.
-The H100 env, short-smoke, record-runner, and optional repair-agent scripts
-install an exit trap that writes `final-status.json` on early failure or signal
-if the normal summary path has not already written one. The short-smoke and
-record-runner normal summaries also include candidate order, seed, timeout
-settings, and the per-candidate `status.json` payloads.
+Each candidate `artifacts.json` records byte size and sha256 for each non-log
+file in the candidate directory.
+The H100 env, short-smoke, record-runner, campaign-runner, and optional
+repair-agent scripts install an exit trap that writes `final-status.json` on
+early failure or signal if the normal summary path has not already written one.
+The short-smoke and record-runner normal summaries also include candidate order,
+seed, timeout settings, and the per-candidate `status.json` payloads.
+The campaign runner writes a normal `final-status.json` with
+`baseline_parity`, all candidate summaries/statuses/artifact manifests, and
+qMLP post-TTT BPB mean/std when all qMLP seeds complete.
 
 ## Repair Agent
 
@@ -192,8 +210,10 @@ This is not the default execution path.
 Static checks completed:
 
 ```bash
+bash -n goal-3/h100-campaign-runner.sbatch
 bash -n goal-3/h100-record-runner.sbatch
 bash -n goal-3/h100-repair-agent.sbatch
+bash -n goal-3/scripts/common.sh
 bash -n goal-3/scripts/run_candidate.sh
 python3 -m py_compile goal-3/scripts/parse_train_log.py
 python3 -m py_compile goal-3/scripts/env_smoke.py
@@ -208,14 +228,19 @@ Runtime checks pending:
 
 Runtime checks completed:
 
-- `srun --test-only` was refreshed on 2026-06-23 at 16:05 Pacific for both the
-  15-minute env smoke and the one-hour record runner. Both currently fit on
-  `dgxh-3` with predicted start `2026-06-27T08:29:30`.
+- `srun --test-only` was refreshed on 2026-06-23 at 16:39 Pacific for the old
+  15-minute env smoke and one-hour record runner. Those dry-runs are now stale
+  for approval because the target changed to a three-hour campaign runner.
+- `srun --test-only` for the exact three-hour campaign request was refreshed on
+  2026-06-23 at 17:24 Pacific and predicted `dgxh-3` at
+  `2026-06-27T20:29:30`.
 - Local `bash -n` checks were rerun on 2026-06-23 at 16:30 Pacific after the
   final-status trap and summary updates.
 - Local `static_goal3_audit.py` passed on 2026-06-23 at 16:35 Pacific.
 - Remote submit-node static checks, including `static_goal3_audit.py`, passed
   on 2026-06-23 at 16:38 Pacific after syncing through the OSU gateway.
+- Remote submit-node static checks passed again on 2026-06-23 after the campaign
+  runner updates.
 
 ## Scratch Staging
 
@@ -238,17 +263,19 @@ directory.
 
 ## Completion Requirements
 
-- Final runner exists: complete.
+- Campaign runner exists: complete.
 - Runner has explicit resource request: complete.
-- Runner has bounded candidate order: complete.
+- Runner has baseline parity gate and bounded qMLP seed order: complete.
 - Runner writes machine-readable final status: complete.
 - Repair agent exists and is disabled by default: complete.
-- H100 dry-run is current: complete, recorded in `goal-3/7-approval.md`.
+- H100 campaign dry-run is current: complete, predicted `dgxh-3` at
+  `2026-06-27T20:29:30`.
 - Static Goal 3 audit passes locally: complete.
 - User approval for exact H100 request: pending.
 
 ## Next Phase
 
 Phase 7 is the human approval gate. Before submitting H100 work, refresh live
-Slurm state, run `srun --test-only` with the exact resource request, show the
-script path and candidate order to the user, and wait for explicit approval.
+Slurm state, run `srun --test-only` with the exact three-hour campaign request,
+show the script path and candidate order to the user, and wait for explicit
+approval.

@@ -8,6 +8,7 @@ GOAL3_RUN_ROOT=${GOAL3_RUN_ROOT:-/nfs/hpc/share/peterj29/pg/goal-3-runs}
 GOAL3_ENV_DIR=${GOAL3_ENV_DIR:-/nfs/hpc/share/peterj29/pg/envs/goal3-cu128}
 GOAL3_TOOLS_DIR=${GOAL3_TOOLS_DIR:-/nfs/hpc/share/peterj29/pg/tools}
 GOAL3_ARTIFACT_LIMIT=${GOAL3_ARTIFACT_LIMIT:-16000000}
+GOAL3_FA3_FIND_LINKS=${GOAL3_FA3_FIND_LINKS:-https://windreamer.github.io/flash-attention3-wheels/cu128_torch291/}
 
 GOAL3_SP8192_DATA=${GOAL3_SP8192_DATA:-/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/datasets/datasets/fineweb10B_sp8192_lossless_caps_caseops_v1_reserved}
 GOAL3_SP8192_TOKENIZER=${GOAL3_SP8192_TOKENIZER:-/nfs/hpc/share/peterj29/pg/data-exports/caseops-sp8192-patched/datasets/tokenizers/fineweb_8192_bpe_lossless_caps_caseops_v1_reserved.model}
@@ -17,6 +18,7 @@ GOAL3_SP16384_TOKENIZER=${GOAL3_SP16384_TOKENIZER:-/nfs/hpc/share/peterj29/pg/da
 export GOAL3_REPO_ROOT GOAL3_STAGE_DIR GOAL3_RUN_ROOT GOAL3_ENV_DIR
 export GOAL3_TOOLS_DIR
 export GOAL3_ARTIFACT_LIMIT
+export GOAL3_FA3_FIND_LINKS
 export GOAL3_SP8192_DATA GOAL3_SP8192_TOKENIZER
 export GOAL3_SP16384_DATA GOAL3_SP16384_TOKENIZER
 
@@ -113,6 +115,68 @@ print(f"lrzip={shutil.which('lrzip')}")
 PY
         python -m pip freeze
     } >"$out_dir/python.txt" 2>&1
+}
+
+goal3_record_source_snapshot() {
+    local out_dir=${1:-$GOAL3_RUN_DIR}
+    local snapshot_root="$out_dir/source-snapshot"
+    local snapshot="$snapshot_root/goal-3"
+    local manifest="$out_dir/source-snapshot.sha256"
+    mkdir -p "$snapshot_root"
+    rsync -a \
+        --exclude logs \
+        --exclude __pycache__ \
+        --exclude '*.pyc' \
+        "$GOAL3_REPO_ROOT/goal-3/" "$snapshot/"
+    (
+        cd "$snapshot"
+        find . -type f | LC_ALL=C sort | while IFS= read -r path; do
+            if command -v sha256sum >/dev/null 2>&1; then
+                sha256sum "$path"
+            else
+                shasum -a 256 "$path"
+            fi
+        done
+    ) >"$manifest"
+}
+
+goal3_ensure_runtime_requirements() {
+    local out_dir=${1:-$GOAL3_RUN_DIR}
+    mkdir -p "$out_dir/runtime-setup"
+    python - <<'PY' >"$out_dir/runtime-setup/imports-before.json" 2>"$out_dir/runtime-setup/imports-before.err" || true
+import importlib.util
+import json
+
+mods = ["torch", "triton", "sentencepiece", "brotli", "flash_attn_interface"]
+print(json.dumps({name: importlib.util.find_spec(name) is not None for name in mods}, indent=2, sort_keys=True))
+PY
+    if ! python - <<'PY' >/dev/null 2>&1
+import importlib.util
+raise SystemExit(0 if importlib.util.find_spec("flash_attn_interface") else 1)
+PY
+    then
+        if [[ "${GOAL3_ALLOW_RUNTIME_FA3_INSTALL:-1}" != "1" ]]; then
+            echo "flash_attn_interface missing and GOAL3_ALLOW_RUNTIME_FA3_INSTALL!=1" >&2
+            return 2
+        fi
+        echo "flash_attn_interface missing; attempting runtime FA3 install from $GOAL3_FA3_FIND_LINKS" \
+            | tee "$out_dir/runtime-setup/fa3-install.txt"
+        python -m pip install --no-deps flash_attn_3 --find-links "$GOAL3_FA3_FIND_LINKS" \
+            >>"$out_dir/runtime-setup/fa3-install.txt" 2>&1
+    fi
+    python - <<'PY' >"$out_dir/runtime-setup/imports-after.json"
+import importlib.util
+import json
+import shutil
+
+mods = ["torch", "triton", "sentencepiece", "brotli", "flash_attn_interface"]
+payload = {name: importlib.util.find_spec(name) is not None for name in mods}
+payload["lrzip"] = shutil.which("lrzip")
+print(json.dumps(payload, indent=2, sort_keys=True))
+missing = [name for name, ok in payload.items() if name != "lrzip" and not ok]
+if missing or payload["lrzip"] is None:
+    raise SystemExit(1)
+PY
 }
 
 goal3_write_final_status() {

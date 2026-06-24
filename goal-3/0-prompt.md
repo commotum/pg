@@ -68,6 +68,9 @@ if another prerequisite can move. Do not bypass gates that protect H100 time.
 ## Campaign Shape
 
 The H100 allocation should run prewritten scripts, not open-ended exploration.
+Do not request a separate tiny env-smoke allocation first. The reviewed H100
+request should be one autonomous campaign allocation that does the smoke/setup
+work internally and then proceeds only if the gates pass.
 
 Prepare these required artifacts before asking for H100:
 
@@ -81,30 +84,45 @@ goal-3/prepare-tools.sbatch
 goal-3/h100-env-smoke.sbatch
 goal-3/h100-short-smoke.sbatch
 goal-3/h100-record-runner.sbatch
+goal-3/h100-campaign-runner.sbatch
 goal-3/h100-repair-agent.sbatch
 goal-3/scripts/env_smoke.py
+goal-3/scripts/common.sh
 goal-3/scripts/run_candidate.sh
 goal-3/scripts/parse_train_log.py
+goal-3/scripts/static_goal3_audit.py
 ```
 
-For a one-hour 8xH100 allocation, the default candidate order should prioritize
-the record attempt after smoke validation:
+The primary approval target is:
 
 ```text
-dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
+goal-3/h100-campaign-runner.sbatch
 ```
+
+The default autonomous campaign order is:
+
+1. runtime setup/build validation, including FA3 install/build from the
+   documented wheel source if the import is missing and runtime install is
+   enabled;
+2. H100/FA3/NCCL/tokenizer/`lrzip` environment smoke;
+3. exact dense/base `sp8192`, seed 42, full baseline parity run;
+4. stop if baseline parity fails the reviewed exit-code, package-size, BPB, or
+   step-count gates;
+5. qMLP budget-reinvested `sp16384`, seeds 42, 0, and 1234, full runs;
+6. final artifact hashing, parser summaries, qMLP mean/std, and campaign
+   status.
 
 The required candidate configs are:
 
-1. exact dense/base `sp8192` smoke;
-2. qMLP same-vocab `sp8192` smoke or full run, depending on approved time;
-3. qMLP budget-reinvested `sp16384` full contender.
+1. exact dense/base `sp8192`, seed 42, full run;
+2. qMLP budget-reinvested `sp16384`, seed 42, full run;
+3. qMLP budget-reinvested `sp16384`, seed 0, full run;
+4. qMLP budget-reinvested `sp16384`, seed 1234, full run.
 
 Optional only if already scripted and time remains:
 
-1. exact dense/base full `sp8192` reproduction;
-2. qMLP `sp16384` second seed;
-3. qMLP `sp32768` package smoke.
+1. qMLP same-vocab `sp8192` smoke or full run;
+2. qMLP `sp32768` package smoke.
 
 Do not prioritize `sp32768` full H100 training unless `sp16384` is already
 successful and there is concrete package/throughput evidence that it is likely
@@ -144,7 +162,7 @@ Preserve compliance-sensitive behavior:
 
 ## H100 Runner Requirements
 
-The final H100 runner must:
+The final H100 campaign runner must:
 
 - request one H100 80GB node and 8 H100 80GB GPUs;
 - explicitly set partition, constraint, GRES, time, nodes, tasks, CPUs, memory,
@@ -153,12 +171,17 @@ The final H100 runner must:
   dependency versions;
 - create a unique run directory using `$SLURM_JOB_ID`;
 - stage hot inputs to local scratch if practical;
-- run hardware/env smoke first;
-- run a short distributed qMLP smoke before final attempts;
-- execute only predeclared candidate configs;
+- activate the prepared environment and validate/build missing runtime pieces,
+  including FA3 if allowed;
+- run hardware/env smoke before any training;
+- run a full dense/base `sp8192` baseline parity candidate before qMLP;
+- stop if baseline parity fails the reviewed BPB, step-count, exit-code, or
+  artifact-size gates;
+- execute only predeclared qMLP `sp16384` seeds after parity passes;
 - stop on invalid package size or compliance failure;
-- copy logs, artifacts, manifests, parser summaries, and final status back to
-  shared storage before exit.
+- copy logs, full model artifacts, quantized submission artifacts, artifact
+  manifests, hashes, parser summaries, and final status back to shared storage
+  before exit.
 
 The runner should record `git-status.txt`, `git-diff.stat`, and
 `git-diff.patch`, and should stage the small Goal 3 source/data inputs to

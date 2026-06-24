@@ -45,6 +45,7 @@ trap cleanup EXIT TERM INT
 
 goal3_activate_env || true
 goal3_record_context "$GOAL3_RUN_DIR"
+goal3_record_source_snapshot "$GOAL3_RUN_DIR"
 goal3_record_gpu_context "$GOAL3_RUN_DIR"
 
 codex_bin=${GOAL3_CODEX_BIN:-/nfs/stak/users/peterj29/.local/bin/codex}

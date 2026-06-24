@@ -73,14 +73,29 @@ The H100 node should be treated as an execution window, not an exploration
 window. All code, configs, data, packaging, Slurm scripts, parsers, and fallback
 logic should be prepared before requesting the node.
 
-For a one-hour 8xH100 allocation, the preferred H100 run sequence is:
+Revised campaign requirement: do not queue a tiny env smoke separately from the
+real run. H100 wait time is the scarce resource. The next H100 request should be
+one autonomous campaign allocation that validates the environment, catches build
+issues, reproduces the known record-setting dense baseline closely enough to
+trust the setup, and then runs the qMLP contender for three seeds.
 
-1. Environment and hardware smoke.
-2. Exact base-stack reproduction smoke at CaseOps `sp8192`.
-3. Same-vocab qMLP smoke at CaseOps `sp8192`.
-4. Full budget-reinvested qMLP attempt at CaseOps `sp16384`.
-5. Optional same-vocab qMLP full run or rerun only if preplanned and time
-   remains.
+The preferred autonomous campaign sequence is:
+
+1. Runtime setup/build validation:
+   - activate the prepared env;
+   - attempt FA3 install/build from the documented wheel source if the import is
+     missing and runtime install is enabled;
+   - verify CUDA/PyTorch, 8 H100 80GB GPUs, FA3, Triton, SentencePiece, Brotli,
+     `lrzip`, and the two CaseOps tokenizers.
+2. Exact dense/base `sp8192` full baseline parity run, seed 42.
+3. Stop if baseline parity is not credible:
+   - candidate exits nonzero;
+   - artifact is not under 16 MB;
+   - post-TTT BPB is worse than the configured parity ceiling;
+   - training step count is below the configured floor.
+4. qMLP `sp16384` full contender, seeds `42`, `0`, and `1234`.
+5. Save all logs, full model artifacts, quantized submission artifacts,
+   per-candidate status, hashes, summaries, and final campaign summary.
 
 Do not spend scarce H100 time on open-ended debugging, broad sweeps, or
 interactive agent exploration.
@@ -121,20 +136,20 @@ Reason:
 
 ### Required Candidate Runs
 
-The minimum H100 campaign must prepare these configs:
+The minimum autonomous H100 campaign must prepare these configs:
 
 | Priority | Config | Purpose |
 |---:|---|---|
-| 1 | exact dense/base `sp8192` smoke | prove the environment and runner match the known path |
-| 2 | qMLP same-vocab `sp8192` | measure qMLP tax or gain inside the true record stack |
-| 3 | qMLP `sp16384` | carry forward the best Goal 2 qMLP candidate direction |
+| 1 | exact dense/base `sp8192`, seed 42, full run | prove OSU H100 setup can reproduce the known record path closely enough |
+| 2 | qMLP `sp16384`, seed 42, full run | first contender result after baseline parity passes |
+| 3 | qMLP `sp16384`, seed 0, full run | seed replication |
+| 4 | qMLP `sp16384`, seed 1234, full run | seed replication and direct comparison to record seed set |
 
 Optional configs, only if already scripted and time remains:
 
 | Priority | Config | Purpose |
 |---:|---|---|
-| 4 | exact dense/base full `sp8192` reproduction | anchor OSU H100 results against published local records |
-| 5 | qMLP `sp16384` second seed | reduce seed-luck risk if first result is promising |
+| 5 | qMLP same-vocab `sp8192` smoke or full run | isolate qMLP same-vocab effect if campaign headroom remains |
 | 6 | qMLP `sp32768` package smoke only | check whether the H100/full-stack package frontier differs materially |
 
 Do not prioritize `sp32768` for full H100 training unless `sp16384` is already
@@ -212,11 +227,13 @@ Before requesting 8xH100, dry-run:
 ```bash
 srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8 \
   --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G \
-  --time=01:00:00 true
+  --time=03:00:00 true
 ```
 
-Adjust time only after reviewing the planned run sequence. The QOS may allow
-more time, but the request should be as small as is operationally useful.
+The current campaign target is three hours because it must include environment
+validation, one full dense baseline parity run, and three full qMLP seed runs in
+one queue wait. The QOS may allow more time, but the reviewed request should be
+as small as is operationally useful for that complete campaign.
 
 ## Required Artifacts To Prepare Before H100 Request
 
@@ -288,6 +305,7 @@ goal-3/prepare-tools.sbatch
 goal-3/h100-env-smoke.sbatch
 goal-3/h100-short-smoke.sbatch
 goal-3/h100-record-runner.sbatch
+goal-3/h100-campaign-runner.sbatch
 goal-3/h100-repair-agent.sbatch
 goal-3/scripts/env_smoke.py
 goal-3/scripts/run_candidate.sh
@@ -305,11 +323,13 @@ The final runner must:
 - create a unique run directory using `$SLURM_JOB_ID`;
 - stage hot inputs to local scratch if practical;
 - run hardware/env smoke first;
-- run a short distributed qMLP smoke before the final attempt;
-- execute only predeclared candidate configs;
+- validate/build missing FA3 runtime pieces if possible before failing;
+- run full dense/base baseline parity before qMLP attempts;
+- execute qMLP `sp16384` for three predeclared seeds after parity passes;
 - stop on invalid package size or compliance failure;
-- copy all logs, artifacts, manifests, and parser output back to shared storage
-  before exit;
+- preserve full model artifacts, quantized submission artifacts, logs,
+  manifests, hashes, a Goal 3 source snapshot, parser output, and final
+  campaign summaries on shared storage before exit;
 - write a final machine-readable status file.
 
 The repair-agent script must be optional and disabled by default. If used, it
@@ -512,16 +532,18 @@ Steps:
 1. Write `goal-3/h100-env-smoke.sbatch`.
 2. Write `goal-3/h100-short-smoke.sbatch`.
 3. Write `goal-3/h100-record-runner.sbatch`.
-4. Write `goal-3/h100-repair-agent.sbatch`, disabled by default.
-5. Add parser/reporting scripts.
-6. Validate scripts with `bash -n`.
-7. Use `srun --test-only` for scheduler fit checks.
+4. Write `goal-3/h100-campaign-runner.sbatch` as the primary approval target.
+5. Write `goal-3/h100-repair-agent.sbatch`, disabled by default.
+6. Add parser/reporting scripts.
+7. Validate scripts with `bash -n`.
+8. Use `srun --test-only` for scheduler fit checks.
 
 Completion requirements:
 
 - all required scripts exist and pass static checks;
 - static Goal 3 audit verifies qMLP wiring and H100 runner guardrails;
-- final runner has an ordered config list and no hidden broad sweep;
+- campaign runner has a baseline parity gate, three qMLP seeds, and no hidden
+  broad sweep;
 - final runner writes final status even on failure;
 - repair agent is bounded, optional, and not the default execution path.
 
@@ -552,9 +574,11 @@ Completion requirements:
 Goal: run the preplanned H100 sequence and capture enough evidence to decide
 whether qMLP beats the record.
 
-The runner should execute:
+The campaign runner should execute:
 
-1. Hardware verification:
+1. Runtime setup/build validation:
+   - activate env;
+   - install/build FA3 from the documented wheel source if missing and enabled;
    - `nvidia-smi -L`;
    - confirm 8 full H100 GPUs;
    - record CUDA and NCCL state.
@@ -564,17 +588,18 @@ The runner should execute:
    - FA3 import;
    - Triton/fused kernels;
    - `lrzip`.
-3. Distributed smoke:
-   - `torchrun --nproc_per_node=8`;
-   - tiny train/eval/package path;
-   - qMLP enabled.
-4. Candidate sequence:
-   - qMLP `sp8192` if same-vocab tax/gain is still needed;
-   - qMLP `sp16384` final contender;
-   - optional preplanned rerun/fallback if time remains.
+3. Full baseline parity:
+   - dense/base `sp8192`, seed 42;
+   - validate under-16MB artifact, post-TTT BPB ceiling, and step-count floor.
+4. Full qMLP campaign:
+   - qMLP `sp16384`, seed 42;
+   - qMLP `sp16384`, seed 0;
+   - qMLP `sp16384`, seed 1234.
 5. Stage-out:
    - logs;
-   - artifacts;
+   - full model artifacts;
+   - quantized submission artifacts;
+   - artifact hashes;
    - parser summaries;
    - final status.
 
@@ -584,7 +609,8 @@ Completion requirements:
 - logs and artifacts are copied back to shared storage;
 - parser summary exists;
 - any failed step has enough logs for diagnosis;
-- package compliance is known.
+- package compliance is known for every completed run;
+- qMLP three-seed mean/std are computed if all three qMLP runs complete.
 
 ### Phase 9: Post-Run Analysis And Next Decision
 
@@ -622,6 +648,7 @@ Stop and ask before continuing if:
 
 - H100 package size is over 16 MB;
 - qMLP same-vocab smoke is clearly broken inside the record stack;
+- dense/base baseline parity fails badly enough that OSU setup is not credible;
 - FA3 or fused kernels cannot run on OSU H100;
 - the runner would need unplanned H100 debugging;
 - compliance is ambiguous;

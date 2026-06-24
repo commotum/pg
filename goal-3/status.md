@@ -1,24 +1,26 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 16:38 America/Los_Angeles
+Last updated: 2026-06-23 17:38 America/Los_Angeles
 
 ## Current Phase
 
 Phase 7: Human review and H100 request gate.
 
-Status: Phase 3 qMLP source port is statically complete, and the H100 runner
-artifacts are scripted and `bash -n` checked. The runner records dirty diffs,
-stages Goal 3 source/data inputs to node-local scratch, launches candidates
-through Slurm-accounted `srun` by default, and writes machine-readable
+Status: Phase 3 qMLP source port is statically complete, and the H100 campaign
+runner is scripted and locally checked. The approval target is now
+`goal-3/h100-campaign-runner.sbatch`, not the old standalone 15-minute env
+smoke. The campaign runner records dirty diffs, validates/builds runtime
+requirements, stages Goal 3 source/data inputs to node-local scratch, runs a
+full dense `sp8192` baseline parity gate, and then runs qMLP `sp16384` for
+seeds `42`, `0`, and `1234` if parity passes. It writes machine-readable
 `final-status.json` on normal completion or early failure when possible.
-`goal-3/scripts/static_goal3_audit.py` now provides a repeatable local/remote
+`goal-3/scripts/static_goal3_audit.py` provides a repeatable local/remote
 text-level guardrail check for qMLP integration and H100 runner invariants.
-`goal-3/` has been synced to the remote HPC checkout through the OSU gateway
-and remote submit-node static checks passed, including the static Goal 3 audit.
-CPU Slurm prep jobs have completed for the shared Python
-environment and user-local `lrzip`. Phase 7 approval packet exists at
-`goal-3/7-approval.md`. No H100/H200 work has been submitted, and the
-15-minute H100 env smoke is pending explicit approval.
+CPU Slurm prep jobs have completed for the shared Python environment and
+user-local `lrzip`. The latest local and remote static checks pass, and the
+exact three-hour campaign dry-run predicts `dgxh-3` at
+`2026-06-27T20:29:30`. No H100/H200 work has been submitted. The next step is
+to ask the user to approve or reject the exact campaign submission.
 
 ## Objective
 
@@ -80,25 +82,36 @@ Local workspace:
 ```text
 path: /Users/jake/Developer/pg
 branch: mac
-HEAD: 60a7c1afbe43a47f4b8d9e1db8b35474eb5c2ece
+HEAD: 152e122788bc39eff1283abd1c1290309ecb42c6
 dirty: yes
 ```
 
 Observed local dirty state:
 
 ```text
+M goal-3/0-loop.md
+M goal-3/0-plan.md
+M goal-3/0-prompt.md
+M goal-3/4-smokes.md
+M goal-3/5-runtime.md
 M goal-3/6-runner.md
 M goal-3/7-approval.md
 M goal-3/findings-summary.md
+M goal-3/h100-campaign-runner.sbatch
 M goal-3/h100-env-smoke.sbatch
 M goal-3/h100-record-runner.sbatch
 M goal-3/h100-repair-agent.sbatch
 M goal-3/h100-short-smoke.sbatch
+?? goal-3/logs/.gitkeep
+M goal-3/prepare-env.sbatch
+M goal-3/prepare-tools.sbatch
 M goal-3/scripts/common.sh
 M goal-3/scripts/run_candidate.sh
-?? goal-3/scripts/static_goal3_audit.py
+M goal-3/scripts/static_goal3_audit.py
 M goal-3/status.md
 m parameter-golf
+?? goal-3/8-campaign.md
+?? goal-3/h100-campaign-runner.sbatch
 ```
 
 Submodules:
@@ -128,7 +141,7 @@ Important note: the remote checkout is stale relative to local Goal 3 work and
 still contains older `goal/`/`goal-2/` state. Sync or patch the remote checkout
 before any Goal 3 Slurm work.
 
-Remote Goal 3 sync from 2026-06-23 16:38:
+Remote Goal 3 sync from 2026-06-23 16:41:
 
 ```text
 goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
@@ -137,7 +150,16 @@ remote git status for Goal 3: ?? goal-3/
 remote parameter-golf status: m parameter-golf
 ```
 
-Remote static checks run:
+Remote Goal 3 sync from 2026-06-23 17:38:
+
+```text
+goal-3/ synced to /nfs/hpc/share/peterj29/pg/src/pg/goal-3
+remote static checks: passed
+remote static audit: static_goal3_audit: passed
+remote log dir check: goal-3/logs/.gitkeep present
+```
+
+Remote static checks run in the latest sync:
 
 ```text
 bash -n goal-3/scripts/common.sh
@@ -146,6 +168,7 @@ bash -n goal-3/prepare-env.sbatch
 bash -n goal-3/h100-env-smoke.sbatch
 bash -n goal-3/h100-short-smoke.sbatch
 bash -n goal-3/h100-record-runner.sbatch
+bash -n goal-3/h100-campaign-runner.sbatch
 bash -n goal-3/h100-repair-agent.sbatch
 python compile() syntax check for env_smoke.py, parse_train_log.py, train_gpt.py
 python goal-3/scripts/static_goal3_audit.py
@@ -164,7 +187,7 @@ Read-only live check timestamp:
 
 ```text
 submit host: submit-a.ib.coehpc
-time: 2026-06-23T16:05:06-07:00
+time: 2026-06-23T17:24:02-07:00
 user: peterj29
 association: coehpc|eecs|peterj29|||normal
 current queue: no jobs listed for peterj29
@@ -187,10 +210,10 @@ dgxh MaxTRESRunMinsPU: cpu=92160, gres/gpu=2880, mem=720T
 H100 node facts from live `sinfo`:
 
 ```text
-dgxh-1: gpu:h100-40g:16, features h100,vram40g
-dgxh-2: gpu:8, drained, features h100,vram80g
-dgxh-3: gpu:8, mixed, features h100,vram80g
-dgxh-4: gpu:8, mixed, features h200,vram80g,vram140g
+dgxh-1: gpu:h100-40g:16, mixed-, features h100,vram40g
+dgxh-2: gpu:8, drained*, features h100,vram80g
+dgxh-3: gpu:8, mixed-, features h100,vram80g
+dgxh-4: gpu:8, mixed-, features h200,vram80g,vram140g
 ```
 
 Dry-run findings:
@@ -200,15 +223,18 @@ Dry-run findings:
   previously predicted dgxh-1
   not acceptable for the intended 8xH100 80GB run because dgxh-1 is h100-40g
 
-goal-3/h100-env-smoke.sbatch equivalent:
-  srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
-  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=00:15:00 true
-  predicted dgxh-3 at 2026-06-27T08:29:30
+old goal-3/h100-env-smoke.sbatch equivalent:
+  predicted dgxh-3 at 2026-06-27T20:29:30
+  stale for approval because the target is no longer a 15-minute env smoke
 
-goal-3/h100-record-runner.sbatch equivalent:
+old goal-3/h100-record-runner.sbatch equivalent:
+  predicted dgxh-3 at 2026-06-27T20:29:30
+  stale for approval because the target is no longer a one-hour runner
+
+required goal-3/h100-campaign-runner.sbatch equivalent:
   srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
-  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=01:00:00 true
-  predicted dgxh-3 at 2026-06-27T08:29:30
+  --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=03:00:00 true
+  srun: Job 20487726 to start at 2026-06-27T20:29:30 a using 64 processors on nodes dgxh-3 in partition dgxh
 ```
 
 ## Current Decision
@@ -264,9 +290,20 @@ the submit-node system Python lacks `sentencepiece`.
 
 ## Next Action
 
-Ask the user to approve only the 15-minute H100 env smoke documented in
-`goal-3/7-approval.md`. Do not submit the env smoke, short smoke, or record
-runner until the exact corresponding request is explicitly approved.
+Ask the user to approve or reject this exact H100 request:
+
+```text
+script: goal-3/h100-campaign-runner.sbatch
+resources: dgxh, h100&vram80g, gpu:8, nodes=1, ntasks=1,
+           cpus-per-task=64, mem=500G, time=03:00:00
+dry-run: dgxh-3 at 2026-06-27T20:29:30
+sequence: runtime validation -> dense_sp8192 seed 42 baseline parity ->
+          qmlp_sp16384 seeds 42, 0, 1234
+preserved source: source-snapshot/goal-3/ and source-snapshot.sha256
+```
+
+Do not submit the campaign, env smoke, short smoke, or record runner until that
+exact corresponding request is explicitly approved.
 
 Phase 3 preserved `QUAT_MLP=0` behavior while adding:
 
@@ -303,6 +340,7 @@ goal-3/prepare-env.sbatch
 goal-3/h100-env-smoke.sbatch
 goal-3/h100-short-smoke.sbatch
 goal-3/h100-record-runner.sbatch
+goal-3/h100-campaign-runner.sbatch
 goal-3/h100-repair-agent.sbatch
 goal-3/scripts/common.sh
 goal-3/scripts/env_smoke.py
@@ -310,14 +348,15 @@ goal-3/scripts/run_candidate.sh
 goal-3/scripts/parse_train_log.py
 ```
 
-Default one-hour runner order:
+Default campaign runner order:
 
 ```text
-dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384
+runtime validation -> dense_sp8192 seed 42 baseline parity ->
+qmlp_sp16384 seeds 42, 0, 1234
 ```
 
-H100 approval status: env-smoke request prepared in `goal-3/7-approval.md`;
-not yet granted.
+H100 approval status: campaign request prepared in `goal-3/7-approval.md`;
+not yet granted. The exact three-hour dry-run has been refreshed and recorded.
 
 Additional prep now complete:
 
@@ -328,7 +367,8 @@ Additional prep now complete:
 - CPU tools prep completed as job `20487617`, producing
   `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip` with user-local LZO and
   LZ4 libraries. Direct submit-node execution of that binary fails due the
-  submit node's older glibc, so the valid runtime check is the H100 env smoke.
+  submit node's older glibc, so the valid runtime check is the campaign-internal
+  H100 env smoke.
 - `goal-3/scripts/env_smoke.py` checks CUDA device count, FA3 import, `lrzip`
   presence and executability, and tokenizer vocab sizes.
 - `goal-3/scripts/parse_train_log.py` now reports both the last periodic
@@ -344,16 +384,27 @@ Additional prep now complete:
 - `goal-3/h100-record-runner.sbatch` now bounds the default one-hour candidate
   timeouts to `8m + 8m + 36m`; `goal-3/h100-short-smoke.sbatch` now defaults
   to `10m` per smoke candidate inside its 45-minute allocation.
+- `goal-3/h100-campaign-runner.sbatch` is now the primary H100 approval target,
+  with a three-hour request, runtime setup validation, a full dense baseline
+  parity gate, and qMLP `sp16384` seeds `42`, `0`, and `1234`.
+- Goal 3 runs now preserve `source-snapshot/goal-3/` and
+  `source-snapshot.sha256` in each run directory, so untracked or dirty Goal 3
+  files are captured even if Git `HEAD` alone is not reproducible.
+- `goal-3/logs/.gitkeep` now preserves the sbatch stdout/stderr directory; the
+  static audit fails if this placeholder is missing.
+- `run_candidate.sh` now derives `RUN_ID` from `${candidate}_seed${seed}` by
+  default, preventing accidental reuse of TTT `/tmp` counter paths across
+  sequential campaign candidates.
 - Candidate `status.json` now records `timeout` and `timed_out` so a timeout
   kill is explicit in machine-readable summaries.
-- H100 env, short-smoke, record-runner, and optional repair-agent scripts now
-  use `goal3_write_final_status` traps so early failures still leave
-  `final-status.json` when possible.
+- H100 env, short-smoke, record-runner, campaign-runner, and optional
+  repair-agent scripts now use `goal3_write_final_status` traps so early
+  failures still leave `final-status.json` when possible.
 - H100 short-smoke and record-runner normal summaries include candidate order,
   seed, timeout settings, and per-candidate `status.json` contents.
 - `goal-3/scripts/common.sh` exports required Goal 3 paths for child processes.
 - `goal-3/scripts/common.sh` records `git-status.txt`, `git-diff.stat`, and
   `git-diff.patch`.
-- `goal-3/h100-short-smoke.sbatch` and `goal-3/h100-record-runner.sbatch` stage
-  the Goal 3 source tree and both required CaseOps data/tokenizer sets to
-  `/scratch/$USER/$SLURM_JOB_ID/goal3`.
+- `goal-3/h100-short-smoke.sbatch`, `goal-3/h100-record-runner.sbatch`, and
+  `goal-3/h100-campaign-runner.sbatch` stage the Goal 3 source tree and both
+  required CaseOps data/tokenizer sets to `/scratch/$USER/$SLURM_JOB_ID/goal3`.

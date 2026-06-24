@@ -25,6 +25,7 @@ source "$script_dir/common.sh"
 
 goal3_init_run_dir
 goal3_record_context "$GOAL3_RUN_DIR"
+goal3_record_source_snapshot "$GOAL3_RUN_DIR"
 
 lrzip_prefix="$GOAL3_TOOLS_DIR/lrzip"
 

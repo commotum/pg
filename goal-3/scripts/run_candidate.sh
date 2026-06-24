@@ -31,7 +31,7 @@ else
 fi
 
 export SEED=$seed
-export RUN_ID=${RUN_ID:-${candidate}_seed${seed}}
+export RUN_ID=${GOAL3_RUN_ID_OVERRIDE:-${candidate}_seed${seed}}
 candidate_dir="$GOAL3_RUN_DIR/candidates/$candidate/seed_$seed"
 mkdir -p "$candidate_dir"
 export ARTIFACT_DIR=$candidate_dir
@@ -88,6 +88,29 @@ python "$script_dir/parse_train_log.py" \
     "$candidate_dir/stdout.log" \
     "$candidate_dir/summary.json" || true
 
+python - "$candidate_dir" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+candidate_dir = Path(sys.argv[1])
+artifacts = []
+for path in sorted(candidate_dir.iterdir()):
+    if path.is_file() and path.name not in {"stdout.log", "stderr.log"}:
+        h = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+        artifacts.append({
+            "path": str(path),
+            "name": path.name,
+            "bytes": path.stat().st_size,
+            "sha256": h.hexdigest(),
+        })
+(candidate_dir / "artifacts.json").write_text(json.dumps(artifacts, indent=2) + "\n")
+PY
+
 python - "$candidate_dir/summary.json" "$GOAL3_ARTIFACT_LIMIT" "$exit_code" "$candidate_timeout" <<'PY'
 import json
 import sys
@@ -107,6 +130,7 @@ status = {
     "total_submission_bytes": total,
     "artifact_limit": limit,
     "artifact_under_limit": under if total is not None else None,
+    "artifacts_manifest": str(summary.parent / "artifacts.json"),
 }
 Path(summary.parent / "status.json").write_text(json.dumps(status, indent=2) + "\n")
 if exit_code != 0:

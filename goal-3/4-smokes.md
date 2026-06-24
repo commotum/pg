@@ -30,6 +30,12 @@ Short H100 candidate smoke:
 goal-3/h100-short-smoke.sbatch
 ```
 
+Primary campaign runner that now embeds the required runtime checks:
+
+```text
+goal-3/h100-campaign-runner.sbatch
+```
+
 Shared helpers:
 
 ```text
@@ -93,9 +99,12 @@ bash -n goal-3/h100-short-smoke.sbatch
 
 Runtime checks pending:
 
-- `prepare-env.sbatch` has not been submitted;
-- `h100-env-smoke.sbatch` has not been submitted;
-- `h100-short-smoke.sbatch` has not been submitted;
+- standalone `h100-env-smoke.sbatch` has not been submitted and is no longer
+  the recommended next H100 request;
+- standalone `h100-short-smoke.sbatch` has not been submitted and is now a
+  fallback diagnostic;
+- campaign-internal env smoke, baseline parity, and qMLP package accounting
+  have not run;
 - no package bytes have been measured from the staged qMLP file yet.
 
 ## Completion Requirements
@@ -103,12 +112,13 @@ Runtime checks pending:
 - Smoke scripts exist: complete.
 - Static checks pass: complete.
 - Shared parser exists: complete.
-- Environment build succeeds on HPC: pending.
-- H100 env smoke passes: pending user-approved H100 job.
-- Candidate smoke package bytes are known: pending user-approved H100 job.
+- Environment build succeeds on HPC: complete, job `20487397`.
+- Runtime `lrzip` build succeeds on HPC: complete, job `20487617`.
+- Campaign-internal H100 env smoke passes: pending user-approved H100 campaign.
+- Candidate package bytes are known: pending user-approved H100 campaign.
 
 ## Next Phase
 
-Phase 5 should run the cheapest approved non-H100 work first: sync the repo to
-HPC and submit the CPU environment-prep job if the user wants to proceed. H100
-smokes remain gated behind explicit review and approval.
+The remaining smoke/package checks should run inside the reviewed autonomous
+H100 campaign. The standalone smoke scripts remain available only as fallback
+diagnostics after explicit review.

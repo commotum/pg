@@ -50,15 +50,16 @@ full record stack runs on the intended H100 class.
     compression.
 13. Local static checks pass for the staged training file and all current Goal 3
     helper/sbatch scripts.
-14. The default one-hour H100 runner order is now
-    `dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384`. This prioritizes the
-    `sp16384` qMLP record contender after minimal dense/qMLP smoke validation.
+14. The old one-hour H100 runner order
+    `dense_sp8192_smoke qmlp_sp8192_smoke qmlp_sp16384` remains available as a
+    component/fallback path, but it is no longer the recommended H100 approval
+    target.
 15. The H100 runner now records dirty Git evidence through `git-status.txt`,
     `git-diff.stat`, and `git-diff.patch`, which is required for later
     compliance review.
-16. The H100 short-smoke and record-runner scripts now stage the Goal 3 source
-    tree and both required CaseOps data/tokenizer sets to node-local scratch
-    under `/scratch/$USER/$SLURM_JOB_ID/goal3`.
+16. The H100 short-smoke, record-runner, and campaign-runner scripts now stage
+    the Goal 3 source tree and both required CaseOps data/tokenizer sets to
+    node-local scratch under `/scratch/$USER/$SLURM_JOB_ID/goal3`.
 17. `goal-3/scripts/env_smoke.py` centralizes the H100 environment smoke:
     8 visible CUDA devices, FA3 import, `lrzip`, and `sp8192`/`sp16384`
     tokenizer vocab sizes.
@@ -76,16 +77,18 @@ full record stack runs on the intended H100 class.
     `lrzip 0.651` under `/nfs/hpc/share/peterj29/pg/tools/lrzip/bin/lrzip`.
     The build required user-local LZO and LZ4. The binary cannot be validated by
     executing it on the submit node because the submit node has an older glibc;
-    the valid next check is inside the H100 env smoke allocation.
-22. Phase 7 live Slurm refresh on 2026-06-23 at 16:05 Pacific still shows
+    the valid next check is inside the campaign-internal H100 env smoke.
+22. Phase 7 live Slurm refresh on 2026-06-23 at 16:39 Pacific still shows
     `dgxh-3` as the valid H100 80GB target class for
     `--constraint="h100&vram80g"`. `dgxh-1` remains unsuitable for the intended
     competition-class run because it is advertised as `h100-40g`.
-23. `srun --test-only` for both the 15-minute H100 env smoke and the one-hour
-    record runner currently predicts `dgxh-3` at `2026-06-27T08:29:30`.
+23. `srun --test-only` for the exact three-hour campaign request predicts
+    `dgxh-3` at `2026-06-27T20:29:30`:
+    `srun --test-only -p dgxh --constraint="h100&vram80g" --gres=gpu:8
+    --nodes=1 --ntasks=1 --cpus-per-task=64 --mem=500G --time=03:00:00 true`.
 24. The H100 approval packet now exists at `goal-3/7-approval.md`. It requests
-    approval only for `goal-3/h100-env-smoke.sbatch`; approval for the later
-    one-hour record runner remains separate and unrequested.
+    approval for `goal-3/h100-campaign-runner.sbatch`, which runs runtime setup,
+    dense baseline parity, and then qMLP `sp16384` seeds `42`, `0`, and `1234`.
 25. Static pre-H100 audit found that `env_smoke.py` previously only checked
     whether `lrzip` was on `PATH`. It now runs a lightweight version/help probe
     and fails the H100 env smoke if the compute-built `lrzip` binary cannot
@@ -111,9 +114,10 @@ full record stack runs on the intended H100 class.
     the H100 run summaries.
 30. Static final-status audit found early env/staging failure paths that could
     exit before writing `final-status.json`. `goal-3/scripts/common.sh` now
-    provides `goal3_write_final_status`, and the H100 env, short-smoke, and
-    record-runner scripts install traps that write failure status when the
-    normal summary path has not already done so.
+    provides `goal3_write_final_status`, and the H100 env, short-smoke,
+    record-runner, campaign-runner, and optional repair-agent scripts install
+    traps that write failure status when the normal summary path has not already
+    done so.
 31. Follow-up final-status audit moved the short-smoke and record-runner traps
     ahead of env-smoke execution and added the same bounded final-status trap to
     the optional repair-agent. Normal short-smoke and record-runner summaries
@@ -129,6 +133,27 @@ full record stack runs on the intended H100 class.
     80GB constraints, final-status traps, scratch staging, and bounded runner
     defaults. It passed locally and on the remote submit node after removing a
     Python future import unsupported by the submit-node `python3`.
+34. Added `goal-3/h100-campaign-runner.sbatch` as the primary approval target.
+    It requests one three-hour 8xH100 80GB allocation, validates/builds runtime
+    requirements including FA3 if needed, gates on full dense `sp8192` seed-42
+    baseline parity, and then runs qMLP `sp16384` for seeds `42`, `0`, and
+    `1234`.
+35. `goal-3/scripts/run_candidate.sh` now writes `artifacts.json` with byte
+    sizes and sha256 hashes for non-log candidate outputs, so model/submission
+    artifacts can be traced after the campaign.
+36. The campaign now records a `source-snapshot/goal-3/` copy and
+    `source-snapshot.sha256` manifest in each run directory. This is important
+    because the remote checkout can be dirty or have `goal-3/` untracked
+    relative to its Git `HEAD`; relying on `git-diff.patch` alone would not
+    prove the exact scripts/docs/staged source that ran.
+37. Added `goal-3/logs/.gitkeep` and a static-audit guard for it. All sbatch
+    files write stdout/stderr under `goal-3/logs/`, so the directory must exist
+    before Slurm starts the job.
+38. `goal-3/scripts/run_candidate.sh` now scopes `RUN_ID` to
+    `${candidate}_seed${seed}` by default, with only `GOAL3_RUN_ID_OVERRIDE` as
+    an explicit escape hatch. This prevents a pre-existing exported `RUN_ID`
+    from making sequential campaign candidates share log names or TTT `/tmp`
+    counter paths.
 
 ## Not Yet Known
 
@@ -143,16 +168,17 @@ full record stack runs on the intended H100 class.
   count materially versus the dense record.
 - Whether the `sp16384` tokenizer loads with vocab size 16384 in the eventual
   H100/Goal 3 Python environment.
-- Whether scratch staging overhead is small enough relative to the one-hour
-  allocation. The datasets are small enough to stage in principle, but the real
-  copy time should be visible in `scratch-stage.txt` and job logs.
+- Whether scratch staging overhead is small enough relative to the three-hour
+  campaign allocation. The datasets are small enough to stage in principle, but
+  the real copy time should be visible in `scratch-stage.txt` and job logs.
+- Whether four full candidate runs, including TTT/quantization/compression, fit
+  comfortably inside the three-hour campaign request.
 
 ## Current Conclusion
 
-The next useful work is to ask for explicit approval to submit only the
-15-minute H100 env smoke described in `goal-3/7-approval.md`. The CPU
-environment and tools prep are complete, live Slurm state has been refreshed,
-the exact H100 env-smoke request has a current `srun --test-only` estimate, and
-the synced remote Goal 3 scripts pass submit-node static checks including the
-static Goal 3 guardrail audit. No H100/H200 submission should happen until the
-user approves that exact smoke request.
+Pre-approval prep for the autonomous three-hour H100 campaign is complete:
+local static checks passed, `goal-3/` was synced to the remote HPC checkout,
+remote submit-node static checks passed, and the exact three-hour dry-run
+predicts `dgxh-3` at `2026-06-27T20:29:30`. The next useful work is to ask for
+explicit approval to submit `goal-3/h100-campaign-runner.sbatch`. No H100/H200
+submission should happen until the user approves that exact campaign request.

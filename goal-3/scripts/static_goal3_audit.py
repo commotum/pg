@@ -17,7 +17,10 @@ COMMON = ROOT / "scripts" / "common.sh"
 ENV_SMOKE = ROOT / "h100-env-smoke.sbatch"
 SHORT_SMOKE = ROOT / "h100-short-smoke.sbatch"
 RECORD_RUNNER = ROOT / "h100-record-runner.sbatch"
+CAMPAIGN_RUNNER = ROOT / "h100-campaign-runner.sbatch"
 REPAIR_AGENT = ROOT / "h100-repair-agent.sbatch"
+LOGS_KEEP = ROOT / "logs" / ".gitkeep"
+RUN_CANDIDATE = ROOT / "scripts" / "run_candidate.sh"
 
 
 def read(path: Path) -> str:
@@ -63,6 +66,8 @@ def check_common(common: str) -> None:
     require_literal(common, "GOAL3_SP16384_DATA=", "sp16384 data path")
     require_literal(common, "goal3_write_final_status()", "final-status helper")
     require_literal(common, "goal3_prepare_local_workspace()", "scratch staging helper")
+    require_literal(common, "goal3_ensure_runtime_requirements()", "runtime requirements helper")
+    require_literal(common, "goal3_record_source_snapshot()", "source snapshot helper")
 
     require(
         common,
@@ -86,6 +91,7 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
     require_literal(text, "#SBATCH --constraint=h100&vram80g", f"{name} uses H100 80GB constraint")
     require_literal(text, "#SBATCH --gres=gpu:8", f"{name} requests 8 GPUs")
     require_literal(text, "goal3_init_run_dir", f"{name} initializes run dir")
+    require_literal(text, "goal3_record_source_snapshot", f"{name} records source snapshot")
     require_literal(text, "trap cleanup EXIT TERM INT", f"{name} has final-status trap")
     require_literal(text, "goal3_write_final_status", f"{name} writes final status")
     if name != "repair-agent":
@@ -102,6 +108,22 @@ def check_sbatch(name: str, text: str, *, expect_candidate_order: bool = False) 
         )
         require_literal(text, "GOAL3_SMOKE_TIMEOUT:-8m", f"{name} bounded smoke timeout")
         require_literal(text, "GOAL3_FULL_TIMEOUT:-36m", f"{name} bounded full timeout")
+    if name == "campaign-runner":
+        require_literal(text, "#SBATCH --time=03:00:00", "campaign requests one longer queue slot")
+        require_literal(text, "goal3_ensure_runtime_requirements", "campaign validates/builds runtime requirements")
+        require_literal(text, "baseline-parity.json", "campaign writes baseline parity gate")
+        require_literal(text, "GOAL3_BASELINE_PARITY_MAX_BPB", "campaign has baseline parity BPB gate")
+        require_literal(text, 'qmlp_seeds=${GOAL3_QMLP_SEEDS:-"42 0 1234"}', "campaign defaults to three qMLP seeds")
+        require_literal(text, "qmlp_quantized_ttt_val_bpb_mean", "campaign summarizes qMLP mean")
+
+
+def check_run_candidate(text: str) -> None:
+    require_literal(
+        text,
+        'export RUN_ID=${GOAL3_RUN_ID_OVERRIDE:-${candidate}_seed${seed}}',
+        "candidate run id is candidate/seed scoped by default",
+    )
+    require_literal(text, "export ARTIFACT_DIR=$candidate_dir", "candidate artifact dir scoped by candidate/seed")
 
 
 def main() -> int:
@@ -110,10 +132,14 @@ def main() -> int:
         common = read(COMMON)
         check_train(train)
         check_common(common)
+        check_run_candidate(read(RUN_CANDIDATE))
         check_sbatch("env-smoke", read(ENV_SMOKE))
         check_sbatch("short-smoke", read(SHORT_SMOKE))
         check_sbatch("record-runner", read(RECORD_RUNNER), expect_candidate_order=True)
+        check_sbatch("campaign-runner", read(CAMPAIGN_RUNNER))
         check_sbatch("repair-agent", read(REPAIR_AGENT))
+        if not LOGS_KEEP.exists():
+            raise AssertionError("missing invariant: logs/.gitkeep for sbatch stdout/stderr directory")
     except AssertionError as exc:
         print(f"static_goal3_audit: FAILED: {exc}", file=sys.stderr)
         return 1

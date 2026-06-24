@@ -17,8 +17,10 @@ Completed locally:
 
 Pending on HPC:
 
-- run `goal-3/h100-env-smoke.sbatch` only after H100 approval;
-- run `goal-3/h100-short-smoke.sbatch` only after H100 approval.
+- run the campaign-internal H100 environment smoke only after approval of
+  `goal-3/h100-campaign-runner.sbatch`;
+- keep `goal-3/h100-env-smoke.sbatch` and `goal-3/h100-short-smoke.sbatch` as
+  fallback diagnostics, not the default next H100 request.
 
 Completed on HPC CPU compute nodes:
 
@@ -49,8 +51,8 @@ load time, including `flash_attn_interface` and Triton. A local Mac or submit
 node smoke would either fail for irrelevant reasons or encourage mutating a
 submit-node Python environment. That would not prove the H100 path.
 
-The next useful non-H100 runtime preparation is the CPU Slurm environment build,
-not model execution.
+The useful non-H100 runtime preparation has already been done: the shared Python
+environment and user-local `lrzip` tool were built on CPU Slurm compute nodes.
 
 ## Verification
 
@@ -66,25 +68,30 @@ bash -n goal-3/prepare-env.sbatch
 bash -n goal-3/h100-env-smoke.sbatch
 bash -n goal-3/h100-short-smoke.sbatch
 bash -n goal-3/h100-record-runner.sbatch
+bash -n goal-3/h100-campaign-runner.sbatch
 bash -n goal-3/h100-repair-agent.sbatch
 ```
 
 Runtime verification still needed:
 
-- H100 env smoke confirms 8 CUDA devices, FA3 import, `lrzip`, and tokenizer
-  vocab sizes;
-- H100 short smoke confirms dense `sp8192`, qMLP `sp8192`, and qMLP `sp16384`
-  can start and serialize/package.
+- campaign-internal H100 env smoke confirms 8 CUDA devices, FA3 import,
+  `lrzip`, and tokenizer vocab sizes;
+- full dense `sp8192` baseline parity confirms the OSU H100 setup is credible
+  before spending time on qMLP;
+- qMLP `sp16384` seeds confirm runtime, package accounting, and record-level
+  metrics.
 
 ## Completion Requirements
 
 - CPU environment-prep job submitted and terminal: complete, job `20487397`.
 - CPU tools-prep job submitted and terminal: complete, job `20487617`.
-- H100 env smoke approved, submitted, and terminal: pending.
-- H100 short qMLP smoke approved, submitted, and terminal: pending.
+- H100 campaign approved, submitted, and terminal: pending.
+- Campaign baseline parity complete: pending.
+- Campaign qMLP seed runs complete: pending.
 - Runtime logs and parser summaries recorded in `goal-3/jobs.csv`: partial.
 
 ## Next Phase
 
-The next runtime step is the H100 env smoke, but only after explicit approval
-of the H100 request.
+The next runtime step is approval of the autonomous H100 campaign runner. Its
+first runtime gate is the env smoke, followed by dense baseline parity and then
+the qMLP seeds.
