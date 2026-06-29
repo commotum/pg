@@ -1,14 +1,33 @@
-# Goal 3 Handoff: Fixed H100 Campaign, Awaiting Resubmission
+# Goal 3 Handoff: Submitted Fixed H100 Campaign
 
-Last updated: 2026-06-29 10:45 America/Los_Angeles
+Last updated: 2026-06-29 14:16 America/Los_Angeles
 
 This file is a self-contained handoff for a fresh Codex session. Start here if
-the task is to check or resubmit the Goal 3 H100 campaign.
+the task is to check the submitted fixed Goal 3 H100 campaign.
 
 ## Current State
 
-There is no active Goal 3 Slurm job right now. The previously submitted H100
-campaign started and failed before training:
+The fixed H100 campaign has been submitted:
+
+```text
+Slurm job ID: 20517007
+Script: goal-3/h100-campaign-runner.sbatch
+Partition: dgxh
+Constraint: h100&vram80g
+GRES: gpu:8
+Nodes: 1
+Tasks: 1
+CPUs per task: 64
+Memory: 500G
+Walltime: 06:00:00
+Submitted: 2026-06-29T14:15:47
+Latest known state: PD, reason Resources
+StartTime: Unknown
+Run directory once started:
+/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20517007
+```
+
+The earlier H100 campaign started and failed before training:
 
 ```text
 Slurm job ID: 20487886
@@ -66,7 +85,7 @@ stale_refs=0
 codex-cli 0.130.0
 ```
 
-Latest dry-run for the same fixed H100 request:
+Dry-run before the retry for the same fixed H100 request:
 
 ```text
 Dry-run job: 20516291
@@ -74,13 +93,7 @@ Predicted start: 2026-07-02T09:17:55
 Predicted node: dgxh-3
 ```
 
-Do not resubmit automatically. Ask the user before launching another H100 job.
-
-Expected run directory for a future campaign:
-
-```text
-/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-$SLURM_JOB_ID
-```
+Do not submit another H100 job while `20517007` is active.
 
 Remote project checkout:
 

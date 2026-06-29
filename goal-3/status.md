@@ -1,16 +1,21 @@
 # Goal 3 Status
 
-Last updated: 2026-06-29 10:45 America/Los_Angeles
+Last updated: 2026-06-29 14:16 America/Los_Angeles
 
 ## Current Phase
 
-Phase 8: H100 campaign repaired, awaiting explicit retry approval.
+Phase 8: fixed H100 campaign submitted, pending resources.
 
-Status: The previously approved six-hour `goal-3/h100-campaign-runner.sbatch`
-request ran as Slurm job `20487886` and failed before training. `sacct` shows
+Status: The fixed six-hour `goal-3/h100-campaign-runner.sbatch` request was
+submitted as Slurm job `20517007` at `2026-06-29T14:15:47`. Latest `squeue` and
+`scontrol` checks show `PENDING`, reason `Resources`, start time `Unknown`, on
+partition `dgxh` with `h100&vram80g`, `gpu:8`, `cpus-per-task=64`, `mem=500G`,
+and `time=06:00:00`. The run directory has not been created yet because the job
+has not started.
+
+The previous campaign job `20487886` failed before training. `sacct` shows
 `FAILED`, exit `1:0`, elapsed `00:00:32`, on `dgxh-3`, from
-`2026-06-24T15:08:55` to `2026-06-24T15:09:27`. There are currently no active
-Goal 3 jobs in `squeue`.
+`2026-06-24T15:08:55` to `2026-06-24T15:09:27`.
 
 Root cause: the prepared env had been built at
 `/nfs/hpc/share/peterj29/pg/envs/goal3-cu128.tmp.20487397` and then moved to
@@ -39,7 +44,7 @@ Python 3.12 env imports for `torch`, `triton`, `sentencepiece`, `brotli`, and
 Latest fixed `srun --test-only` for the exact `dgxh`, `h100&vram80g`, `gpu:8`,
 `cpus-per-task=64`, `mem=500G`, `time=06:00:00` request returned dry-run job
 `20516291`, predicting start at `2026-07-02T09:17:55` on `dgxh-3`. Do not
-resubmit automatically; ask the user before launching another H100 job.
+submit another H100 job while `20517007` is active.
 
 The queued campaign records dirty diffs, validates/builds runtime requirements,
 stages Goal 3 source/data inputs to node-local scratch, runs a short distributed
@@ -55,10 +60,10 @@ Live storage had enough headroom at the pre-submit check: `1.4T` available on
 `3.2G` total. Runtime temporary files and PyTorch/Triton/PIP/CUDA caches are
 routed to `/scratch/$USER/$SLURM_JOB_ID/goal3`.
 
-Run directory once the job starts:
+Run directory once job `20517007` starts:
 
 ```text
-/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20487886
+/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20517007
 ```
 
 ## Objective
