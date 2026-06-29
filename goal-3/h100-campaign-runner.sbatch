@@ -114,7 +114,11 @@ PY
 cleanup() {
     status=$?
     trap - EXIT TERM INT
-    write_campaign_final_status "$status" "$([[ "$status" -eq 0 ]] && echo passed || echo early_exit)" || true
+    reason=$([[ "$status" -eq 0 ]] && echo passed || echo early_exit)
+    write_campaign_final_status "$status" "$reason" || true
+    if [[ "$status" -ne 0 && "${GOAL3_AUTO_REPAIR_ON_FAILURE:-1}" == "1" ]]; then
+        GOAL3_ENABLE_REPAIR_AGENT=1 goal3_maybe_run_codex_repair "$status" "$reason" "$GOAL3_RUN_DIR" || true
+    fi
     goal3_cleanup_local_workspace || true
     exit "$status"
 }

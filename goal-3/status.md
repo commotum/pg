@@ -1,18 +1,45 @@
 # Goal 3 Status
 
-Last updated: 2026-06-23 20:36 America/Los_Angeles
+Last updated: 2026-06-29 10:45 America/Los_Angeles
 
 ## Current Phase
 
-Phase 8: H100 execution window, queued.
+Phase 8: H100 campaign repaired, awaiting explicit retry approval.
 
-Status: The user approved the exact six-hour `goal-3/h100-campaign-runner.sbatch`
-request and the campaign was submitted as Slurm job `20487886`. A fresh
-`srun --test-only` immediately before submission returned dry-run job
-`20487885`, predicting start at `2026-06-28T08:29:30` on `dgxh-3` for the exact
-`dgxh`, `h100&vram80g`, `gpu:8`, `cpus-per-task=64`, `mem=500G`,
-`time=06:00:00` request. Latest checked `squeue` state for `20487886` was `PD`
-with reason `(Priority)`.
+Status: The previously approved six-hour `goal-3/h100-campaign-runner.sbatch`
+request ran as Slurm job `20487886` and failed before training. `sacct` shows
+`FAILED`, exit `1:0`, elapsed `00:00:32`, on `dgxh-3`, from
+`2026-06-24T15:08:55` to `2026-06-24T15:09:27`. There are currently no active
+Goal 3 jobs in `squeue`.
+
+Root cause: the prepared env had been built at
+`/nfs/hpc/share/peterj29/pg/envs/goal3-cu128.tmp.20487397` and then moved to
+`/nfs/hpc/share/peterj29/pg/envs/goal3-cu128`. The moved env worked through
+`bin/python`, but `bin/activate` and console scripts still pointed at the old
+tmp path, causing the campaign runtime check to use `/usr/bin/python` and report
+missing `torch`, `triton`, `sentencepiece`, and `brotli`.
+
+Fixes applied locally and copied to
+`/nfs/hpc/share/peterj29/pg/src/pg` on 2026-06-29:
+
+- `goal3_activate_env` now uses the final env path directly and verifies
+  `python`/`sys.prefix` instead of sourcing relocatable metadata.
+- `run_candidate.sh` now launches with `python -m torch.distributed.run`
+  instead of the `torchrun` console script.
+- `prepare-env.sbatch` repairs venv metadata after moving a tmp env into place.
+- `h100-campaign-runner.sbatch` now runs a bounded `codex exec` repair pass on
+  nonzero exit by default (`GOAL3_AUTO_REPAIR_ON_FAILURE=1`), without nested
+  Slurm submission.
+
+Remote verification passed: Bash syntax checks, `static_goal3_audit.py`,
+Python 3.12 env imports for `torch`, `triton`, `sentencepiece`, `brotli`, and
+`flash_attn_interface`, `python -m torch.distributed.run --help`, zero stale
+`goal3-cu128.tmp.20487397` references, and `codex-cli 0.130.0`.
+
+Latest fixed `srun --test-only` for the exact `dgxh`, `h100&vram80g`, `gpu:8`,
+`cpus-per-task=64`, `mem=500G`, `time=06:00:00` request returned dry-run job
+`20516291`, predicting start at `2026-07-02T09:17:55` on `dgxh-3`. Do not
+resubmit automatically; ask the user before launching another H100 job.
 
 The queued campaign records dirty diffs, validates/builds runtime requirements,
 stages Goal 3 source/data inputs to node-local scratch, runs a short distributed

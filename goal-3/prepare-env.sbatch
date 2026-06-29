@@ -85,5 +85,8 @@ if [[ -d "$GOAL3_ENV_DIR" ]]; then
     echo "Backed up existing env to $backup" | tee -a "$GOAL3_RUN_DIR/status.txt"
 fi
 mv "$tmp_env" "$GOAL3_ENV_DIR"
+goal3_repair_venv_metadata "$GOAL3_ENV_DIR" "$tmp_env"
+goal3_activate_env
+goal3_record_python_context "$GOAL3_RUN_DIR"
 echo "Environment ready: $GOAL3_ENV_DIR" | tee -a "$GOAL3_RUN_DIR/status.txt"
 trap - EXIT TERM INT

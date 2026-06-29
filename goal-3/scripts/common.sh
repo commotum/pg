@@ -83,8 +83,84 @@ goal3_activate_env() {
         echo "Run goal-3/prepare-env.sbatch before H100 execution." >&2
         return 2
     fi
-    # shellcheck disable=SC1091
-    source "$GOAL3_ENV_DIR/bin/activate"
+    if [[ ! -x "$GOAL3_ENV_DIR/bin/python" ]]; then
+        echo "missing executable Python at $GOAL3_ENV_DIR/bin/python" >&2
+        echo "Run goal-3/prepare-env.sbatch before H100 execution." >&2
+        return 2
+    fi
+
+    # Do not source bin/activate here. Python venv activation scripts and
+    # console-script shebangs embed absolute paths, and this env is built via a
+    # temporary directory before being moved into place.
+    export VIRTUAL_ENV="$GOAL3_ENV_DIR"
+    export VIRTUAL_ENV_PROMPT="($(basename "$GOAL3_ENV_DIR")) "
+    export PATH="$GOAL3_ENV_DIR/bin:$PATH"
+    unset PYTHONHOME
+    hash -r 2>/dev/null || true
+
+    local active_python
+    active_python=$(command -v python || true)
+    if [[ "$active_python" != "$GOAL3_ENV_DIR/bin/python" ]]; then
+        echo "failed to activate GOAL3_ENV_DIR=$GOAL3_ENV_DIR; python resolves to ${active_python:-missing}" >&2
+        return 2
+    fi
+    python - "$GOAL3_ENV_DIR" <<'PY'
+import os
+import sys
+
+expected = sys.argv[1]
+actual = sys.prefix
+try:
+    matches = os.path.samefile(actual, expected)
+except OSError:
+    matches = os.path.abspath(actual) == os.path.abspath(expected)
+if not matches:
+    print(f"active Python prefix mismatch: expected {expected}, got {actual}", file=sys.stderr)
+    raise SystemExit(2)
+PY
+}
+
+goal3_repair_venv_metadata() {
+    local env_dir=${1:-$GOAL3_ENV_DIR}
+    local old_prefix=${2:-}
+    if [[ -z "$old_prefix" || ! -d "$env_dir" ]]; then
+        return 0
+    fi
+    local repair_python=$env_dir/bin/python
+    if [[ ! -x "$repair_python" ]]; then
+        repair_python=$(command -v python3 || command -v python)
+    fi
+    "$repair_python" - "$env_dir" "$old_prefix" <<'PY'
+import stat
+import sys
+from pathlib import Path
+
+env_dir = Path(sys.argv[1])
+old_prefix = sys.argv[2]
+old_name = Path(old_prefix).name
+new_name = env_dir.name
+targets = [env_dir / "pyvenv.cfg"]
+bin_dir = env_dir / "bin"
+if bin_dir.exists():
+    targets.extend(path for path in bin_dir.iterdir() if path.is_file())
+
+for path in targets:
+    if not path.exists():
+        continue
+    try:
+        data = path.read_bytes()
+    except OSError:
+        continue
+    if b"\0" in data:
+        continue
+    text = data.decode("utf-8", errors="surrogateescape")
+    patched = text.replace(old_prefix, str(env_dir)).replace(old_name, new_name)
+    if patched == text:
+        continue
+    mode = path.stat().st_mode
+    path.write_text(patched, encoding="utf-8", errors="surrogateescape")
+    path.chmod(stat.S_IMODE(mode))
+PY
 }
 
 goal3_record_context() {
@@ -252,6 +328,68 @@ payload = {
 }
 path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 PY
+}
+
+goal3_maybe_run_codex_repair() {
+    local failure_status=${1:-1}
+    local reason=${2:-early_exit}
+    local out_dir=${3:-$GOAL3_RUN_DIR}
+
+    if [[ "${GOAL3_ENABLE_REPAIR_AGENT:-0}" != "1" ]]; then
+        return 0
+    fi
+
+    mkdir -p "$out_dir"
+    local codex_bin=${GOAL3_CODEX_BIN:-/nfs/stak/users/peterj29/.local/bin/codex}
+    local status_file="$out_dir/codex-repair-status.txt"
+    if [[ ! -x "$codex_bin" ]]; then
+        {
+            echo "status=skipped"
+            echo "reason=codex_not_executable"
+            echo "codex_bin=$codex_bin"
+        } >"$status_file"
+        return 0
+    fi
+
+    local repair_prompt="$out_dir/repair-prompt.md"
+    {
+        if [[ -f "$GOAL3_REPO_ROOT/goal-3/0-prompt.md" ]]; then
+            cat "$GOAL3_REPO_ROOT/goal-3/0-prompt.md"
+        else
+            echo "# Goal 3 Repair"
+        fi
+        printf '\n\n## Repair-Agent Bounds\n\n'
+        printf 'Slurm job: %s\n' "${SLURM_JOB_ID:-unknown}"
+        printf 'Run directory: %s\n' "$out_dir"
+        printf 'Failure status: %s\n' "$failure_status"
+        printf 'Failure reason: %s\n\n' "$reason"
+        printf '%s\n' '- You are running inside the failing Goal 3 H100 campaign allocation.'
+        printf '%s\n' '- Do not submit new Slurm jobs.'
+        printf '%s\n' '- Do not launch broad sweeps.'
+        printf '%s\n' '- Only diagnose and patch the current Goal 3 run path.'
+        printf '%s\n' '- Run at most one bounded smoke after a patch.'
+        printf '%s\n' '- Write findings to goal-3/status.md and the current run directory.'
+    } >"$repair_prompt"
+
+    set +e
+    timeout "${GOAL3_REPAIR_TIMEOUT:-20m}" "$codex_bin" exec \
+        --cd "$GOAL3_REPO_ROOT" \
+        "$(cat "$repair_prompt")" \
+        >"$out_dir/codex-repair.stdout" \
+        2>"$out_dir/codex-repair.stderr"
+    local repair_status=$?
+    set -e
+
+    {
+        echo "status=$repair_status"
+        echo "timestamp=$(goal3_timestamp)"
+        echo "codex_bin=$codex_bin"
+        echo "timeout=${GOAL3_REPAIR_TIMEOUT:-20m}"
+        echo "prompt=$repair_prompt"
+        echo "stdout=$out_dir/codex-repair.stdout"
+        echo "stderr=$out_dir/codex-repair.stderr"
+    } >"$status_file"
+    return "$repair_status"
 }
 
 goal3_cleanup_local_workspace() {

@@ -78,7 +78,7 @@ fi
 
 set +e
 timeout "$candidate_timeout" \
-    "${launcher[@]}" torchrun --standalone --nproc_per_node="${GOAL3_NPROC_PER_NODE:-8}" train_gpt.py \
+    "${launcher[@]}" python -m torch.distributed.run --standalone --nproc_per_node="${GOAL3_NPROC_PER_NODE:-8}" train_gpt.py \
     > >(tee "$candidate_dir/stdout.log") \
     2> >(tee "$candidate_dir/stderr.log" >&2)
 exit_code=$?
