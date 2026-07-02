@@ -1,17 +1,69 @@
 # Goal 3 Status
 
-Last updated: 2026-06-29 14:16 America/Los_Angeles
+Last updated: 2026-07-02 00:08 America/Los_Angeles
 
 ## Current Phase
 
-Phase 8: fixed H100 campaign submitted, pending resources.
+Phase 8: fixed H100 campaign completed; result analysis complete.
 
-Status: The fixed six-hour `goal-3/h100-campaign-runner.sbatch` request was
-submitted as Slurm job `20517007` at `2026-06-29T14:15:47`. Latest `squeue` and
-`scontrol` checks show `PENDING`, reason `Resources`, start time `Unknown`, on
-partition `dgxh` with `h100&vram80g`, `gpu:8`, `cpus-per-task=64`, `mem=500G`,
-and `time=06:00:00`. The run directory has not been created yet because the job
-has not started.
+Status: The fixed six-hour `goal-3/h100-campaign-runner.sbatch` request ran as
+Slurm job `20517007`, completed successfully, and wrote
+`final-status.json` with `"status": "passed"` and exit code `0`.
+
+Slurm terminal state:
+
+```text
+JobID: 20517007
+State: COMPLETED
+ExitCode: 0:0
+Node: dgxh-3
+Start: 2026-07-01T07:32:15
+End: 2026-07-01T10:02:57
+Elapsed: 02:30:42
+```
+
+The ETA checked on 2026-06-29 was `2026-07-01T09:32:55`, so the job started
+about 2 hours earlier than that ETA. It completed about 2.5 hours after actual
+start.
+
+Run directory:
+
+```text
+/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20517007
+```
+
+The environment smoke passed on 8x NVIDIA H100 80GB HBM3 with
+`torch==2.9.1+cu128`, FA3 importable, both CaseOps tokenizers loading expected
+vocab sizes, and `lrzip` runnable on the allocated node.
+
+The smoke gate passed for `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
+`qmlp_sp16384_smoke`, and `qmlp_sp16384_ttt_smoke`.
+
+Dense baseline gate:
+
+```text
+candidate: dense_sp8192 seed 42
+post-TTT BPB: 1.06843496
+train steps: 4921
+submission bytes: 15,907,532
+hard gate: passed
+strict parity target: failed warning only, BPB > 1.065
+```
+
+qMLP `sp16384` final seeds:
+
+```text
+seed 42:   post-TTT BPB 1.12930396, steps 4718, bytes 10,546,381
+seed 0:    post-TTT BPB 1.12989323, steps 4717, bytes 10,547,376
+seed 1234: post-TTT BPB 1.13081377, steps 4717, bytes 10,549,448
+mean: 1.1300036533
+stdev: 0.0007609379
+```
+
+Interpretation: qMLP stayed comfortably under the 16 MB artifact budget but did
+not improve the dense baseline or the primary/fallback record targets. The
+answer to the Goal 3 decision question is no for this implemented qMLP
+candidate on the intended 8xH100 setup.
 
 The previous campaign job `20487886` failed before training. `sacct` shows
 `FAILED`, exit `1:0`, elapsed `00:00:32`, on `dgxh-3`, from
@@ -43,28 +95,13 @@ Python 3.12 env imports for `torch`, `triton`, `sentencepiece`, `brotli`, and
 
 Latest fixed `srun --test-only` for the exact `dgxh`, `h100&vram80g`, `gpu:8`,
 `cpus-per-task=64`, `mem=500G`, `time=06:00:00` request returned dry-run job
-`20516291`, predicting start at `2026-07-02T09:17:55` on `dgxh-3`. Do not
-submit another H100 job while `20517007` is active.
-
-The queued campaign records dirty diffs, validates/builds runtime requirements,
-stages Goal 3 source/data inputs to node-local scratch, runs a short distributed
-smoke gate for `dense_sp8192_smoke`, `qmlp_sp8192_smoke`,
-`qmlp_sp16384_smoke`, and `qmlp_sp16384_ttt_smoke`, runs a full dense `sp8192`
-baseline gate, and then runs qMLP `sp16384` for seeds `42`, `0`, and `1234` if
-the smoke gate and baseline hard validity checks pass. It writes
-machine-readable `final-status.json` on normal completion or early failure when
-possible.
+`20516291`, predicting start at `2026-07-02T09:17:55` on `dgxh-3`. The actual
+job started earlier, at `2026-07-01T07:32:15`.
 
 Live storage had enough headroom at the pre-submit check: `1.4T` available on
 `/nfs/hpc/share/peterj29`, with the two required CaseOps data exports about
 `3.2G` total. Runtime temporary files and PyTorch/Triton/PIP/CUDA caches are
 routed to `/scratch/$USER/$SLURM_JOB_ID/goal3`.
-
-Run directory once job `20517007` starts:
-
-```text
-/nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20517007
-```
 
 ## Objective
 

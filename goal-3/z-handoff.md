@@ -1,13 +1,13 @@
-# Goal 3 Handoff: Submitted Fixed H100 Campaign
+# Goal 3 Handoff: Completed Fixed H100 Campaign
 
-Last updated: 2026-06-29 14:16 America/Los_Angeles
+Last updated: 2026-07-02 00:08 America/Los_Angeles
 
 This file is a self-contained handoff for a fresh Codex session. Start here if
-the task is to check the submitted fixed Goal 3 H100 campaign.
+the task is to inspect the completed fixed Goal 3 H100 campaign.
 
 ## Current State
 
-The fixed H100 campaign has been submitted:
+The fixed H100 campaign completed successfully at the Slurm/campaign level:
 
 ```text
 Slurm job ID: 20517007
@@ -21,11 +21,44 @@ CPUs per task: 64
 Memory: 500G
 Walltime: 06:00:00
 Submitted: 2026-06-29T14:15:47
-Latest known state: PD, reason Resources
-StartTime: Unknown
-Run directory once started:
+State: COMPLETED
+ExitCode: 0:0
+Started: 2026-07-01T07:32:15
+Ended: 2026-07-01T10:02:57
+Elapsed: 02:30:42
+Node: dgxh-3
+Run directory:
 /nfs/hpc/share/peterj29/pg/goal-3-runs/goal3-h100-campaign-20517007
 ```
+
+The scheduler ETA checked on 2026-06-29 was `2026-07-01T09:32:55`, so the job
+started about 2 hours earlier than that ETA and finished before the ETA plus the
+six-hour reservation window.
+
+Campaign result:
+
+```text
+final-status.json status: passed
+env smoke: passed on 8x NVIDIA H100 80GB HBM3
+smoke gate: passed
+dense_sp8192 seed 42 hard gate: passed
+dense strict parity: failed warning only, BPB 1.06843496 > 1.065
+qMLP sp16384 3-seed mean post-TTT BPB: 1.1300036533
+qMLP sp16384 post-TTT BPB stdev: 0.0007609379
+```
+
+qMLP seed summaries:
+
+```text
+seed 42:   BPB 1.12930396, steps 4718, bytes 10,546,381
+seed 0:    BPB 1.12989323, steps 4717, bytes 10,547,376
+seed 1234: BPB 1.13081377, steps 4717, bytes 10,549,448
+```
+
+Interpretation: qMLP stayed well under the 16 MB artifact budget but did not
+improve the dense baseline or the record targets. The dense baseline reached
+`1.06843496` post-TTT BPB at `15,907,532` submission bytes, passing the hard
+campaign gate but missing the strict `1.065` parity target.
 
 The earlier H100 campaign started and failed before training:
 
@@ -93,7 +126,8 @@ Predicted start: 2026-07-02T09:17:55
 Predicted node: dgxh-3
 ```
 
-Do not submit another H100 job while `20517007` is active.
+Do not submit another H100 job automatically. The completed result should be
+analyzed before any follow-up H100 allocation.
 
 Remote project checkout:
 

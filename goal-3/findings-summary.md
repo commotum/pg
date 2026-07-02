@@ -211,38 +211,48 @@ full record stack runs on the intended H100 class.
     `dgxh-3`; real Slurm job `20487886` was submitted for
     `goal-3/h100-campaign-runner.sbatch` and latest checked state was `PD`
     with reason `(Priority)`.
+49. Job `20487886` later started and failed before training because
+    `prepare-env.sbatch` created the Python env under
+    `goal3-cu128.tmp.20487397` and moved it into place, leaving `bin/activate`
+    and console-script shebangs pointing at the deleted tmp path. The direct
+    final env Python was valid, but activation fell through to `/usr/bin/python`.
+    The fix was to make `goal3_activate_env` use `$GOAL3_ENV_DIR/bin/python`
+    directly, launch distributed training as `python -m torch.distributed.run`,
+    repair moved-venv metadata after env promotion, and add a bounded Codex
+    repair hook on campaign failure.
+50. The fixed campaign was submitted as job `20517007`. The scheduler ETA
+    checked on 2026-06-29 was `2026-07-01T09:32:55`; actual start was
+    `2026-07-01T07:32:15`, about two hours earlier. The job completed on
+    `dgxh-3` at `2026-07-01T10:02:57` after `02:30:42` with Slurm state
+    `COMPLETED` and exit `0:0`.
+51. Job `20517007` validated the OSU H100 runtime stack: 8x NVIDIA H100 80GB
+    HBM3 were visible, `torch==2.9.1+cu128` and FA3 imported, both CaseOps
+    tokenizers loaded expected vocab sizes, `lrzip 0.651` executed on the
+    allocated node, scratch staging completed, and the four-smoke gate passed.
+52. Dense `sp8192` seed 42 passed the hard campaign gate with post-TTT BPB
+    `1.06843496`, `4921` final train steps, and `15,907,532` submission bytes.
+    It did not pass the strict parity target because BPB was above `1.065`.
+53. qMLP `sp16384` completed all three final seeds and stayed well under 16 MB,
+    but it was not competitive on BPB: seed 42 reached `1.12930396`, seed 0
+    reached `1.12989323`, seed 1234 reached `1.13081377`, with mean
+    `1.1300036533` and stdev `0.0007609379`.
 
 ## Not Yet Known
 
-- Whether qMLP stays beneficial inside the full 2026-04-27 record stack.
-- Whether qMLP interacts cleanly with TTT LoRA, GPTQ/LQER, and per-group
-  compression at runtime.
-- Whether `sp16384` remains under 16 MB in the full record stack after qMLP,
-  LQER, TTT hooks, and code-size changes.
-- Whether OSU's H100/FA3/lrzip environment can reproduce the record stack
-  without dependency or kernel issues.
-- Whether qMLP matrix materialization adds enough overhead to reduce H100 step
-  count materially versus the dense record.
-- Whether the `sp16384` tokenizer loads with vocab size 16384 in the eventual
-  H100/Goal 3 Python environment.
-- Whether scratch staging overhead is small enough relative to the six-hour
-  campaign allocation. The datasets are small enough to stage in principle, but
-  the real copy time should be visible in `scratch-stage.txt` and job logs.
-- Whether the actual allocated H100 node's local scratch has enough free space
-  and normal performance at runtime. The required staged inputs are only about
-  3.2 GB plus source and caches, but node-local scratch availability is checked
-  only once the job starts.
-- Whether four full candidate runs, including TTT/quantization/compression, fit
-  comfortably inside the six-hour campaign request.
-- The terminal state and outputs of submitted Slurm job `20487886`.
+- Whether a different qMLP design, initialization, width/depth tradeoff, or
+  tokenizer choice could recover BPB while preserving the size savings.
+- Whether the dense baseline gap versus the `1.06108` primary record target is
+  from Goal 3 code changes, CaseOps data/tokenizer differences, runtime changes,
+  or ordinary run-to-run variance.
+- Whether any qMLP variant can use the saved artifact budget to add capacity in
+  another subsystem and regain quality.
 
 ## Current Conclusion
 
-Pre-approval prep for the autonomous six-hour H100 campaign is approval-ready:
-local static checks passed, `goal-3/` was synced to the remote HPC checkout,
-remote submit-node static checks passed after the qMLP+TTT smoke/default update,
-and the exact six-hour dry-run predicts `dgxh-3` at `2026-06-27T20:29:30`. An
-eight-hour comparison dry-run is rejected by `MaxGRESRunMinsPerUser`,
-confirming that six hours is the visible 8xH100 QOS ceiling rather than an
-arbitrary cap. No H100/H200 submission should happen until the user approves
-that exact campaign request.
+The fixed H100 campaign answered the Goal 3 decision question for the tested
+candidate: this qMLP `sp16384` implementation does not improve the best
+under-16MB record-track result on the intended OSU 8xH100/FA3 setup. The
+infrastructure path is now validated, the dense baseline hard gate passed, and
+qMLP artifacts are comfortably under budget, but the qMLP 3-seed mean
+post-TTT BPB was `1.1300036533`, far worse than the dense campaign baseline
+`1.06843496` and the record targets `1.06108` / `1.06141`.
